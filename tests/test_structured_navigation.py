@@ -117,15 +117,10 @@ def test_directory_without_index_links_to_first_real_descendant(
     _populate_structured_docs(create_app.storage)
     tree = SidebarPageIndex("suite/reference/index").query()
 
-    reference = next(iter(tree.values()))
-    config = next(
-        entry
-        for entry in reference.children.values()
-        if entry.header == "config"
-    )
+    config = next(entry for entry in tree.values() if entry.header == "config")
     assert config.linkable is True
     assert config.path == "suite/reference/config/framework/1-full"
-    entries = {entry.header: entry for entry in reference.children.values()}
+    entries = {entry.header: entry for entry in tree.values()}
     assert entries["apidocs"].path == "suite/reference/apidocs/index.html"
     assert entries["apidocs"].linkable is True
     assert "assets" not in entries
@@ -156,6 +151,29 @@ def test_structured_document_renders_tabs_numbers_and_numbered_toc(
         for link in soup.select("#extranav-toc a")
     ] == ["1 首篇", "1.1 依赖", "1.2 配置"]
     assert soup.select_one("article #frontmatter") is not None
+
+
+def test_heading_numbering_preserves_non_heading_html_and_existing_numbers():
+    from otterwiki.structured_navigation import number_document_headings
+
+    html = (
+        '<h1 id="overview">概览</h1>'
+        '<table data-example="unchanged"><tr><td>A &amp; B</td></tr></table>'
+        '<h2 class="section" id="details">1.1 已编号</h2>'
+    )
+    toc = [
+        (1, "概览", 1, "概览", "overview"),
+        (2, "1.1 已编号", 2, "1.1 已编号", "details"),
+    ]
+
+    rendered, numbered_toc = number_document_headings(html, toc)
+
+    assert rendered == (
+        '<h1 id="overview"><span class="heading-number">1 </span>概览</h1>'
+        '<table data-example="unchanged"><tr><td>A &amp; B</td></tr></table>'
+        '<h2 class="section" id="details">1.1 已编号</h2>'
+    )
+    assert [entry[3] for entry in numbered_toc] == ["1 概览", "1.1 已编号"]
 
 
 def test_frontmatter_title_is_used_by_regular_page_index(create_app, req_ctx):
@@ -191,6 +209,31 @@ def test_complete_tree_is_available_before_visiting_child_pages(
         "第二页",
         "第一页",
     ]
+
+
+def test_page_metadata_is_read_once_per_navigation_build(
+    create_app, req_ctx, monkeypatch
+):
+    from otterwiki.structured_navigation import StructuredNavigation
+
+    _populate_structured_docs(create_app.storage)
+    navigation = StructuredNavigation.for_page(
+        "suite/components/demo/demo/one"
+    )
+    assert navigation is not None
+    original_load = create_app.storage.load
+    page_reads: dict[str, int] = {}
+
+    def tracked_load(filename, *args, **kwargs):
+        if filename.endswith(".md"):
+            page_reads[filename] = page_reads.get(filename, 0) + 1
+        return original_load(filename, *args, **kwargs)
+
+    monkeypatch.setattr(create_app.storage, "load", tracked_load)
+    navigation._build_component_tree(expand_all=True)
+
+    assert page_reads
+    assert max(page_reads.values()) == 1
 
 
 def test_complete_tree_cache_is_reused_and_invalidated_by_commit(

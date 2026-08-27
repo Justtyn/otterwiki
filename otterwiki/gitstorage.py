@@ -154,7 +154,13 @@ class GitStorage(object):
         return content
 
     @ttl_lru_cache(maxsize=128, ttl=60)
-    def _get_metadata_of_commit(self, commit):
+    def _get_metadata_of_commit(self, commit, include_files=True):
+        """Return commit metadata, optionally including its changed files.
+
+        ``commit.stats.files`` asks GitPython to calculate statistics for the
+        entire commit.  That is useful for changelogs, but prohibitively slow
+        for ordinary page metadata when a commit imports thousands of files.
+        """
         metadata = {
             "revision-full": commit.hexsha,
             "revision": commit.hexsha[
@@ -165,8 +171,9 @@ class GitStorage(object):
             "author_email": commit.author.email,
             #            'author' : '{} {}'.format(commit.author.name, commit.author.email),
             "message": commit.message,
-            "files": commit.stats.files,  # This is slow
         }
+        if include_files:
+            metadata["files"] = commit.stats.files
         # this is a workaround
         if commit.author.email is None:
             metadata["author_name"] = (
@@ -221,7 +228,9 @@ class GitStorage(object):
             try:
                 metadata = metadata_cache[commit]
             except KeyError:
-                metadata = self._get_metadata_of_commit(commit)
+                metadata = self._get_metadata_of_commit(
+                    commit, include_files=False
+                )
                 metadata_cache[commit] = metadata
             for line in cast(List[str | bytes], lines) or []:
                 blamedata.append(
@@ -238,12 +247,14 @@ class GitStorage(object):
                 n += 1
         return blamedata
 
-    def metadata(self, filename, revision=None):
+    def metadata(self, filename, revision=None, include_files=True):
         # sha = repo.head.object.hexsha
         # short_sha = repo.git.rev_parse(sha, short=6)
         commit = self._get_commit(filename, revision)
 
-        return self._get_metadata_of_commit(commit)
+        return self._get_metadata_of_commit(
+            commit, include_files=include_files
+        )
 
     def _get_metadata_of_log(self, logentry: str):
         logentry_lines = logentry.split("\n")

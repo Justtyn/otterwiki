@@ -4,6 +4,7 @@
 import re
 import mistune
 import urllib.parse
+from functools import lru_cache
 from html import unescape
 from bs4 import BeautifulSoup
 from markupsafe import Markup, escape
@@ -178,7 +179,7 @@ def normalize_url_for_protocol_check(value: str) -> str:
     return _URL_STRIP_RE.sub("", decoded).lower()
 
 
-def clean_html(
+def _clean_html_uncached(
     html: str, custom_tags: list = None, custom_attributes: dict = None
 ) -> str:
     """
@@ -295,6 +296,21 @@ def clean_html(
         html = escape(html)
 
     return html
+
+
+@lru_cache(maxsize=4096)
+def _clean_html_default(html: str) -> str:
+    """Validate HTML using the default allowlist and cache repeated tokens."""
+    return _clean_html_uncached(html)
+
+
+def clean_html(
+    html: str, custom_tags: list = None, custom_attributes: dict = None
+) -> str:
+    """Validate inline HTML, caching only the immutable default allowlist."""
+    if custom_tags or custom_attributes:
+        return _clean_html_uncached(html, custom_tags, custom_attributes)
+    return _clean_html_default(html)
 
 
 class OtterwikiMdRenderer(mistune.HTMLRenderer):

@@ -18,6 +18,7 @@ The module intentionally returns the same entry shape as the regular
 from __future__ import annotations
 
 import copy
+import html
 import json
 import posixpath
 import re
@@ -27,7 +28,6 @@ from functools import lru_cache
 from typing import Any
 
 import yaml
-from bs4 import BeautifulSoup
 
 from otterwiki.gitstorage import StorageError
 from otterwiki.server import app, storage
@@ -48,6 +48,16 @@ SIDEBAR_FILENAMES = (
 INDEX_FILENAMES = ("index.md", "readme.md")
 HTML_INDEX_FILENAMES = ("index.html", "index.htm")
 NUMBER_PREFIX = re.compile(r"^(?P<number>\d+(?:\.\d+)*)(?:[、.]|\s)+")
+HEADING_ELEMENT = re.compile(
+    r"(?P<open><h(?P<level>[1-6])\b[^>]*>)"
+    r"(?P<body>.*?)"
+    r"(?P<close></h(?P=level)\s*>)",
+    re.IGNORECASE | re.DOTALL,
+)
+HEADING_ID = re.compile(
+    r"\bid\s*=\s*(?P<quote>['\"])(?P<anchor>.*?)(?P=quote)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def _natural_sort_key(value: str) -> tuple[tuple[int, int | str], ...]:
@@ -139,6 +149,10 @@ class StructuredNavigation:
     def __init__(self, namespace: str, pagepath: str):
         self.namespace = _clean_repo_path(namespace)
         self.pagepath = _clean_repo_path(pagepath)
+        self._page_cache: dict[str, tuple[str | None, float, bool]] = {}
+        self._sidebar_cache: dict[str, list[dict[str, Any]]] = {}
+        self._directory_cache: dict[str, tuple[list[str], list[str]]] = {}
+        self._landing_cache: dict[str, str | None] = {}
         self.portal_path = f"{self.namespace}/.portal.yml"
         self.model_path = f"{self.namespace}/.idp/.model.yaml"
         self.portal = _safe_load_yaml(self.portal_path)
@@ -312,17 +326,10 @@ class StructuredNavigation:
         return tree
 
     def _build_section_tree(
-        self, root: str, title: str, *, expand_all: bool
+        self, root: str, *, expand_all: bool
     ) -> NavigationTree:
         tree = NavigationTree()
-        root_entry = NavigationEntry(
-            path=self._landing_path(root),
-            header=title,
-            scope=root,
-            children=self._build_directory(root, expand_all=expand_all),
-            configured=True,
-        )
-        self._insert(tree, posixpath.basename(root), root_entry)
+        tree.update(self._build_directory(root, expand_all=expand_all))
         return tree
 
     def _mark_active(self, tree: OrderedDict[str, NavigationEntry]) -> bool:
@@ -337,20 +344,30 @@ class StructuredNavigation:
         return branch_active
 
     def _sidebar_config(self, directory: str) -> list[dict[str, Any]]:
+        directory = _clean_repo_path(directory)
+        if directory in self._sidebar_cache:
+            return self._sidebar_cache[directory]
         for filename in SIDEBAR_FILENAMES:
             candidate = join_path([directory, filename])
             if not storage.exists(candidate):
                 continue
             data = _safe_load_json(candidate)
             if isinstance(data, list):
-                return [item for item in data if isinstance(item, dict)]
-        return []
+                result = [item for item in data if isinstance(item, dict)]
+                self._sidebar_cache[directory] = result
+                return result
+        self._sidebar_cache[directory] = []
+        return self._sidebar_cache[directory]
 
     def _read_page(self, filename: str) -> tuple[str | None, float, bool]:
+        if filename in self._page_cache:
+            return self._page_cache[filename]
         try:
             content = storage.load(filename, size=8192)
         except StorageError:
-            return None, 1000.0, False
+            result = (None, 1000.0, False)
+            self._page_cache[filename] = result
+            return result
         metadata = get_frontmatter(content)
         title = get_header(content)
         weight_value = metadata.get("nav_weight", metadata.get("order", 1000))
@@ -359,7 +376,15 @@ class StructuredNavigation:
         except (TypeError, ValueError):
             weight = 1000.0
         hidden = bool(metadata.get("hide", metadata.get("hidden", False)))
-        return title, weight, hidden
+        result = (title, weight, hidden)
+        self._page_cache[filename] = result
+        return result
+
+    def _list_directory(self, directory: str) -> tuple[list[str], list[str]]:
+        directory = _clean_repo_path(directory)
+        if directory not in self._directory_cache:
+            self._directory_cache[directory] = storage.list(directory, depth=0)
+        return self._directory_cache[directory]
 
     def _directory_landing_file(
         self,
@@ -374,6 +399,8 @@ class StructuredNavigation:
         descendant page.
         """
         directory = _clean_repo_path(directory)
+        if directory in self._landing_cache:
+            return self._landing_cache[directory]
         visited = set() if visited is None else visited
         if directory in visited or not storage.isdir(directory):
             return None
@@ -382,11 +409,13 @@ class StructuredNavigation:
         for filename in INDEX_FILENAMES:
             candidate = join_path([directory, filename])
             if storage.exists(candidate):
+                self._landing_cache[directory] = candidate
                 return candidate
 
         for filename in HTML_INDEX_FILENAMES:
             candidate = join_path([directory, filename])
             if storage.exists(candidate):
+                self._landing_cache[directory] = candidate
                 return candidate
 
         for spec in self._sidebar_config(directory):
@@ -397,12 +426,15 @@ class StructuredNavigation:
                 continue
             target = self._target_from_spec(directory, path)
             if storage.exists(target + ".md"):
-                return target + ".md"
+                result = target + ".md"
+                self._landing_cache[directory] = result
+                return result
             landing = self._directory_landing_file(target, visited)
             if landing is not None:
+                self._landing_cache[directory] = landing
                 return landing
 
-        files, directories = storage.list(directory, depth=0)
+        files, directories = self._list_directory(directory)
         page_candidates: list[
             tuple[float, tuple[tuple[int, int | str], ...], str, str]
         ] = []
@@ -424,7 +456,9 @@ class StructuredNavigation:
             )
         if page_candidates:
             page_candidates.sort()
-            return page_candidates[0][3]
+            result = page_candidates[0][3]
+            self._landing_cache[directory] = result
+            return result
 
         directory_names = sorted(
             {split_path(path)[0] for path in directories if path},
@@ -435,7 +469,9 @@ class StructuredNavigation:
                 join_path([directory, name]), visited
             )
             if landing is not None:
+                self._landing_cache[directory] = landing
                 return landing
+        self._landing_cache[directory] = None
         return None
 
     def _entry_for_target(
@@ -551,7 +587,7 @@ class StructuredNavigation:
     def _immediate_candidates(
         self, directory: str, *, expand_all: bool
     ) -> OrderedDict[str, NavigationEntry]:
-        files, directories = storage.list(directory, depth=0)
+        files, directories = self._list_directory(directory)
         candidates: list[tuple[str, NavigationEntry]] = []
         directory_names = {split_path(path)[0] for path in directories if path}
 
@@ -675,11 +711,11 @@ def _cached_navigation_tree(
     navigation = StructuredNavigation(namespace, namespace)
     if section == "manual":
         tree = navigation._build_section_tree(
-            f"{namespace}/aps", "产品手册", expand_all=True
+            f"{namespace}/aps", expand_all=True
         )
     elif section == "reference":
         tree = navigation._build_section_tree(
-            f"{namespace}/reference", "参考指南", expand_all=True
+            f"{namespace}/reference", expand_all=True
         )
     else:
         tree = navigation._build_component_tree(expand_all=True)
@@ -716,7 +752,7 @@ def number_document_headings(
     minimum_level = min(item[2] for item in toc)
     counters = [0] * 6
     numbered_toc: list[tuple[int, str, int, str, str]] = []
-    numbers_by_anchor: dict[str, str] = {}
+    headings_by_anchor: dict[str, tuple[str, bool]] = {}
 
     for count, rendered, level, raw, anchor in toc:
         normalized = max(0, level - minimum_level)
@@ -739,18 +775,27 @@ def number_document_headings(
                 str(value) for value in counters[: normalized + 1]
             )
             label = f"{number} {raw}"
-        numbers_by_anchor[anchor] = number
+        headings_by_anchor[anchor] = (number, existing is None)
         numbered_toc.append((count, rendered, level, label, anchor))
 
-    soup = BeautifulSoup(htmlcontent, "html.parser")
-    for heading in soup.find_all(re.compile(r"^h[1-6]$")):
-        anchor = heading.get("id")
-        if not isinstance(anchor, str) or anchor not in numbers_by_anchor:
-            continue
-        if NUMBER_PREFIX.match(heading.get_text(" ", strip=True)):
-            continue
-        prefix = soup.new_tag("span")
-        prefix["class"] = "heading-number"
-        prefix.string = numbers_by_anchor[anchor] + " "
-        heading.insert(0, prefix)
-    return str(soup), numbered_toc
+    def add_heading_number(match: re.Match[str]) -> str:
+        id_match = HEADING_ID.search(match.group("open"))
+        if id_match is None:
+            return match.group(0)
+        number_and_visibility = headings_by_anchor.get(
+            html.unescape(id_match.group("anchor"))
+        )
+        if number_and_visibility is None or not number_and_visibility[1]:
+            return match.group(0)
+        number = html.escape(number_and_visibility[0])
+        return (
+            match.group("open")
+            + f'<span class="heading-number">{number} </span>'
+            + match.group("body")
+            + match.group("close")
+        )
+
+    # Markdown headings are emitted in this controlled h1-h6 form.  A
+    # targeted substitution avoids parsing and serializing large tables,
+    # code blocks, and the rest of the document just to prefix a few titles.
+    return HEADING_ELEMENT.sub(add_heading_number, htmlcontent), numbered_toc

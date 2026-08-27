@@ -415,7 +415,9 @@ class Page:
             try:
                 # first try with the current filename
                 content = storage.load(self.filename, revision=revision)
-                metadata = storage.metadata(self.filename, revision=revision)
+                metadata = storage.metadata(
+                    self.filename, revision=revision, include_files=False
+                )
             except StorageNotFound as original_error:
                 # if that fails, try to get the filename that was used at this revision
                 try:
@@ -427,7 +429,9 @@ class Page:
                             filename_at_revision, revision=revision
                         )
                         metadata = storage.metadata(
-                            filename_at_revision, revision=revision
+                            filename_at_revision,
+                            revision=revision,
+                            include_files=False,
                         )
                     else:
                         raise original_error
@@ -436,7 +440,9 @@ class Page:
         else:
             try:
                 content = storage.load(self.filename, revision=revision)
-                metadata = storage.metadata(self.filename, revision=revision)
+                metadata = storage.metadata(
+                    self.filename, revision=revision, include_files=False
+                )
             except StorageNotFound as e:
                 if all([not metadata, not content]):
                     # If both are None, raise the exception. Otherwise, a warning will show on the page that
@@ -1434,7 +1440,9 @@ class Attachment:
         self.mimetype = guess_mimetype(self.filepath)
         try:
             self.metadata = storage.metadata(
-                self.filepath, revision=self.revision
+                self.filepath,
+                revision=self.revision,
+                include_files=False,
             )
             self.message = self.metadata["message"]
             self._revision = self.metadata["revision"]
@@ -1593,7 +1601,9 @@ class Attachment:
                     self.filepath, revision=self.revision, mode="rb"
                 )
                 metadata = storage.metadata(
-                    self.filepath, revision=self.revision
+                    self.filepath,
+                    revision=self.revision,
+                    include_files=False,
                 )
             except StorageNotFound:
                 abort(404)

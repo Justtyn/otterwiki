@@ -24,7 +24,7 @@ def sitemap():
     # Add each wiki page to sitemap
     for filename in md_files:
         try:
-            metadata = storage.metadata(filename)
+            metadata = storage.metadata(filename, include_files=False)
             url_elem = SubElement(urlset, 'url')
             pagepath = get_pagename(filename, full=True)
 
