@@ -152,7 +152,7 @@ def test_create_no_password_cannot_login(cli_app_with_user):
         data={"email": "nopass@example.com", "password": ""},
         follow_redirects=True,
     )
-    assert "Invalid email address or password." in rv.data.decode()
+    assert "电子邮箱或密码不正确。" in rv.data.decode()
 
 
 def test_create_duplicate_email_fails(runner_with_user):

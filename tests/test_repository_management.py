@@ -43,9 +43,9 @@ class TestRepositoryManagementAccess:
         rv = admin_client.get(ADMIN_REPO_MGMT_URL)
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert "Repository Management" in html
-        assert "Enable Git Web server" in html
-        assert "Enable pushing to SSH remote" in html
+        assert "仓库管理" in html
+        assert "启用 Git Web 服务器" in html
+        assert "启用推送到 SSH 远程仓库" in html
 
     def test_non_admin_access_denied(self, other_client):
         """Non-admin users get 403 when accessing repository management."""
@@ -60,7 +60,7 @@ class TestRepositoryManagementAccess:
         rv = admin_client.get("/-/settings")
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert "Repository Management" in html
+        assert "仓库管理" in html
         assert "fa-code-branch" in html
 
 

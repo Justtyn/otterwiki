@@ -611,7 +611,7 @@ def admin_form():
     # render form
     return render_template(
         "admin.html",
-        title="Admin",
+        title="应用设置",
         user_list=user_list,
     )
 
@@ -622,7 +622,7 @@ def mail_preferences_form():
     # query user
     return render_template(
         "admin/mail_preferences.html",
-        title="Mail preferences",
+        title="邮件设置",
     )
 
 
@@ -632,7 +632,7 @@ def content_and_editing_form():
     # query user
     return render_template(
         "admin/content_and_editing.html",
-        title="Content and Editing preferences",
+        title="内容与编辑设置",
     )
 
 
@@ -654,7 +654,7 @@ def repository_management_form(git_action_result=None):
             )
     return render_template(
         "admin/repository_management.html",
-        title="Repository Management",
+        title="仓库管理",
         git_action_result=git_action_result,
         webhook_url=webhook_url,
     )
@@ -666,7 +666,7 @@ def permissions_and_registration_form():
     # render form
     return render_template(
         "admin/permissions_and_registration.html",
-        title="Permissions and Registration",
+        title="权限与注册",
     )
 
 
@@ -685,7 +685,7 @@ def sidebar_preferences_form():
     # render form
     return render_template(
         "admin/sidebar_preferences.html",
-        title="Sidebar Preferences",
+        title="侧边栏设置",
         pages=pages,
         custom_menu=SidebarMenu().config,
     )
@@ -699,7 +699,7 @@ def user_management_form():
     # render form
     return render_template(
         "admin/user_management.html",
-        title="User Management",
+        title="用户管理",
         user_list=user_list,
     )
 
@@ -713,7 +713,7 @@ def user_edit_form(uid):
     # render form
     return render_template(
         "user.html",
-        title="User",
+        title="用户",
         user=user,
     )
 
@@ -762,7 +762,7 @@ def handle_user_add(form):
             toast(msg, 'danger')
         return render_template(
             "user.html",
-            title="User",
+            title="用户",
             user=user,
         )
     # no error: store in database

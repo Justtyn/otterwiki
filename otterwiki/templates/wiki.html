@@ -10,7 +10,7 @@
                     <span class="sidebar-icon">
                         <i class="fas fa-home"></i>
                     </span>
-                    Home
+                    首页
                 </a>
 {% endif %}
 {% if has_permission('READ') and "pageindex" in config.SIDEBAR_SHORTCUTS.lower().split() %}
@@ -26,7 +26,7 @@
                     <span class="sidebar-icon">
                         <i class="fas fa-history"></i>
                     </span>
-                    Changelog
+                    变更记录
                 </a>
 {% endif %}
 {% if has_permission('WRITE') and "createpage" in config.SIDEBAR_SHORTCUTS.lower().split() %}
@@ -34,7 +34,7 @@
                     <span class="sidebar-icon">
                         <i class="far fa-file"></i>
                     </span>
-                    Create page
+                    新建页面
                 </a>
 {% endif %}
 {%- if config.SIDEBAR_SHORTCUTS.split()|length > 0 %}
@@ -51,7 +51,7 @@
                         <span class="dropdown-icon">
                             <i class="far fa-file"></i>
                         </span>
-                    Create page
+                    新建页面
                     </a>
 {% endif %}
 {% if has_permission('READ') and not "pageindex" in config.SIDEBAR_SHORTCUTS.lower().split() %}
@@ -67,14 +67,14 @@
                         <span class="dropdown-icon">
                             <i class="fas fa-history"></i>
                         </span>
-                    Changelog
+                    变更记录
                     </a>
 {% endif %}
                     <a href="{{ url_for("help") }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-question-circle"></i>
                         </span>
-                    Documentation
+                    使用帮助
                     </a>
 {{ super() }}
 {% endblock %}

@@ -198,7 +198,7 @@ class Changelog:
         return render_template(
             "changelog.html",
             log=log,
-            title="Changelog",
+            title="变更记录",
             pages=pages,
             first_page=first_page,
             last_page=last_page,
@@ -215,7 +215,7 @@ class Changelog:
             "revert.html",
             revision=revision,
             message=message,
-            title="Revert commit [{}]".format(revision),
+            title="回滚提交 [{}]".format(revision),
         )
 
     def revert(self, revision, message, author):
@@ -819,9 +819,9 @@ class Page:
             author=author,
         )
         if not changed:
-            toast("Nothing changed.", "warning")
+            toast("没有任何更改。", "warning")
         else:
-            toast("{} saved.".format(self.pagename_full))
+            toast("{} 已保存。".format(self.pagename_full))
             # notify plugins
             plugin_manager.hook.page_saved(
                 pagepath=self.pagepath,
@@ -839,7 +839,7 @@ class Page:
             abort(403)
 
         if self.exists:
-            toast("{} exists already.".format(self.pagename), "warning")
+            toast("{} 已存在。".format(self.pagename), "warning")
 
         return redirect(url_for("edit", path=self.pagepath))
 
@@ -1086,12 +1086,12 @@ class Page:
         if not has_permission("WRITE"):
             abort(403)
         if empty(new_pagename):
-            toast("Please provide a name.", "error")
+            toast("请提供名称。", "error")
         elif sanitize_pagename(new_pagename) != new_pagename:
-            toast("Please check the pagename ...", "warning")
+            toast("请检查页面名称。", "warning")
             new_pagename = sanitize_pagename(new_pagename)
         elif get_pagename(new_pagename, full=True) == self.pagepath:
-            toast("New and old name are the same.", "error")
+            toast("新旧名称相同。", "error")
         elif Page(new_pagename).exists:
             toast(
                 f"Unable to rename: {new_pagename} already exists.", "warning"
@@ -1111,7 +1111,7 @@ class Page:
                 # https://flask.palletsprojects.com/en/2.2.x/patterns/flashing/
                 #   "Note that browsers and sometimes web servers enforce a limit on cookie sizes. This means that
                 #    flashing messages that are too large for session cookies causes message flashing to fail silently."
-                toast("Renaming failed.", "error")
+                toast("重命名失败。", "error")
                 app.logger.error(f"Renaming failed: {e}")
             else:
                 # notify plugins
@@ -1138,7 +1138,7 @@ class Page:
 
         return render_template(
             "rename.html",
-            title="Rename {}".format(self.pagename),
+            title="重命名 {}".format(self.pagename),
             pagepath=self.pagepath,
             pagename=get_pagename(self.pagepath, full=True),
             new_pagename=new_pagename,
@@ -1163,7 +1163,7 @@ class Page:
         if recursive:
             files.append(self.attachment_directoryname)
         if len(files) < 1:
-            toast("Nothing to delete.")
+            toast("没有可删除的内容。")
             return redirect(url_for("view", path=self.pagepath))
         storage.delete(
             files,
@@ -1176,7 +1176,7 @@ class Page:
             author=author,
             message=message,
         )
-        toast("{} deleted.".format(self.pagename))
+        toast("{} 已删除。".format(self.pagename))
         return redirect(url_for("changelog"))
 
     def delete_form(self):
@@ -1185,11 +1185,11 @@ class Page:
         # count attachments and subpages
         files, _ = storage.list(self.attachment_directoryname)
         if len(files) > 0:
-            title = "Delete {} and the {} file(s) attached?".format(
+            title = "删除 {} 及其 {} 个附件？".format(
                 self.pagename, len(files)
             )
         else:
-            title = "Delete {} ?".format(self.pagename)
+            title = "删除 {}？".format(self.pagename)
         menutree = SidebarPageIndex(self.pagepath)
         return render_template(
             "delete.html",
@@ -1524,7 +1524,7 @@ class Attachment:
                 self.filepath, new_filepath, message=message, author=author
             )
         except StorageError:
-            toast("Renaming failed", "error")
+            toast("重命名失败", "error")
             return redirect(url_for("attachments", pagepath=self.pagepath))
         toast(toast_message)
         return redirect(
@@ -1545,7 +1545,7 @@ class Attachment:
             storage.delete(self.filepath, message=message, author=author)
             toast(toast_message)
         except StorageError:
-            toast("Deleting failed", "error")
+            toast("删除失败", "error")
         return redirect(url_for("attachments", pagepath=self.pagepath))
 
     def edit(self):
@@ -1566,7 +1566,7 @@ class Attachment:
             log.append(entry)
         return render_template(
             "edit_attachment.html",
-            title="Edit {}".format(self.filename),
+            title="编辑 {}".format(self.filename),
             pagepath=self.pagepath,
             filename=self.filename,
             log=log,
@@ -1974,7 +1974,7 @@ class AutoRoute:
         p = Page(self.path, revision=revision)
         # if the pagename is empty because it has been sanitized, redirect to /
         if not empty(self.path) and empty(p.pagepath):
-            toast("Invalid pagename.", "error")
+            toast("页面名称无效。", "error")
             return redirect(url_for("index"))
         # if page md doesn't exist, but the folder exists, show index
         if not storage.exists(p.filename) and storage.exists(

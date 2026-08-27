@@ -175,7 +175,7 @@ def admin_client(app_with_user):
         follow_redirects=True,
     )
     html = result.data.decode()
-    assert "You logged in successfully." in html
+    assert "登录成功。" in html
     return client
 
 
@@ -191,5 +191,5 @@ def other_client(app_with_user):
         follow_redirects=True,
     )
     html = result.data.decode()
-    assert "You logged in successfully." in html
+    assert "登录成功。" in html
     return client

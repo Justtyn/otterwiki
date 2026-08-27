@@ -16,19 +16,19 @@
 <form action="{{url_for("delete", path=pagepath )}}" method="POST" class="form-inline">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group">
-    <label for="message" class="w-150">Commit message</label>
-    <input type="text" class="form-control" name="message" id="message" placeholder="Deleted {{pagename}}." value="{{message}}">
+    <label for="message" class="w-150">提交说明</label>
+    <input type="text" class="form-control" name="message" id="message" placeholder="删除 {{pagename}}。" value="{{message}}">
   </div>
   <div class="custom-checkbox">
       <input type="checkbox" id="delete-attachments" name="recursive" value="recursive" checked>
-      <label for="delete-attachments">Recursive remove all attached files and folders</label>
+      <label for="delete-attachments">同时删除所有附件文件和文件夹</label>
   </div>
   <div class="form-group mt-10">
-      <input class="btn btn-danger" type="submit" value="Delete">
-      <a href="{{ url_for("view", path=pagepath) }}" class="btn" role="button">Cancel</a>
+      <input class="btn btn-danger" type="submit" value="删除">
+      <a href="{{ url_for("view", path=pagepath) }}" class="btn" role="button">取消</a>
   </div>
   <div class="form-text">
-      <em>Note: Reverting a delete will restore the deleted file(s).</em>
+      <em>注意：回滚此次删除操作可以恢复被删除的文件。</em>
   </div>
 </form>
 {% endblock %}

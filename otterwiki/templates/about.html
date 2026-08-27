@@ -1,14 +1,14 @@
 {# vim: set et ts=8 sts=4 sw=4 ai: #}
 {% extends "wiki.html" %}
 {% block title %}
-  <title>About An Otter Wiki</title>
+  <title>关于 An Otter Wiki</title>
 {% endblock %}
 {% block head %}
 {{ super() }}
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ url_for("index") }}">
-<meta property="og:title" content="About An Otterwiki">
-<meta property="og:description" content="An Otter Wiki is a tool for collaborative content management. Written in python using Flask.">
+<meta property="og:title" content="关于 An Otter Wiki">
+<meta property="og:description" content="An Otter Wiki 是一个使用 Python 和 Flask 编写的协作式内容管理工具。">
 <meta property="og:image" content="{{ url_for("static", filename="img/otter.png") }}">
 {% endblock %}
 {% block menu %}
@@ -18,7 +18,7 @@
 {% block content %}
 <div class="page">
 {{htmlcontent|safe}}
-Version {{__version__}} {% if os_getenv("GIT_TAG", None) %} ({{ os_getenv("GIT_TAG","") }}) {% endif %}
+版本 {{__version__}} {% if os_getenv("GIT_TAG", None) %} ({{ os_getenv("GIT_TAG","") }}) {% endif %}
 </div>
 {{content}}
 {% endblock %}

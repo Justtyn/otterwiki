@@ -18,6 +18,9 @@ from otterwiki.plugins import plugin_manager
 from otterwiki.renderer import OtterwikiRenderer
 
 app = Flask(__name__)
+# Keep Chinese text readable in rendered JSON (for example flash messages
+# embedded in the page) instead of escaping every character as ``\uXXXX``.
+app.json.ensure_ascii = False
 # default configuration settings
 app.config.update(
     DEBUG=False,  # make sure DEBUG is off unless enabled explicitly otherwise
@@ -30,7 +33,7 @@ app.config.update(
     SERVER_NAME=None,
     SITE_LOGO=None,
     SITE_ICON=None,
-    SITE_LANG="en",
+    SITE_LANG="zh-CN",
     HIDE_LOGO=False,
     OPEN_LINKS_IN_NEW_TAB=False,
     AUTH_METHOD="",

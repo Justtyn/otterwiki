@@ -18,8 +18,8 @@
 {%- else %}
   <meta property="og:url" content="{{ url_for("index", _external=True) }}" />
 {%- endif %}
-  <meta property="og:description" content="{%if description%}{{description}}{%elif config.SITE_DESCRIPTION %}{{config.SITE_DESCRIPTION}}{%else%}A minimalistic wiki powered by python, markdown and git.{%endif%}" />
-  <meta name="description" content="{%if config.SITE_DESCRIPTION %}{{config.SITE_DESCRIPTION}}{%else%}A minimalistic wiki powered by python, markdown and git.{%endif%}" />
+  <meta property="og:description" content="{%if description%}{{description}}{%elif config.SITE_DESCRIPTION %}{{config.SITE_DESCRIPTION}}{%else%}一个由 Python、Markdown 和 Git 驱动的简洁 Wiki。{%endif%}" />
+  <meta name="description" content="{%if config.SITE_DESCRIPTION %}{{config.SITE_DESCRIPTION}}{%else%}一个由 Python、Markdown 和 Git 驱动的简洁 Wiki。{%endif%}" />
 {%- if canonical_url %}
   <link rel="canonical" href="{{ canonical_url }}" />
 {%- endif %}
@@ -114,11 +114,11 @@
         {#- Navbar start #}
         <nav class="navbar">
             <div class="navbar-content relative">
-                <button id="toggle-sidebar-btn" class="btn btn-action" type="button" onclick="halfmoon.toggleSidebar()" title="Toggle Sidebar ([)">
+                <button id="toggle-sidebar-btn" class="btn btn-action" type="button" onclick="halfmoon.toggleSidebar()" title="切换侧边栏 ([)">
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
-            <a href="{{ url_for("index") }}" class="navbar-brand ml-10 ml-sm-20" title="{%if config.SITE_DESCRIPTION %}{{config.SITE_DESCRIPTION}}{%else%}A minimalistic wiki powered by python, markdown and git.{%endif%}">
+            <a href="{{ url_for("index") }}" class="navbar-brand ml-10 ml-sm-20" title="{%if config.SITE_DESCRIPTION %}{{config.SITE_DESCRIPTION}}{%else%}一个由 Python、Markdown 和 Git 驱动的简洁 Wiki。{%endif%}">
 {%- if config.SITE_LOGO %}
                 <img src="{{ config.SITE_LOGO }}" alt="" id="site_logo"/>
 {%- else %}
@@ -133,7 +133,7 @@
                 <form action="{{ url_for("search") }}" method="post" class="relative">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <span class="top-search">
-                <input id="search-query" name="query" type="text" class="form-control mr-5" placeholder="Search" style="padding-right: 3.5rem;">
+                <input id="search-query" name="query" type="text" class="form-control mr-5" placeholder="搜索" style="padding-right: 3.5rem;">
                 </span>
                 </form>
 {%- endblock %}
@@ -150,7 +150,7 @@
                         <span class="dropdown-icon">
                             <img width="26" src="{{ url_for("static", filename="img/otterhead.png") }}" >
                         </span>
-                        About An Otter Wiki
+                        关于 An Otter Wiki
                     </a>
 {%- endif %}
 {%- if has_permission('READ') %}
@@ -160,28 +160,28 @@
                         <span class="dropdown-icon">
                             <i class="far fa-moon"></i>
                         </span>
-                        Toggle dark mode
+                        切换深色模式
                     </a>
 {%- if not current_user.is_authenticated %}
                     <a href="{{ url_for("login") }} " class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-sign-in-alt"></i>
                         </span>
-                        Login
+                        登录
                     </a>
 {%- else %}
                     <a href="{{ url_for("settings") }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-cog"></i>
                         </span>
-                        Settings
+                        设置
                     </a>
 {%- if auth_supported_features['logout'] %}
                     <a href="{{ url_for("logout") }}"  class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-sign-out-alt"></i>
                         </span>
-                        Logout
+                        退出登录
                     </a>
 {%- endif %}
 {%- endif %}

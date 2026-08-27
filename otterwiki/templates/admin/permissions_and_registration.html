@@ -5,27 +5,26 @@
 <div class="mw-full">
 <form action="{{ url_for("admin_permissions_and_registration") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h3 class="card-title" id="permissions_and_registration">Permissions and Registration Preferences</h3>
+<h3 class="card-title" id="permissions_and_registration">权限与注册设置</h3>
   <div class="form-group">
     <div>
-        <em>Note:</em> To configure privileges per user, set Read Access, Write Access and Attachment
-        management to <strong>Admin</strong> and configure Read, Write, Upload per user via <a href="{{url_for("admin_user_management")}}">User Management</a>.
+        <em>注意：</em>如需按用户配置权限，请将读取、写入和附件管理权限设为 <strong>Admin</strong>，然后在<a href="{{url_for("admin_user_management")}}">用户管理</a>中为各用户设置读取、写入和上传权限。
     </div>
   </div>
 {% for permission in ["READ","WRITE","ATTACHMENT"] %}
   <div class="form-group">
       <label for="{{permission}}_permission" class="required">
 {%- if permission == "ATTACHMENT" %}
-          Attachment management / Upload
+          附件管理／上传
 {%- else %}
-          {{permission | capitalize}} Access
+          {% if permission == "READ" %}读取权限{% else %}写入权限{% endif %}
 {%- endif %}
       </label>
       <select class="form-control w-md-400" id="{{permission}}_permission" name="{{permission}}_access">
         {% for permission_option in ["ANONYMOUS","REGISTERED","APPROVED","ADMIN"] %}
         <option {% if config[permission + "_ACCESS"] == permission_option -%}
 selected="selected"
-{%- endif %} value="{{permission_option}}">{{permission_option | capitalize}}</option>
+{%- endif %} value="{{permission_option}}">{{ {"ANONYMOUS":"匿名用户", "REGISTERED":"注册用户", "APPROVED":"已批准用户", "ADMIN":"管理员"}[permission_option] }}</option>
         {% endfor %}
     </select>
   </div>
@@ -36,56 +35,54 @@ selected="selected"
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.DISABLE_REGISTRATION %}checked{% endif %} type="checkbox" id="disable_registration" name="disable_registration" value="True">
-      <label for="disable_registration">Disable registration</label>
+      <label for="disable_registration">禁用注册</label>
     </div>
     <div class="form-text">
-      With a disabled registration no users can sign up. Settings this can be useful for public wikis with a closed group of editors.
+      禁用后，任何用户都无法自行注册，适合只有固定编辑成员的公开 Wiki。
     </div>
   </div>
   {##}
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.EMAIL_NEEDS_CONFIRMATION %}checked{% endif %} type="checkbox" id="email_confirmation" name="email_needs_confirmation" value="True">
-      <label for="email_confirmation">Registration requires email confirmation</label>
+      <label for="email_confirmation">注册需要邮箱确认</label>
     </div>
     <div class="form-text">
-      With this enabled users have to confirm their email address before the account is registered. Enabling this on a public
-      wiki is highly recommend to make life harder for bots and spammers.
+      启用后，用户必须先确认电子邮箱才能完成注册。公开 Wiki 强烈建议启用，以减少机器人和垃圾注册。
     </div>
   </div>
 {##}
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.AUTO_APPROVAL %}checked{% endif %} type="checkbox" id="auto_approval" name="auto_approval" value="True">
-      <label for="auto_approval">Auto approve of new registered users</label>
+      <label for="auto_approval">自动批准新注册用户</label>
     </div>
     <div class="form-text">
-      With this option set users will be auto approved.
+      启用后，新注册用户会自动获得批准。
     </div>
   </div>
 {##}
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.NOTIFY_ADMINS_ON_REGISTER %}checked{% endif %} type="checkbox" id="notify_admins" name="notify_admins_on_register" value="True">
-      <label for="notify_admins">Notify admins on new user registration</label>
+      <label for="notify_admins">新用户注册时通知管理员</label>
     </div>
     <div class="form-text">
-      Admin users get a notification mail upon registration (and in case email confirmation is necessary on confirmation) of a new user.
-      This is useful when users are not auto approved.
+      新用户注册后，管理员会收到通知邮件；需要邮箱确认时，则在确认后通知。关闭自动批准时此选项很有用。
     </div>
   </div>
 {##}
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.NOTIFY_USER_ON_APPROVAL %}checked="checked"{% endif %} type="checkbox" id="notify_user_on_approval" name="notify_user_on_approval" value="True">
-      <label for="notify_user_on_approval">Notify users when their account was approved</label>
+      <label for="notify_user_on_approval">账户获批后通知用户</label>
     </div>
     <div class="form-text">
-      Users get a notification mail when their account has been approved. This is useful when users are not auto approved.
+      用户账户获得批准时发送通知邮件。关闭自动批准时此选项很有用。
     </div>
   </div>
   <div class="mt-10">
-    <input class="btn btn-primary" name="update_preferences" type="submit" value="Save Preferences">
+    <input class="btn btn-primary" name="update_preferences" type="submit" value="保存设置">
   </div>
 {##}
 </form>

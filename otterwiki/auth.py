@@ -111,7 +111,7 @@ class SimpleAuth:
         # render template
         return render_template(
             "login.html",
-            title="Login",
+            title="登录",
             email=email,
             remember=remember,
             message=message,
@@ -121,7 +121,7 @@ class SimpleAuth:
 
     def handle_logout(self):
         logout_user()
-        toast("You logged out successfully.")
+        toast("你已成功退出登录。")
         return redirect(url_for("login"))
 
     def check_credentials(self, email, password):
@@ -162,7 +162,7 @@ class SimpleAuth:
             if not user.is_admin and (
                 self._user_needs_approvement() and not user.is_approved
             ):
-                toast("You are not approved yet.", "warning")
+                toast("你的账户尚未获得批准。", "warning")
                 return redirect(url_for("login"))
             # login
             login_user(user, remember=remember is not None)
@@ -194,7 +194,7 @@ class SimpleAuth:
                     "warning",
                 )
             else:
-                toast("You logged in successfully.", "success")
+                toast("登录成功。", "success")
             # update last_seen
             user.last_seen = datetime.now()
             db.session.add(user)
@@ -202,7 +202,7 @@ class SimpleAuth:
             # redirect
             return redirect(next_page)
         else:
-            toast("Invalid email address or password.", "error")
+            toast("电子邮箱或密码不正确。", "error")
 
         return self.login_form(email, remember, next=next_page)
 
@@ -212,7 +212,7 @@ class SimpleAuth:
         # render template
         return render_template(
             "register.html",
-            title="Register",
+            title="注册",
             email=email,
             name=name,
         )
@@ -307,9 +307,9 @@ class SimpleAuth:
         else:
             # notify user
             if user.is_approved:
-                toast("Your account has been created. You can log in now.")
+                toast("账户已创建，现在可以登录。")
             else:
-                toast("Your account is waiting for approval.", "warning")
+                toast("你的账户正在等待批准。", "warning")
             # notify admins
             if app.config['NOTIFY_ADMINS_ON_REGISTER']:
                 self.activated_user_notify_admins(name, email)
@@ -354,9 +354,9 @@ class SimpleAuth:
         db.session.commit()
 
         if user.is_approved:
-            toast("Your email address has been confirmed. You can log in now.")
+            toast("邮箱已确认，现在可以登录。")
         elif self._user_needs_approvement():
-            toast("Your account is waiting for approval.", "warning")
+            toast("你的账户正在等待批准。", "warning")
         # notify admins
         if app.config['NOTIFY_ADMINS_ON_REGISTER']:
             self.activated_user_notify_admins(user.name, user.email)
@@ -367,17 +367,17 @@ class SimpleAuth:
         name_check = is_valid_name(name)
         # check if email is valid
         if not is_valid_email(email):
-            toast("This email address is invalid.", "error")
+            toast("电子邮箱地址无效。", "error")
         elif user is not None:
-            toast("This email address is already registered.", "error")
+            toast("此电子邮箱已注册。", "error")
         elif name is None or len(name) < 1:
-            toast("Please enter your name.", "error")
+            toast("请输入姓名。", "error")
         elif not name_check[0]:
             toast(f"Error: Your {name_check[1]}", "error")
         elif password1 != password2:
-            toast("The passwords do not match.", "error")
+            toast("两次输入的密码不一致。", "error")
         elif password1 is None or len(password1) < 8:
-            toast("The password must be at least 8 characters long.", "error")
+            toast("密码至少需要 8 个字符。", "error")
         else:
             # register account
             self.create_user(email, name, password=password1)
@@ -392,13 +392,13 @@ class SimpleAuth:
             app.logger.warning(
                 "auth.handle_confirmation() Invalid token: {}".format(token)
             )
-            toast("Invalid token.", "error")
+            toast("无效的令牌。", "error")
             # redirect
             return redirect(url_for("login"))
         # check if email exists
         user = self.User.query.filter_by(email=email).first()
         if user is None:
-            toast("Invalid user or token.", "error")
+            toast("用户或令牌无效。", "error")
             return redirect(url_for("login"))
         # mark user as confirmed
         self.user_confirmed_email(email)
@@ -415,25 +415,25 @@ class SimpleAuth:
     def settings_form(self):
         return render_template(
             "settings.html",
-            title="Settings",
+            title="设置",
         )
 
     def handle_settings(self, form):
         if form.get("name") is not None:
             new_name = form.get("name")
             if len(new_name) < 1:
-                toast("Your name must be at least one character.")
+                toast("姓名至少需要 1 个字符。")
             else:
                 # update name
                 current_user.name = new_name
                 db.session.add(current_user)
                 db.session.commit()
-                toast("Your name was updated successfully.", "success")
+                toast("姓名更新成功。", "success")
         if not empty(form.get("password1")) or not empty(
             form.get("password2")
         ):
             if form.get("password1") != form.get("password2"):
-                toast("The passwords do not match.", "error")
+                toast("两次输入的密码不一致。", "error")
             elif len(form.get("password1")) < 8:
                 toast(
                     "The password must be at least 8 characters long.", "error"
@@ -445,14 +445,14 @@ class SimpleAuth:
                 )
                 db.session.add(current_user)
                 db.session.commit()
-                toast("Your password was updated successfully.", "success")
+                toast("密码更新成功。", "success")
 
         return redirect(url_for("settings"))
 
     def lost_password_form(self):
         return render_template(
             "lost_password.html",
-            title="Lost password",
+            title="找回密码",
         )
 
     def handle_recover_password(self, email):
@@ -460,7 +460,7 @@ class SimpleAuth:
         user = self.User.query.filter_by(email=email).first()
         # check if email is valid
         if not is_valid_email(email):
-            toast("This email address is invalid.", "error")
+            toast("电子邮箱地址无效。", "error")
         elif user is None:
             # do not leak whether email is registered
             toast(
@@ -504,7 +504,7 @@ class SimpleAuth:
             app.logger.warning(
                 "auth.recover_password_token() Invalid token: {}".format(token)
             )
-            toast("Invalid token.", "error")
+            toast("无效的令牌。", "error")
             return redirect(url_for("login"))
         # Support both old (plain string) and new (dict) token formats
         if isinstance(token_data, str):
@@ -524,7 +524,7 @@ class SimpleAuth:
                     app.logger.warning(
                         f"auth.recover_password_token() expired email={email} last_seen={token_data.get('ls')}"
                     )
-                    toast("Token already used or expired.", "error")
+                    toast("令牌已使用或已过期。", "error")
                     return redirect(url_for("login"))
             # Invalidate the token by updating last_seen NOW (before login_user)
             user.last_seen = datetime.now()
@@ -534,10 +534,10 @@ class SimpleAuth:
             app.logger.info(
                 "auth: Password recovery successful: {}".format(email)
             )
-            toast("Welcome {}, please update your password.".format(user.name))
+            toast("欢迎 {}，请更新你的密码。".format(user.name))
             return redirect(url_for("settings"))
         else:
-            toast("Invalid email address.")
+            toast("电子邮箱地址无效。")
         return self.lost_password_form()
 
     def has_permission(self, permission, user):
@@ -731,7 +731,7 @@ class ProxyHeaderAuth:
     def settings_form(self):
         return render_template(
             "settings.html",
-            title="Settings",
+            title="设置",
             user_list=None,  # no users are stored in the database anyways
         )
 
@@ -808,7 +808,7 @@ def handle_confirmation(*args, **kwargs):
 
 def register_form(*args, **kwargs):
     if app.config['DISABLE_REGISTRATION']:
-        toast("Registration is disabled.", "error")
+        toast("注册功能已禁用。", "error")
         return redirect(url_for("index"))
 
     return auth_manager.register_form(*args, **kwargs)

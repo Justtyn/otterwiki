@@ -2,22 +2,22 @@
 <input type="hidden" name="task" value="brokenwikilinks">
 {% if stats and (pages or most_wanted) %}
 <div class="mb-20">
-<p> To keep your wiki clean, please review the broken WikiLinks found below.
-{{stats.pages}} page{{stats.pages|pluralize("s")}} were checked in {{stats.duration}}.
+<p>请检查下方发现的失效 WikiLink，以保持 Wiki 内容整洁。
+已在 {{stats.duration}} 内检查 {{stats.pages}} 个页面。
 </p>
-<input class="btn btn-primary" type="submit" name="refresh" value="Refresh"/>
+<input class="btn btn-primary" type="submit" name="refresh" value="刷新"/>
 <span id="brokenwikilinks_indicator" class="htmx-indicator"><i class="fas fa-spinner fa-spin"></i></span>
 </div>
 
 {% if pages %}
-<p><strong>Pages with broken links</strong></p>
+<p><strong>包含失效链接的页面</strong></p>
 <div class="table-responsive table-striped mb-20 subsection-table">
 <table class="table compact">
     <thead>
         <tr>
-            <td style="width:1px;"><strong>Page</strong></td>
-            <td><strong>Broken links</strong></td>
-            <td style="width:1px;text-align:right;"><strong>Quantity</strong></td>
+            <td style="width:1px;"><strong>页面</strong></td>
+            <td><strong>失效链接</strong></td>
+            <td style="width:1px;text-align:right;"><strong>数量</strong></td>
         </tr>
     </thead>
     <tbody>
@@ -42,14 +42,14 @@
 {% endif %}
 
 {% if most_wanted %}
-<p><strong>Most wanted pages</strong></p>
+<p><strong>最常被链接但不存在的页面</strong></p>
 <div class="table-responsive table-striped subsection-table">
 <table class="table compact">
     <thead>
         <tr>
-            <td style="width:1px;"><strong>Page</strong></td>
-            <td><strong>Found in</strong></td>
-            <td style="width:1px;text-align:right;"><strong>Occurrences</strong></td>
+            <td style="width:1px;"><strong>页面</strong></td>
+            <td><strong>出现位置</strong></td>
+            <td style="width:1px;text-align:right;"><strong>出现次数</strong></td>
         </tr>
     </thead>
     <tbody>
@@ -75,12 +75,12 @@
 
 {% else %}
 {% if stats %}
-<p>No broken WikiLinks found. Checked {{stats.pages}} page{{stats.pages|pluralize("s")}} in {{stats.duration}}.</p>
+<p>未发现失效的 WikiLink。已在 {{stats.duration}} 内检查 {{stats.pages}} 个页面。</p>
 {% else %}
-<p>To find pages with broken WikiLinks, start an analysis.</p>
+<p>开始分析以查找包含失效 WikiLink 的页面。</p>
 {% endif %}
 <div>
-    <input class="btn btn-primary" type="submit" name="refresh" value="Analyse pages"/>
+    <input class="btn btn-primary" type="submit" name="refresh" value="分析页面"/>
     <span id="brokenwikilinks_indicator" class="htmx-indicator"><i class="fas fa-spinner fa-spin"></i></span>
 </div>
 {% endif %}

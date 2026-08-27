@@ -275,7 +275,7 @@ def test_initialization_with_default_home_page(create_app_with_home_page_env):
         content = storage.load('home.md')
     else:
         content = storage.load('Home.md')
-    assert 'Welcome to your wiki!' in content
+    assert '欢迎使用你的 Wiki！' in content
 
 
 def test_initialization_with_special_page_home(
@@ -294,7 +294,7 @@ def test_initialization_with_custom_home_page(create_app_with_home_page_env):
     assert 'welcome.md' in files
 
     content = storage.load('welcome.md')
-    assert 'Welcome to your wiki!' in content
+    assert '欢迎使用你的 Wiki！' in content
 
 
 def test_initialization_with_custom_nested_home_page(
@@ -306,4 +306,4 @@ def test_initialization_with_custom_nested_home_page(
     assert 'docs/index.md' in files
 
     content = storage.load('docs/index.md')
-    assert 'Welcome to your wiki!' in content
+    assert '欢迎使用你的 Wiki！' in content

@@ -39,7 +39,7 @@ def test_settings_update_name(app_with_user, test_client):
         '<input name="name" type="text" class="form-control" id="name" value="Updated Name"'
         in rv.data.decode()
     )
-    assert 'Your name was updated successfully' in rv.data.decode()
+    assert '姓名更新成功' in rv.data.decode()
     # restore name
     rv = test_client.post(
         "/-/settings",
@@ -86,7 +86,7 @@ def test_settings_update_name_failed(app_with_user, test_client):
         '<input name="name" type="text" class="form-control" id="name" value="Test User"'
         in rv.data.decode()
     )
-    assert 'Your name must be at least one character.' in rv.data.decode()
+    assert '姓名至少需要 1 个字符。' in rv.data.decode()
 
 
 def test_settings_change_password(app_with_user, test_client):
@@ -109,7 +109,7 @@ def test_settings_change_password(app_with_user, test_client):
         follow_redirects=True,
     )
     assert 200 == rv.status_code
-    assert 'Your password was updated successfully.' in rv.data.decode()
+    assert '密码更新成功。' in rv.data.decode()
     # change password back
     rv = test_client.post(
         "/-/settings",
@@ -120,7 +120,7 @@ def test_settings_change_password(app_with_user, test_client):
         follow_redirects=True,
     )
     assert 200 == rv.status_code
-    assert 'Your password was updated successfully.' in rv.data.decode()
+    assert '密码更新成功。' in rv.data.decode()
     # fail to change the password
     rv = test_client.post(
         "/-/settings",

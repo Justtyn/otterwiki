@@ -59,7 +59,7 @@ def raw_admin_client(csrf_app_with_user):
         },
         follow_redirects=True,
     )
-    assert "You logged in successfully." in result.data.decode()
+    assert "登录成功。" in result.data.decode()
     return client
 
 

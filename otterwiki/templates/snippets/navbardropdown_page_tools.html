@@ -3,26 +3,26 @@
                         <span class="dropdown-icon">
                             <i class="fa fa-paperclip"></i>
                         </span>
-                        Attachments
+                        附件
                     </a>
                     <a href="{{ url_for('history', path=pagepath) }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="far fa-file-alt"></i>
                         </span>
-                        History
+                        历史记录
                     </a>
                     <a href="{{ url_for('blame', path=pagepath, revision=revision) if revision else url_for('blame', path=pagepath) }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-people-arrows"></i>
                         </span>
-                        Blame
+                        逐行追溯
                     </a>
 {%- if has_permission('READ') and not has_permission('WRITE') %}
                     <a href="{{ url_for('source', pagepath=pagepath) }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fab fa-markdown"></i>
                         </span>
-                        View Source
+                        查看源代码
                     </a>
 {%- endif %}
 {%- include 'snippets/navbardropdown_rename_remove.html' %}

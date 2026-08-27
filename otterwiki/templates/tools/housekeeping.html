@@ -1,10 +1,10 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<h2 id="settings">Housekeeping</h2>
+<h2 id="settings">维护工具</h2>
 <div class="card m-auto m-lg-20">
 <div class="mw-full">
-<h3 class="card-title">Drafts</h3>
+<h3 class="card-title">草稿</h3>
 {% if drafts %}
 <form action="{{ url_for("housekeeping") }}" method="POST" autocomplete="off">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -20,10 +20,10 @@
                   <label for="checkbox-a-all" onclick="otterwiki.toggle_invert_by_name('delete_draft');"></label>
                 </div>
             </td>
-            <td><strong>Page</strong></td>
-            <td><strong>Draft created</strong></td>
-            <td><strong>Revision</strong></td>
-            <td><strong>Page last changed</strong></td>
+            <td><strong>页面</strong></td>
+            <td><strong>草稿创建时间</strong></td>
+            <td><strong>版本</strong></td>
+            <td><strong>页面最后修改时间</strong></td>
         </tr>
     </thead>
     <tbody>
@@ -62,11 +62,11 @@
 </table>
 </div>
 <div class="mt-10">
-    <input class="btn btn-danger" type="submit" value="Delete selected drafts"/>
+    <input class="btn btn-danger" type="submit" value="删除所选草稿"/>
 </div>
 </form>
 {% else %}
-<p><em>No drafts found.</em></p>
+<p><em>没有找到草稿。</em></p>
 {% endif %}
 </div>
 </div>
@@ -74,14 +74,14 @@
 {% if has_permission("WRITE") %}
 <div class="card m-auto m-lg-20">
 <div class="mw-full">
-<h3 class="card-title">Empty Pages</h3>
+<h3 class="card-title">空页面</h3>
 {% include 'tools/housekeeping_emptypages.html' %}
 </div>
 </div>
 {#-#}
 <div class="card m-auto m-lg-20">
 <div class="mw-full">
-<h3 class="card-title">Broken WikiLinks</h3>
+<h3 class="card-title">失效的 WikiLink</h3>
 {% include 'tools/housekeeping_brokenwikilinks.html' %}
 </div>
 </div>
@@ -90,15 +90,15 @@
 {% if has_permission("ADMIN") %}
 <div class="card m-auto m-lg-20">
 <div class="mw-full">
-<h3 class="card-title">Security Check</h3>
-<p class="text-muted">The security check provides an overview of your wiki's security, highlighting potentially problematic issues. It is purely informational and safe to run in any environment at any time.</p>
+<h3 class="card-title">安全检查</h3>
+<p class="text-muted">安全检查会概览 Wiki 的安全状态并指出潜在问题。它仅提供信息，可随时在任何环境中安全运行。</p>
 <div id="security-check-results" style="display:none;">
 <table class="table compact" style="table-layout: fixed; width: 100%;">
     <thead>
         <tr>
-            <th style="width: 200px;"><strong>Issue</strong></th>
-            <th style="width: 110px; text-align: center;"><strong>Severity</strong></th>
-            <th><strong>Description</strong></th>
+            <th style="width: 200px;"><strong>问题</strong></th>
+            <th style="width: 110px; text-align: center;"><strong>严重程度</strong></th>
+            <th><strong>说明</strong></th>
         </tr>
     </thead>
     <tbody id="security-check-tbody">
@@ -106,18 +106,18 @@
 </table>
 </div>
 <div id="security-check-empty" style="display:none;">
-<p class="text-muted"><em>No security issues found. Your wiki looks good!</em></p>
+<p class="text-muted"><em>未发现安全问题，Wiki 状态良好！</em></p>
 </div>
 <div id="security-check-error" style="display:none;">
-<p class="text-danger"><em>An error occurred while running the security check.</em></p>
+<p class="text-danger"><em>运行安全检查时发生错误。</em></p>
 </div>
 <details id="security-check-passed-wrapper" class="mt-10" style="display:none;">
-    <summary>Passed checks (<span id="security-check-passed-count">0</span>)</summary>
+    <summary>已通过的检查（<span id="security-check-passed-count">0</span>）</summary>
     <table class="table compact mt-10" style="table-layout: fixed; width: 100%;">
         <thead>
             <tr>
-                <th style="width: 200px;"><strong>Check</strong></th>
-                <th><strong>Description</strong></th>
+                <th style="width: 200px;"><strong>检查项</strong></th>
+                <th><strong>说明</strong></th>
             </tr>
         </thead>
         <tbody id="security-check-passed-tbody">
@@ -125,7 +125,7 @@
     </table>
 </details>
 <div class="mt-10">
-    <button class="btn btn-primary" id="security-check-btn" onclick="otterwiki.run_security_check()">Perform security check</button>
+    <button class="btn btn-primary" id="security-check-btn" onclick="otterwiki.run_security_check()">执行安全检查</button>
 </div>
 </div>
 </div>

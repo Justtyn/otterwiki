@@ -165,7 +165,7 @@ class TestHousekeepingBrokenWikilinks:
         assert rv.status_code == 200
         html = rv.data.decode()
 
-        assert "no broken" in html.lower()
+        assert "未发现失效" in html
 
     def test_housekeeping_broken_wikilinks_tables_structure(
         self, app_with_user, admin_client
@@ -197,14 +197,14 @@ class TestHousekeepingBrokenWikilinks:
         assert rv.status_code == 200
         html = rv.data.decode()
 
-        assert "Pages with broken links" in html
-        assert "Most wanted pages" in html
+        assert "包含失效链接的页面" in html
+        assert "最常被链接但不存在的页面" in html
 
-        assert "Broken links" in html
-        assert "Quantity" in html
+        assert "失效链接" in html
+        assert "数量" in html
 
-        assert "Found in" in html
-        assert "Occurrences" in html
+        assert "出现位置" in html
+        assert "出现次数" in html
 
     def test_housekeeping_broken_wikilinks_default_style(
         self, app_with_user, admin_client
@@ -648,8 +648,8 @@ class TestHousekeepingSecurityCheck:
         rv = admin_client.get("/-/housekeeping")
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert "Security Check" in html
-        assert "Perform security check" in html
+        assert "安全检查" in html
+        assert "执行安全检查" in html
         assert "security-check-btn" in html
 
     def test_housekeeping_page_hides_security_check_for_non_admin(

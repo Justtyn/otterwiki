@@ -5,17 +5,17 @@
 <div class="mw-full">
 <form action="{{ url_for("admin_sidebar_preferences") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h2 class="card-title">Sidebar Preferences</h2>
-<h3 class="card-title">Shortcuts</h3>
+<h2 class="card-title">侧边栏设置</h2>
+<h3 class="card-title">快捷入口</h3>
 
 <div class="mb-10">
-Shortcuts not listed in the sidebar are available via the <span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span> Menu.
+未显示在侧边栏中的入口仍可通过 <span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span> 菜单访问。
 </div>
 {% for name, description in [
-    ("home", '<span class="btn btn-square btn-sm"><i class="fas fa-home"></i></span> Home'),
+    ("home", '<span class="btn btn-square btn-sm"><i class="fas fa-home"></i></span> 首页'),
     ("pageindex", '<span class="btn btn-square btn-sm"><i class="fas fa-list"></i></span> A - Z'),
-    ("changelog", '<span class="btn btn-square btn-sm"><i class="fas fa-history"></i></span> Changelog'),
-    ("createpage", '<span class="btn btn-square btn-sm"><i class="far fa-file"></i></span> Create Page'),
+    ("changelog", '<span class="btn btn-square btn-sm"><i class="fas fa-history"></i></span> 变更记录'),
+    ("createpage", '<span class="btn btn-square btn-sm"><i class="far fa-file"></i></span> 新建页面'),
 ] %}
   <div class="form-group">
     <div class="custom-checkbox">
@@ -27,22 +27,22 @@ Shortcuts not listed in the sidebar are available via the <span class="btn btn-s
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
 {##}
-<h3 class="card-title">Custom Menu</h3>
+<h3 class="card-title">自定义菜单</h3>
 <div class="my-5">
-    The menu is used to display a menu of individual pages or external links within easy reach in the sidebar.
+    可在侧边栏中添加常用页面或外部链接。
 </div>
 <ul class="mb-20">
-    <li>To link a wiki page, enter the full path in the <code>Page/Link</code> field.</li>
-    <li>For external links, enter the URL in the <code>Page/Link</code> field and provide a title in the <code>Title</code> field.</li>
-    <li>You can add <a href="https://fontawesome.com/v5/search?q=link&ic=free-collection" target="_blank">FontAwesome 5 <i class="fas fa-external-link-alt"></i></a> icons by entering HTML like <code>&lt;i class="fas fa-question-circle"&gt;&lt;/i&gt;</code> in the <code>Icon</code> field.</li>
-    <li>To create a separator, set the <code>Page/Link</code> field to <code>---</code> and leave other fields empty.</li>
+    <li>链接 Wiki 页面时，在“页面／链接”中填写完整路径。</li>
+    <li>添加外部链接时，填写 URL，并在“标题”中填写显示名称。</li>
+    <li>可在“图标”中填写 HTML 来使用 <a href="https://fontawesome.com/v5/search?q=link&ic=free-collection" target="_blank">FontAwesome 5 <i class="fas fa-external-link-alt"></i></a> 图标，例如 <code>&lt;i class="fas fa-question-circle"&gt;&lt;/i&gt;</code>。</li>
+    <li>创建分隔线时，将“页面／链接”设为 <code>---</code>，其他字段留空。</li>
 </ul>
 <table>
     <thead>
         <th>&nbsp;</th>
-        <th>Page/Link</th>
-        <th>Title <em>(optional)</em></th>
-        <th>Icon <em>(optional)</em></th>
+        <th>页面／链接</th>
+        <th>标题 <em>（可选）</em></th>
+        <th>图标 <em>（可选）</em></th>
         <th>&nbsp;</th>
     </thead>
     <tbody id="custom-page-index">
@@ -63,7 +63,7 @@ Shortcuts not listed in the sidebar are available via the <span class="btn btn-s
     </tbody>
 </table>
 <div class="form-group">
-        <label for="find-page-select" class="mt-5" style="display:block;">Select page to add</label>
+        <label for="find-page-select" class="mt-5" style="display:block;">选择要添加的页面</label>
         <select id="find-page-select" size="1" class="form-control w-400 mw-full" style="display:inline;">
         {%- for page in ["", "---"] + pages %}
             <option value="{{page}}">{{page if page else "..."}}</option>
@@ -74,11 +74,11 @@ Shortcuts not listed in the sidebar are available via the <span class="btn btn-s
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
 {##}
-<h3 class="card-title">Page Index</h3>
+<h3 class="card-title">页面索引</h3>
     <div class="form-group">
-        <label for="sidebar_menutree_mode">Page Index Mode</label>
+        <label for="sidebar_menutree_mode">页面索引模式</label>
         <select class="form-control w-md-400" id="sidebar_menutree_mode" name="sidebar_menutree_mode">
-{% for mode in [("", "Not displayed"),("SORTED","Directories and pages, sorted"),("DIRECTORIES_GROUPED","Directories and pages, with directories grouped first"),("DIRECTORIES_ONLY","Directories only")] %}
+{% for mode in [("", "不显示"),("SORTED","按顺序显示目录和页面"),("DIRECTORIES_GROUPED","目录优先分组显示"),("DIRECTORIES_ONLY","仅显示目录")] %}
             <option value="{{mode[0]}}"{%if config.SIDEBAR_MENUTREE_MODE == mode[0] %} selected="selected"{%endif%}>{{mode[1]}}</option>
 {% endfor %}
         </select>
@@ -88,14 +88,14 @@ Shortcuts not listed in the sidebar are available via the <span class="btn btn-s
     <div class="form-group">
       <div class="custom-checkbox">
         <input {%if config.SIDEBAR_MENUTREE_IGNORE_CASE %}checked{% endif %} type="checkbox" id="menutree_ignore_case" name="sidebar_menutree_ignore_case" value="True">
-        <label for="menutree_ignore_case">Sort case insensitive</label>
+        <label for="menutree_ignore_case">排序时忽略大小写</label>
       </div>
     </div>
 {% endif %}
     <div class="form-group">
-        <label for="sidebar_menutree_focus">Page Index Focus</label>
+        <label for="sidebar_menutree_focus">页面索引聚焦方式</label>
         <select class="form-control w-md-400" id="sidebar_menutree_focus" name="sidebar_menutree_focus">
-{% for mode in [("SUBTREE", "Focus on current subtree"),("TOP","Always display all top folders and pages"),("OFF","Always display all pages, unfolded")] %}
+{% for mode in [("SUBTREE", "聚焦当前子树"),("TOP","始终显示所有顶层目录和页面"),("OFF","始终展开显示所有页面")] %}
             <option value="{{mode[0]}}"{%if config.SIDEBAR_MENUTREE_FOCUS == mode[0] %} selected="selected"{%endif%}>{{mode[1]}}</option>
 {% endfor %}
         </select>
@@ -103,17 +103,17 @@ Shortcuts not listed in the sidebar are available via the <span class="btn btn-s
 {##}
 {##}
     <div class="form-group">
-        <label for="sidebar_menutree_maxdepth">Maximal depth of pages and directories listed.</label>
-        <input name="sidebar_menutree_maxdepth" type="text" placeholder="unlimited" class="form-control w-md-400" id="sidebar_menutree_maxdepth" value="{{ config.SIDEBAR_MENUTREE_MAXDEPTH or "" }}">
+        <label for="sidebar_menutree_maxdepth">页面和目录的最大显示深度</label>
+        <input name="sidebar_menutree_maxdepth" type="text" placeholder="不限制" class="form-control w-md-400" id="sidebar_menutree_maxdepth" value="{{ config.SIDEBAR_MENUTREE_MAXDEPTH or "" }}">
         <div class="mt-5">
-            With <code>MAXDEPTH=0</code> only the pages and directories of the same depth will be displayed. With <code>MAXDEPTH=n</code> children up to depth <code>n</code> will be displayed. Without <code>MAXDEPTH</code> all children will be displayed.
+            <code>MAXDEPTH=0</code> 时仅显示同层页面和目录；<code>MAXDEPTH=n</code> 时显示到第 <code>n</code> 层；留空则显示所有层级。
         </div>
     </div>
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
 {##}
 <div class="mt-10">
-    <input class="btn btn-primary" name="update_preferences" type="submit" value="Save Preferences">
+    <input class="btn btn-primary" name="update_preferences" type="submit" value="保存设置">
 </div>
 </form>
 </div>

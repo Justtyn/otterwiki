@@ -115,7 +115,7 @@ def login(client):
 def test_login(app_with_user, test_client):
     result = login(test_client)
     html = result.data.decode()
-    assert "You logged in successfully." in html
+    assert "登录成功。" in html
 
 
 def test_login_fail_without_app(test_client):
@@ -127,7 +127,7 @@ def test_login_fail_without_app(test_client):
         },
         follow_redirects=True,
     ).data.decode()
-    assert "Invalid email address or password." in html
+    assert "电子邮箱或密码不正确。" in html
 
 
 def test_login_fail_wrong_username(app_with_user, test_client):
@@ -139,7 +139,7 @@ def test_login_fail_wrong_username(app_with_user, test_client):
         },
         follow_redirects=True,
     ).data.decode()
-    assert "Invalid email address or password." in html
+    assert "电子邮箱或密码不正确。" in html
 
 
 def test_login_fail_wrong_password(app_with_user, test_client):
@@ -151,7 +151,7 @@ def test_login_fail_wrong_password(app_with_user, test_client):
         },
         follow_redirects=True,
     ).data.decode()
-    assert "Invalid email address or password." in html
+    assert "电子邮箱或密码不正确。" in html
 
 
 def test_logout(app_with_user, test_client):
@@ -160,7 +160,7 @@ def test_logout(app_with_user, test_client):
         "/-/logout",
         follow_redirects=True,
     ).data.decode()
-    assert "You logged out successfully." in html
+    assert "你已成功退出登录。" in html
 
 
 def test_login_required(test_client):
@@ -168,7 +168,7 @@ def test_login_required(test_client):
         "/-/settings",
         follow_redirects=True,
     ).data.decode()
-    assert "Change Password" not in html
+    assert "修改密码" not in html
     assert "Please log in to access this page." in html
 
 
@@ -178,7 +178,7 @@ def test_settins_minimal(app_with_user, test_client):
         "/-/settings",
         follow_redirects=True,
     ).data.decode()
-    assert "Change Password" in html
+    assert "修改密码" in html
 
 
 #
@@ -303,7 +303,7 @@ def test_page_index_permissions(app_with_permissions, test_client):
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     rv = test_client.get(url_for(fun))
     assert rv.status_code == 200
-    assert "Page Index" in rv.data.decode()
+    assert "页面索引" in rv.data.decode()
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
     rv = test_client.get(url_for(fun))
     assert rv.status_code == 302
@@ -311,7 +311,7 @@ def test_page_index_permissions(app_with_permissions, test_client):
     login(test_client)
     rv = test_client.get(url_for(fun))
     assert rv.status_code == 200
-    assert "Page Index" in rv.data.decode()
+    assert "页面索引" in rv.data.decode()
 
 
 def test_page_changelog_permissions(app_with_permissions, test_client):
@@ -462,7 +462,7 @@ def test_page_revert_permissions(app_with_permissions, test_client):
     rv = test_client.get("/-/revert/{}".format(latest_revision))
     html = rv.data.decode()
     assert rv.status_code == 200
-    assert "Revert commit [{}]".format(latest_revision) in html
+    assert "回滚提交 [{}]".format(latest_revision) in html
 
     # try to revert latest commit
     rv = test_client.post(
@@ -497,7 +497,7 @@ def test_permissions_per_user(app_with_permissions, test_client):
         follow_redirects=True,
     )
 
-    assert "You logged in successfully" in rv.data.decode()
+    assert "登录成功" in rv.data.decode()
     assert "You are logged in but lack READ permissions." in rv.data.decode()
     assert "There is no place like Home." not in rv.data.decode()
     # grant the user read_access
@@ -580,7 +580,7 @@ def test_lost_password_mail(app_with_user, test_client, req_ctx):
             f"/-/recover_password/{token}",
             follow_redirects=True,
         )
-        assert "please update your password." in rv.data.decode()
+        assert "请更新你的密码。" in rv.data.decode()
 
 
 def test_lost_password_form_address(app_with_user, test_client):
@@ -591,7 +591,7 @@ def test_lost_password_form_address(app_with_user, test_client):
         },
         follow_redirects=True,
     )
-    assert "This email address is invalid." in rv.data.decode()
+    assert "电子邮箱地址无效。" in rv.data.decode()
     rv = test_client.post(
         "/-/lost_password",
         data={
@@ -610,7 +610,7 @@ def test_lost_password_invalid_token(app_with_user, test_client):
         "/-/recover_password/invalidtoken",
         follow_redirects=True,
     )
-    assert "Invalid token." in rv.data.decode()
+    assert "无效的令牌。" in rv.data.decode()
 
     from otterwiki.helper import serialize
 
@@ -620,7 +620,7 @@ def test_lost_password_invalid_token(app_with_user, test_client):
         f"/-/recover_password/{token}",
         follow_redirects=True,
     )
-    assert "Invalid email address." in rv.data.decode()
+    assert "电子邮箱地址无效。" in rv.data.decode()
 
 
 def test_lost_password_token_reuse(app_with_user, test_client, req_ctx):
@@ -646,7 +646,7 @@ def test_lost_password_token_reuse(app_with_user, test_client, req_ctx):
             f"/-/recover_password/{token}",
             follow_redirects=True,
         )
-        assert "please update your password." in rv.data.decode()
+        assert "请更新你的密码。" in rv.data.decode()
 
         # Log out so we can test the token again
         test_client.get("/-/logout")
@@ -658,13 +658,9 @@ def test_lost_password_token_reuse(app_with_user, test_client, req_ctx):
         )
         result = rv.data.decode()
         # Token must be rejected — should NOT see the success message
-        assert "please update your password." not in result
+        assert "请更新你的密码。" not in result
         # Should see an error/rejection message
-        assert (
-            "Invalid" in result
-            or "expired" in result
-            or "already used" in result
-        )
+        assert "令牌已使用或已过期。" in result
 
 
 #
@@ -700,7 +696,7 @@ def test_register_and_login(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     html = rv.data.decode()
-    assert "You logged in successfully." in html
+    assert "登录成功。" in html
 
 
 def test_register_and_confirm(app_with_user, test_client, req_ctx):
@@ -734,7 +730,7 @@ def test_register_and_confirm(app_with_user, test_client, req_ctx):
             follow_redirects=True,
         )
         html = rv.data.decode()
-        assert "You logged in successfully." not in html
+        assert "登录成功。" not in html
 
         # check mail
         assert len(outbox) == 1
@@ -749,10 +745,7 @@ def test_register_and_confirm(app_with_user, test_client, req_ctx):
             follow_redirects=True,
         )
         assert rv.status_code == 200
-        assert (
-            "Your email address has been confirmed. You can log in now."
-            in rv.data.decode()
-        )
+        assert "邮箱已确认，现在可以登录。" in rv.data.decode()
         # check if account is confirmed now
         rv = test_client.post(
             "/-/login",
@@ -763,7 +756,7 @@ def test_register_and_confirm(app_with_user, test_client, req_ctx):
             follow_redirects=True,
         )
         html = rv.data.decode()
-        assert "You logged in successfully." in html
+        assert "登录成功。" in html
 
 
 def test_register_errors(app_with_user, test_client, req_ctx):
@@ -779,7 +772,7 @@ def test_register_errors(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     assert rv.status_code == 200
-    assert "email address is invalid" in rv.data.decode()
+    assert "电子邮箱地址无效" in rv.data.decode()
     assert "account has been created" not in rv.data.decode()
     assert "account is waiting for approval" not in rv.data.decode()
     # test existing email
@@ -794,7 +787,7 @@ def test_register_errors(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     assert rv.status_code == 200
-    assert "already registered" in rv.data.decode()
+    assert "此电子邮箱已注册" in rv.data.decode()
     assert "account has been created" not in rv.data.decode()
     assert "account is waiting for approval" not in rv.data.decode()
     # invalid name
@@ -827,7 +820,7 @@ def test_register_errors(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     assert rv.status_code == 200
-    assert "enter your name" in rv.data.decode()
+    assert "请输入姓名" in rv.data.decode()
     assert "account has been created" not in rv.data.decode()
     assert "account is waiting for approval" not in rv.data.decode()
     # passwords not match
@@ -842,7 +835,7 @@ def test_register_errors(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     assert rv.status_code == 200
-    assert "passwords do not match" in rv.data.decode()
+    assert "两次输入的密码不一致" in rv.data.decode()
     assert "account has been created" not in rv.data.decode()
     assert "account is waiting for approval" not in rv.data.decode()
     # passwords not match
@@ -857,7 +850,7 @@ def test_register_errors(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     assert rv.status_code == 200
-    assert "password must be at least" in rv.data.decode()
+    assert "密码至少需要 8 个字符" in rv.data.decode()
     assert "account has been created" not in rv.data.decode()
     assert "account is waiting for approval" not in rv.data.decode()
 
@@ -919,7 +912,7 @@ def test_user_with_empty_password_issues_204_205(app_with_user, test_client):
             f"/-/recover_password/{token}",
             follow_redirects=True,
         )
-        assert "please update your password." in rv.data.decode()
+        assert "请更新你的密码。" in rv.data.decode()
 
 
 def test_register_first_user(create_app, test_client, req_ctx):
@@ -1252,7 +1245,7 @@ def test_login_next_preserved_on_failed_login(app_with_user):
     assert rv.status_code == 200
     html = rv.data.decode()
     assert "/-/settings" in html
-    assert "Invalid email address or password." in html
+    assert "电子邮箱或密码不正确。" in html
 
 
 def test_login_next_full_flow(app_with_user):

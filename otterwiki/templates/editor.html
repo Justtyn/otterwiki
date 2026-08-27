@@ -25,20 +25,20 @@
 {#- disable page drop down #}
 {% endblock %}
 {% block navbar_editor %}
-<button onclick="otterwiki_editor.undo()" class="btn btn-editor btn-xs ml-10" title="Undo"><i class="fas fa-undo"></i></button>
-<button onclick="otterwiki_editor.redo()" class="btn btn-editor btn-xs" style="margin-left: 0.1rem;" title="Redo"><i class="fas fa-redo"></i></button>
+<button onclick="otterwiki_editor.undo()" class="btn btn-editor btn-xs ml-10" title="撤销"><i class="fas fa-undo"></i></button>
+<button onclick="otterwiki_editor.redo()" class="btn btn-editor btn-xs" style="margin-left: 0.1rem;" title="重做"><i class="fas fa-redo"></i></button>
 {##}
-<button onclick="cmOpenSearch()" class="btn btn-editor btn-xs ml-5 hidden-sm-and-down" title="Search"><i class="fas fa-search"></i></button>
-<button onclick="cmOpenReplace()" class="btn btn-editor btn-xs mr-5 hidden-sm-and-down" title="Search and Replace"><i class="fas fa-search fa-flip-both"></i></button>
+<button onclick="cmOpenSearch()" class="btn btn-editor btn-xs ml-5 hidden-sm-and-down" title="搜索"><i class="fas fa-search"></i></button>
+<button onclick="cmOpenReplace()" class="btn btn-editor btn-xs mr-5 hidden-sm-and-down" title="搜索和替换"><i class="fas fa-search fa-flip-both"></i></button>
 {##}
-<button onclick="otterwiki_editor.bold()" class="btn btn-editor btn-xs ml-5 hidden-sm-and-down" title="Bold"><i class="fa fa-bold"></i></button>
-<button onclick="otterwiki_editor.italic()" class="btn btn-editor btn-xs hidden-sm-and-down" title="Italic"><i class="fa fa-italic"></i></button>
-<button onclick="otterwiki_editor.strikethrough()" class="btn btn-editor btn-xs hidden-sm-and-down" title="Strikethrough"><i class="fa fa-strikethrough"></i></button>
-<button onclick="otterwiki_editor.header()" class="btn btn-editor btn-xs hidden-sm-and-down" title="Header"><i class="fa fa-heading"></i></button>
-<button onclick="otterwiki_editor.quote()" class="btn btn-editor btn-xs hidden-sm-and-down" title="Block Quote"><i class="fa fa-quote-left"></i></button>
+<button onclick="otterwiki_editor.bold()" class="btn btn-editor btn-xs ml-5 hidden-sm-and-down" title="粗体"><i class="fa fa-bold"></i></button>
+<button onclick="otterwiki_editor.italic()" class="btn btn-editor btn-xs hidden-sm-and-down" title="斜体"><i class="fa fa-italic"></i></button>
+<button onclick="otterwiki_editor.strikethrough()" class="btn btn-editor btn-xs hidden-sm-and-down" title="删除线"><i class="fa fa-strikethrough"></i></button>
+<button onclick="otterwiki_editor.header()" class="btn btn-editor btn-xs hidden-sm-and-down" title="标题"><i class="fa fa-heading"></i></button>
+<button onclick="otterwiki_editor.quote()" class="btn btn-editor btn-xs hidden-sm-and-down" title="引用块"><i class="fa fa-quote-left"></i></button>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-list" title="List Menu">
+  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-list" title="列表菜单">
     <i class="fas fa-list-ul"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-150" aria-labelledby="navbar-dropdown-toggle-list">
@@ -46,31 +46,31 @@
         <span class="dropdown-icon">
             <i class="fas fa-list-ul"></i>
         </span>
-        Unordered List
+        无序列表
     </a>
     <a onclick="otterwiki_editor.ol()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-list-ul"></i>
         </span>
-        Ordered List
+        有序列表
     </a>
     <a onclick="otterwiki_editor.cl()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-check-square"></i>
         </span>
-        Checklist
+        任务列表
     </a>
     <a onclick="otterwiki_editor.hr()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-ruler-horizontal"></i>
         </span>
-        Horizontal Rule
+        分隔线
     </a>
   </div>
 </div>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-code" title="Code Menu">
+  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-code" title="代码菜单">
     <i class="fas fa-code"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-150" aria-labelledby="navbar-dropdown-toggle-code">
@@ -78,19 +78,19 @@
         <span class="dropdown-icon">
             <i class="fas fa-code"></i>
         </span>
-        Inline Code
+        行内代码
     </a>
     <a onclick="otterwiki_editor.codeBlock()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-file-code"></i>
         </span>
-        Code Block
+        代码块
     </a>
   </div>
 </div>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-blocks" title="Block Menu">
+  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-blocks" title="内容块菜单">
     <i class="fas fa-layer-group"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-150" aria-labelledby="navbar-dropdown-toggle-blocks">
@@ -98,37 +98,37 @@
         <span class="dropdown-icon">
             <i class="fas fa-eye-slash"></i>
         </span>
-        Spoiler Block
+        剧透内容块
     </a>
     <a onclick="otterwiki_editor.expand()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-caret-square-down"></i>
         </span>
-        Folded Block
+        折叠内容块
     </a>
     <a onclick="otterwiki_editor.panelNotice()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-info-circle"></i>
         </span>
-        Notice Panel
+        提示面板
     </a>
     <a onclick="otterwiki_editor.panelWarning()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-exclamation-circle"></i>
         </span>
-        Warning Panel
+        警告面板
     </a>
     <a onclick="otterwiki_editor.panelDanger()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-times-circle"></i>
         </span>
-        Danger Panel
+        危险面板
     </a>
   </div>
 </div>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-alerts" title="Alert Menu">
+  <button class="btn btn-editor hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-alerts" title="警示菜单">
     <i class="fas fa-bell"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-150" aria-labelledby="navbar-dropdown-toggle-alerts">
@@ -136,37 +136,37 @@
         <span class="dropdown-icon">
             <i class="fas fa-info-circle"></i>
         </span>
-        Note
+        备注
     </a>
     <a onclick="otterwiki_editor.alertTip()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-lightbulb"></i>
         </span>
-        Tip
+        提示
     </a>
     <a onclick="otterwiki_editor.alertImportant()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-star"></i>
         </span>
-        Important
+        重要
     </a>
     <a onclick="otterwiki_editor.alertWarning()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-exclamation-circle"></i>
         </span>
-        Warning
+        警告
     </a>
     <a onclick="otterwiki_editor.alertCaution()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-times-circle"></i>
         </span>
-        Caution
+        注意
     </a>
   </div>
 </div>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-references" title="References Menu">
+  <button class="btn btn-editor ml-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-references" title="引用菜单">
     <i class="fas fa-link"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-150" aria-labelledby="navbar-dropdown-toggle-references">
@@ -174,19 +174,19 @@
         <span class="dropdown-icon">
             <i class="fas fa-link"></i>
         </span>
-        Link
+        链接
     </a>
     <a onclick="otterwiki_editor.footnote()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-asterisk"></i>
         </span>
-        Footnote
+        脚注
     </a>
   </div>
 </div>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-graphics" title="Graphics Menu">
+  <button class="btn btn-editor hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-graphics" title="图形菜单">
     <i class="fas fa-images"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-150" aria-labelledby="navbar-dropdown-toggle-graphics">
@@ -194,19 +194,19 @@
         <span class="dropdown-icon">
             <i class="fas fa-image"></i>
         </span>
-        Picture
+        图片
     </a>
     <a onclick="otterwiki_editor.diagram()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-project-diagram"></i>
         </span>
-        Diagram
+        图表
     </a>
   </div>
 </div>
 {##}
 <div class="dropdown">
-  <button class="btn btn-editor ml-5 mr-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-table" title="Table Menu">
+  <button class="btn btn-editor ml-5 mr-5 hidden-sm-and-down" data-toggle="dropdown" type="button" id="navbar-dropdown-toggle-table" title="表格菜单">
     <i class="fas fa-table"></i>
   </button>
   <div class="dropdown-menu dropdown-menu-right w-200" aria-labelledby="navbar-dropdown-toggle-table">
@@ -214,75 +214,75 @@
         <span class="dropdown-icon">
             <i class="fas fa-table"></i>
         </span>
-        Add / Format Table
+        添加／格式化表格
     </a>
     <a onclick="otterwiki_editor.table_add_row()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-plus-circle"></i>
         </span>
-        Add Row
+        添加行
     </a>
     <a onclick="otterwiki_editor.table_remove_row()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-minus-circle"></i>
         </span>
-        Remove Row
+        删除行
     </a>
     <a onclick="otterwiki_editor.table_move_row_up()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-arrow-up"></i>
         </span>
-        Move Row up
+        上移行
     </a>
     <a onclick="otterwiki_editor.table_move_row_down()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-arrow-down"></i>
         </span>
-        Move Row down
+        下移行
     </a>
     <div class="dropdown-divider"></div>
     <a onclick="otterwiki_editor.table_add_column()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-plus-circle"></i>
         </span>
-        Add Column
+        添加列
     </a>
     <a onclick="otterwiki_editor.table_remove_column()" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-minus-circle"></i>
         </span>
-        Remove Column
+        删除列
     </a>
     <a onclick="otterwiki_editor.table_move_column(-1)" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-arrow-left"></i>
         </span>
-        Move Column left
+        左移列
     </a>
     <a onclick="otterwiki_editor.table_move_column(1)" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-arrow-right"></i>
         </span>
-        Move Column right
+        右移列
     </a>
      <div class="dropdown-divider"></div>
     <a onclick="otterwiki_editor.table_align_col('left')" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-align-left"></i>
         </span>
-        Align left
+        左对齐
     </a>
     <a onclick="otterwiki_editor.table_align_col('center')" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-align-center"></i>
         </span>
-        Align center
+        居中对齐
     </a>
     <a onclick="otterwiki_editor.table_align_col('right')" href="#" class="dropdown-item-with-icon">
         <span class="dropdown-icon">
             <i class="fas fa-align-right"></i>
         </span>
-        Align right
+        右对齐
     </a>
   </div>
 </div>
@@ -295,10 +295,10 @@
 <div class="modal" id="modal-commit" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
-      <a href="#" class="close" onclick="otterwiki.toggleModal('modal-commit')" role="button" aria-label="Close">
+      <a href="#" class="close" onclick="otterwiki.toggleModal('modal-commit')" role="button" aria-label="关闭">
         <span aria-hidden="true">&times;</span>
       </a>
-      <h5 class="modal-title">Save {{pagename}}</h5>
+      <h5 class="modal-title">保存 {{pagename}}</h5>
       <form id="saveform" action="{{ url_for('save', path=pagepath) }}" method="post" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input id="save_content" type="hidden" name="content" value="">
@@ -306,14 +306,14 @@
       <input id="save_cursor_ch" type="hidden" name="cursor_ch" value="" />
         <div class="form-group">
 {%if config["COMMIT_MESSAGE"] == "REQUIRED"%}
-            <label for="commit-message" class="required">Commit Message</label>
-            <input name="commit" id="commit-message" type="text"  class="form-control" placeholder="Your commit message here" required="required">
+            <label for="commit-message" class="required">提交说明</label>
+            <input name="commit" id="commit-message" type="text"  class="form-control" placeholder="请输入提交说明" required="required">
 {% else %}
-            <label for="commit-message">Commit Message</label>
-            <input name="commit" id="commit-message" type="text" class="form-control" value="{{ default_commit_message }}" placeholder="Your (optional) commit message here">
+            <label for="commit-message">提交说明</label>
+            <input name="commit" id="commit-message" type="text" class="form-control" value="{{ default_commit_message }}" placeholder="提交说明（可选）">
 {% endif %}
         </div>
-        <input class="btn btn-primary btn-block" type="submit" value="Save">
+        <input class="btn btn-primary btn-block" type="submit" value="保存">
       </form>
     </div>
   </div>
@@ -331,11 +331,11 @@
 #}
 {% block extra_nav -%}
 <div id="extranav-attachments">
-<h5 class="sidebar-title"><a class="sidebar-title-link" href="{{ url_for('attachments', pagepath=pagepath ) }}">Attachments <i class="fa fa-paperclip"></i></a></h5>
+<h5 class="sidebar-title"><a class="sidebar-title-link" href="{{ url_for('attachments', pagepath=pagepath ) }}">附件 <i class="fa fa-paperclip"></i></a></h5>
                     <div class="sidebar-divider" ></div>
                     <form class="ml-10">
                         <select class="form-control" id="attachment-filename" onchange="otterwiki_editor.update_attachment_preview(this);">
-                          <option value="" selected="selected" disabled="disabled">Select an attachment</option>
+                          <option value="" selected="selected" disabled="disabled">选择附件</option>
 {% for f in files %}
                           <option value="{{f.filename}}/--/{{f.url}}/--/{{f.thumbnail_url or ''}}">{{f.filename}}</option>
 {% endfor %}
@@ -343,40 +343,40 @@
                         <div id="extranav-preview" class="my-5"></div>
                         <div class="custom-radio mt-5 ml-5">
                           <input type="radio" name="attachment-type" id="attachment-link" value="link" checked="checked">
-                          <label for="attachment-link">as link</label>
+                          <label for="attachment-link">作为链接</label>
                         </div>
                         <div class="custom-radio mt-5 ml-5">
                           <input type="radio" name="attachment-type" id="attachment-image" value="image">
-                          <label for="attachment-image">as image</label>
+                          <label for="attachment-image">作为图片</label>
                         </div>
                         <div class="custom-radio mt-5 ml-5">
                           <input type="radio" name="attachment-type" id="attachment-thumbnail" value="thumbnail">
-                          <label for="attachment-thumbnail">as link with thumbnail</label>
+                          <label for="attachment-thumbnail">作为带缩略图的链接</label>
                         </div>
                         <div class="mt-5 ml-10" id="thumbnail-size-container" style="display: none;">
-                          <input type="text" id="thumbnail-size" class="form-control" placeholder="max size in px" pattern="[0-9]*" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                          <input type="text" id="thumbnail-size" class="form-control" placeholder="最大尺寸（像素）" pattern="[0-9]*" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                         </div>
                         <div class="custom-checkbox mt-5 ml-5">
                           <input type="checkbox" id="attachment-absolute" value="checked">
-                          <label for="attachment-absolute">use absolute path</label>
+                          <label for="attachment-absolute">使用绝对路径</label>
                         </div>
-                        <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_attachment()" title="Copy into the editor" ><i class="fas fa-paste"></i></button>
+                        <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_attachment()" title="插入编辑器" ><i class="fas fa-paste"></i></button>
                     </form>
 
 
-                    <p class="font-size-12 p-15 text-muted">Additional media can be added via the 'Attachments' of this page, or, you can drag and drop a file into the web editor and it will be uploaded and embedded when the page is saved.</p>
+                    <p class="font-size-12 p-15 text-muted">可通过本页的“附件”添加更多媒体，也可以将文件拖入编辑器；保存页面时，文件会自动上传并嵌入。</p>
 
                     <h5 class="sidebar-title">WikiLink <i class="fa fa-link"></i></h5>
                     <div class="sidebar-divider" ></div>
                     <form class="ml-10">
                         <select class="form-control" id="wikilink">
-                          <option value="" selected="selected" disabled="disabled">Select a page to link</option>
+                          <option value="" selected="selected" disabled="disabled">选择要链接的页面</option>
 {% for p in pages %}
                           <option value="{{p[1]}}">{{p[1]}}</option>
 {% endfor %}
                         </select>
-                        <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_wikilink()" title="Copy into the editor" ><i class="fas fa-paste"></i></button>
-                        <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_wikilink(false)" title="Copy into the editor, use page name as link text" ><i class="fa fa-heading"></i></button>
+                        <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_wikilink()" title="插入编辑器" ><i class="fas fa-paste"></i></button>
+                        <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_wikilink(false)" title="插入编辑器，并以页面名作为链接文字" ><i class="fa fa-heading"></i></button>
                     </form>
                     </div>
 {{ super() }}
@@ -393,11 +393,11 @@
 <div id="editor_block" style="display: block;"></div>
 <div id="preview_block" tabindex="-1" style="display: none;"></div>
 <div id="editor-bottom-panel" class="editor-bottom-panel" style="display:none;">
-    <a href="#" onclick="otterwiki.toggleMarkdownHelp()" class="btn btn-xsm"><i class="fab fa-markdown"></i> Markdown Syntax</a>
+    <a href="#" onclick="otterwiki.toggleMarkdownHelp()" class="btn btn-xsm"><i class="fab fa-markdown"></i> Markdown 语法</a>
     <div id="editor-help-markdown" class="content card border rounded-top p-5" style="display: none;">
         <a href="{{ url_for("syntax") }}" class="btn btn-xsm" target="_blank">
             <i class="fas fa-expand-arrows-alt"></i>
-                    Full Syntax Guide
+                    完整语法指南
         </a>
         <a href="#" onclick="otterwiki.toggleMarkdownHelp()" class="text-muted" style="float:right;">
             <i class="far fa-times-circle"></i>
@@ -412,21 +412,21 @@
     Navbar
 #}
 {% block navbar %}
-<a href="{{ url_for('view', path=pagepath) }}" class="btn btn-danger mr-5" role="button" title="Cancel"><i class="fas fa-window-close"></i></a>
+<a href="{{ url_for('view', path=pagepath) }}" class="btn btn-danger mr-5" role="button" title="取消"><i class="fas fa-window-close"></i></a>
 {%if config["COMMIT_MESSAGE"] == "DISABLED"%}
 <form id="saveform" action="{{ url_for('save', path=pagepath) }}" method="post" autocomplete="off">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input id="save_content" type="hidden" name="content" value="">
 <input id="save_cursor_line" type="hidden" name="cursor_line" value="" />
 <input id="save_cursor_ch" type="hidden" name="cursor_ch" value="" />
-<button id="save-page-btn" class="btn btn-success mr-5" title="Save"><i class="fas fa-save"></i></button>
+<button id="save-page-btn" class="btn btn-success mr-5" title="保存"><i class="fas fa-save"></i></button>
 <input name="commit" type="hidden" value="">
 </form>
 {% else %}
-<button id="save-page-btn" class="btn btn-success mr-5" onclick="otterwiki.toggleModal('modal-commit')" title="Save"><i class="fas fa-save"></i></button>
+<button id="save-page-btn" class="btn btn-success mr-5" onclick="otterwiki.toggleModal('modal-commit')" title="保存"><i class="fas fa-save"></i></button>
 {% endif %}
-<button id="preview_btn" class="btn btn-primary" style="width: 1rem;" title="Preview"><i class="far fa-eye" ></i></button>
-<button id="editor_btn" class="btn btn-primary" style="width: 1rem; display:none;" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+<button id="preview_btn" class="btn btn-primary" style="width: 1rem;" title="预览"><i class="far fa-eye" ></i></button>
+<button id="editor_btn" class="btn btn-primary" style="width: 1rem; display:none;" title="编辑"><i class="fas fa-pencil-alt"></i></button>
 {% endblock %}
 {#
     Javascript
@@ -458,7 +458,7 @@
                 else { return "[" + displayName + "](" + filename + ")"; }
             },
             onFilenamePrompt: function(suggestedFilename, file) {
-                return prompt("Enter filename for the attachment:", suggestedFilename);
+                return prompt("请输入附件文件名：", suggestedFilename);
             },
             onFileUploadResponse: function(xhr) {
                 var result = JSON.parse(xhr.responseText),

@@ -60,7 +60,7 @@ def housekeeping_form():
             drafts.append(d)
     return render_template(
         "tools/housekeeping.html",
-        title="Housekeeping",
+        title="维护工具",
         drafts=drafts,
     )
 
@@ -79,7 +79,7 @@ def handle_housekeeping_drafts(form):
                 db.session.delete(draft)
                 deleted += 1
         if deleted > 0:
-            toast(f"Deleted {deleted} draft(s).")
+            toast(f"已删除 {deleted} 份草稿。")
             db.session.commit()
     return redirect(url_for("housekeeping"))
 
@@ -299,5 +299,5 @@ def handle_housekeeping(form):
     if form.get("task", None) == "brokenwikilinks":
         return handle_housekeeping_brokenwikilinks(form)
     # unkown task: display the form
-    toast("Unkown task", "error")
+    toast("未知任务", "error")
     return redirect(url_for("housekeeping"))

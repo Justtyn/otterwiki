@@ -63,7 +63,7 @@ def test_draft_warning(app_with_user, test_client):
     )
     assert rv.status_code == 200
     html = rv.data.decode()
-    assert "Continue editing draft?".lower() in html.lower()
+    assert "继续编辑草稿？" in html
 
     # open up editor with the draft
     rv = test_client.post(
@@ -99,7 +99,7 @@ def test_draft_discard(app_with_user, test_client):
     )
     assert rv.status_code == 200
     html = rv.data.decode()
-    assert "Continue editing draft?".lower() in html.lower()
+    assert "继续编辑草稿？" in html
 
     # discard draft
     rv = test_client.post(

@@ -4,25 +4,25 @@
 <form action="{{ url_for("register") }}" method="POST" class="form-inline">{# <!-- w-400 = width: 40rem (400px), mw-full = max-width: 100% --> #}
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group">
-    <label for="email" class="required w-150">eMail Address</label>
+    <label for="email" class="required w-150">电子邮箱</label>
     <input type="text" class="form-control" name="email" id="email" placeholder="you@example.com" value="{{email if email}}" autofocus>
   </div>
   <div class="form-group">
-    <label for="password1" class="required w-150">Password</label>
-    <input type="password" class="form-control" name="password1" id="password1" placeholder="Password">
+    <label for="password1" class="required w-150">密码</label>
+    <input type="password" class="form-control" name="password1" id="password1" placeholder="密码">
   </div>
   <div class="form-group">
-    <label for="password2" class="required w-150">Confirm password</label>
-    <input type="password" class="form-control" name="password2" id="password2" placeholder="Confirm Password">
+    <label for="password2" class="required w-150">确认密码</label>
+    <input type="password" class="form-control" name="password2" id="password2" placeholder="再次输入密码">
   </div>
   <div class="form-group">
-      The password must be at least 8 characters long.
+      密码至少需要 8 个字符。
   </div>
   <div class="form-group">
-    <label for="name" class="required w-150">Name</label>
-    <input type="text" class="form-control" name="name" id="name" placeholder="First and Last name" value="{{name if name}}">
+    <label for="name" class="required w-150">姓名</label>
+    <input type="text" class="form-control" name="name" id="name" placeholder="姓名" value="{{name if name}}">
   </div>
-  <input class="btn btn-primary" type="submit" value="Register">
-  <a href="{{ url_for("login") }}" class="btn btn-link" role="button">Login</a>
+  <input class="btn btn-primary" type="submit" value="注册">
+  <a href="{{ url_for("login") }}" class="btn btn-link" role="button">登录</a>
 </form>
 {% endblock %}

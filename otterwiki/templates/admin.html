@@ -7,107 +7,104 @@
 <div class="mw-full">
 <form action="{{ url_for("admin") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h2 class="card-title">Application Preferences</h2>
+<h2 class="card-title">应用设置</h2>
 {##}
   <div class="form-group">
-    <label for="site_name" class="required">Site Name</label>
+    <label for="site_name" class="required">站点名称</label>
     <input name="site_name" type="text" placeholder="An Otter Wiki" class="form-control" id="site_name" value="{{ config.SITE_NAME or "" }}">
     <div class="form-text">
-      The name of the site, displayed on the top left of the page and in the subject of all emails.
+      显示在页面左上角以及所有邮件主题中的站点名称。
     </div>
   </div>
 {##}
   <div class="form-group">
-    <label for="site_name">Server Name</label>
+    <label for="site_name">服务器域名</label>
     <input name="server_name" type="text" placeholder="{{ url_for("index", _external=True).rpartition("//")[-1].partition(":")[0].partition("/")[0] }}" class="form-control" id="site_name" value="{{ config.SERVER_NAME or "" }}">
     <div class="form-text">
-      The name of the domain running the site. This is <em>optional</em> when running behind a well configured reverse proxy. Used for external URLs.
+      运行此站点的域名，用于生成外部链接。使用正确配置的反向代理时，此项为<em>可选</em>。
     </div>
   </div>
 {##}
   <div class="form-group">
-    <label for="site_description">Site Description</label>
-    <input name="site_description" type="text" placeholder="A minimalistic wiki powered by python, markdown and git." class="form-control" id="site_description" value="{{ config.SITE_DESCRIPTION or "" }}">
+    <label for="site_description">站点描述</label>
+    <input name="site_description" type="text" placeholder="一个由 Python、Markdown 和 Git 驱动的简洁 Wiki。" class="form-control" id="site_description" value="{{ config.SITE_DESCRIPTION or "" }}">
     <div class="form-text">
-      The default description used in <code>&lt;meta&gt;</code> tags.
+      用于 <code>&lt;meta&gt;</code> 标签的默认描述。
     </div>
   </div>
 {##}
   <div class="form-group">
-      <label for="site-logo">Site Logo</label>{# using site-logo here is not a typo, chrome complained about name/id mismatches #}
+      <label for="site-logo">站点标志</label>{# using site-logo here is not a typo, chrome complained about name/id mismatches #}
     <input name="site_logo" type="text" placeholder="/static/img/otterhead.png" class="form-control" id="site-logo" value="{{ config.SITE_LOGO or "" }}">
     <div class="form-text">
-        Configure via an url to the image that is displayed in the navbar on top of every page.
-        This can be an attachment, e.g. <code>logo.png</code> attached to <code>Home</code> can be used as <code>/Home/a/logo.png</code>
+        设置显示在每个页面顶部导航栏中的图片 URL。可以使用附件，例如将 <code>logo.png</code> 附加到 <code>Home</code> 后，可填写 <code>/Home/a/logo.png</code>。
     </div>
   </div>
 {##}
   <div class="form-group">
-      <label for="site-lang">Site Language</label>
-    <input name="site_lang" type="text" placeholder="/static/img/otterhead.png" class="form-control" id="site-lang" value="{{ config.SITE_LANG or "" }}">
+      <label for="site-lang">站点语言</label>
+    <input name="site_lang" type="text" placeholder="zh-CN" class="form-control" id="site-lang" value="{{ config.SITE_LANG or "" }}">
     <div class="form-text">
-        Configures the <code>lang</code> attribute of the <code>&lt;html&gt;</code> lang used in the wiki. For example, <code>en</code> specifies English, but <code>en-GB</code> and <code>en-US</code> more precisely specify British English and American English, respectively.
-        <em>Note: This is not to be confused with configuring the lange and localization of the application. This is not yet supported.</em>
+        设置 Wiki 的 <code>&lt;html&gt;</code> 标签上的 <code>lang</code> 属性。简体中文建议填写 <code>zh-CN</code>。
     </div>
   </div>
 {##}
     <div class="form-group">
-        <label for="robots_txt">Robot Crawlers</label>
+        <label for="robots_txt">搜索引擎爬虫</label>
         <select class="form-control w-md-400" id="robots_txt" name="robots_txt">
-{% for mode in [("allow", "Allow"),("disallow","Disallow")] %}
+{% for mode in [("allow", "允许"),("disallow","禁止")] %}
             <option value="{{mode[0]}}"{%if config.ROBOTS_TXT == mode[0] %} selected="selected"{%endif%}>{{mode[1]}}</option>
 {% endfor %}
         </select>
         <div class="form-text">
-            Configure how the wiki indicates to visiting robots whether they are allowed to crawl the content.
+            设置是否允许搜索引擎爬虫抓取 Wiki 内容。
         </div>
     </div>
 {##}
   <div class="form-group">
-    <label for="home_page">Custom Home Page</label>
-    <input name="home_page" type="text" placeholder="Leave empty for default (Home)" class="form-control" id="home_page" value="{{ config.HOME_PAGE or "" }}">
+    <label for="home_page">自定义首页</label>
+    <input name="home_page" type="text" placeholder="留空使用默认首页（Home）" class="form-control" id="home_page" value="{{ config.HOME_PAGE or "" }}">
     <div class="form-text">
-      Configure which page is displayed when visiting the root URL (<code>/</code>).
+      设置访问根地址（<code>/</code>）时显示的页面。
       <ul>
-        <li><strong>Empty</strong>: Use the default <code>Home</code> page</li>
-        <li><strong>Page path</strong>: Use a specific page from the repository (e.g. <code>Welcome</code> or <code>Docs/Index</code>)</li>
-        <li><strong>Special page</strong>: Redirect to a special page like <code>/-/index</code> or <code>/-/changelog</code></li>
+        <li><strong>留空</strong>：使用默认的 <code>Home</code> 页面</li>
+        <li><strong>页面路径</strong>：使用仓库中的指定页面（例如 <code>Welcome</code> 或 <code>Docs/Index</code>）</li>
+        <li><strong>特殊页面</strong>：重定向到 <code>/-/index</code> 或 <code>/-/changelog</code> 等特殊页面</li>
       </ul>
-      <em>Note: Do not include the <code>.md</code> extension for regular pages.</em>
+      <em>注意：普通页面路径不要包含 <code>.md</code> 扩展名。</em>
     </div>
   </div>
 {##}
   <div class="form-group">
-    <label for="site_icon">Site Icon (favicon)</label>
+    <label for="site_icon">站点图标（favicon）</label>
     <input name="site_icon" type="text" placeholder="/static/img/otter-favicon.png" class="form-control" id="site_icon" value="{{ config.SITE_ICON or "" }}">
     <div class="form-text">
-        Configure via an url to the image that is displayed as favicon (tab icon, URL icon, bookmark icon).
-        This can be an attachment, e.g. <code>favicon-32x32.png</code> attached to <code>Home</code> can be used as <code>/Home/a/favicon-32x32.png</code>
+        设置浏览器标签页、地址栏和书签所显示图标的 URL。可以使用附件，例如 <code>/Home/a/favicon-32x32.png</code>。
     </div>
   </div>
 {##}
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.HIDE_LOGO %}checked{% endif %} type="checkbox" id="hide_logo" name="hide_logo" value="True">
-      <label for="hide_logo">Hide the logo of An Otter Wiki in the sidebar.</label>
+      <label for="hide_logo">隐藏侧边栏中的 An Otter Wiki 标志。</label>
     </div>
     <div class="form-text">
-        An Otter Wiki logo will not be shown.
+        启用后不再显示 An Otter Wiki 标志。
     </div>
   </div>
 {##}
   <div class="form-group">
     <div class="custom-checkbox">
       <input {%if config.OPEN_LINKS_IN_NEW_TAB %}checked{% endif %} type="checkbox" id="open_links_in_new_tab" name="open_links_in_new_tab" value="True">
-      <label for="open_links_in_new_tab">Open external links in a new tab.</label>
+      <label for="open_links_in_new_tab">在新标签页中打开外部链接。</label>
     </div>
     <div class="form-text">
-        External links open in new browser tab.
+        外部链接将在浏览器新标签页中打开。
     </div>
   </div>
 {##}
   <div class="mt-10">
-    <input class="btn btn-primary" name="update_preferences" type="submit" value="Save Preferences">
+    <input class="btn btn-primary" name="update_preferences" type="submit" value="保存设置">
   </div>
 </form>
 </div>

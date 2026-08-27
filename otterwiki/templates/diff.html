@@ -25,9 +25,9 @@
 {% block content %}
 <div class="w-full mw-full p-0 clearfix">
 {% if rev_a and rev_b %}
-    <h3>Comparing <tt>{{rev_a}}</tt> to <tt>{{rev_b}}</tt></h3>
+    <h3>比较 <tt>{{rev_a}}</tt> 与 <tt>{{rev_b}}</tt></h3>
 {% elif revision %}
-    <h3>Commit <tt>{{revision}}</tt></h3>
+    <h3>提交 <tt>{{revision}}</tt></h3>
 {% endif %}
 {% if metadata %}
 <span class="datetime" title="{{metadata.datetime|format_datetime("deltanow")}} ago">{{metadata.datetime|format_datetime}}</span>

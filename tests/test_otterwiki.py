@@ -29,7 +29,7 @@ def test_healthz(test_client):
 def test_create_form(test_client):
     result = test_client.get("/-/create")
     html = result.data.decode()
-    assert "Create Page</h2>" in html
+    assert "新建页面</h2>" in html
     assert '<form action="/-/create" method="POST"' in html
 
 
@@ -42,7 +42,7 @@ def test_create_page_sanitized(test_client):
         },
         follow_redirects=True,
     ).data.decode()
-    assert "Please check the pagename" in html
+    assert "请检查页面名称" in html
 
 
 def test_create_page_in(test_client):
@@ -103,7 +103,7 @@ def test_create_page(test_client, req_ctx):
         },
         follow_redirects=True,
     ).data.decode()
-    assert "exists already" in html
+    assert "已存在" in html
 
 
 def test_create_page_notlower(test_client, req_ctx):
@@ -138,7 +138,7 @@ def test_create_page_notlower(test_client, req_ctx):
         },
         follow_redirects=True,
     ).data.decode()
-    assert "exists already" in html
+    assert "已存在" in html
 
 
 def save_shortcut(test_client, pagename, content, commit_message):
@@ -196,7 +196,7 @@ def test_sanitized_path_redirects_to_index(test_client):
     # follow the redirect and check for the toast message
     rv = test_client.get("/%21", follow_redirects=True)
     assert rv.status_code == 200
-    assert "Invalid pagename." in rv.data.decode()
+    assert "页面名称无效。" in rv.data.decode()
 
 
 def test_page_save(test_client):
@@ -210,7 +210,7 @@ def test_page_save(test_client):
     assert content == storage.load("{}.md".format(pagename.lower()))
     # check history
     html = test_client.get("/{}/history".format(pagename)).data.decode()
-    assert "History" in html
+    assert "历史记录" in html
     assert commit_message in html
 
 
@@ -369,11 +369,11 @@ def test_blame_and_history_404(test_client):
     pagename = "Does not exist"
     # check blame
     rv = test_client.get("/{}/blame".format(pagename), follow_redirects=True)
-    assert "Page not found" in rv.data.decode()
+    assert "页面不存在" in rv.data.decode()
     assert rv.status_code == 404
     # check history
     rv = test_client.get("/{}/history".format(pagename), follow_redirects=True)
-    assert "Page not found" in rv.data.decode()
+    assert "页面不存在" in rv.data.decode()
     assert rv.status_code == 404
 
 
@@ -387,48 +387,48 @@ def test_search(test_client):
     )
     # search 1
     rv = test_client.get("/-/search/{}".format("Haystack"))
-    assert "Search matched 4 pages" in rv.data.decode()
+    assert "找到 4 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search 2
     rv = test_client.get("/-/search/{}".format("Needle"))
-    assert "Search matched 4 pages" in rv.data.decode()
+    assert "找到 4 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search 3
     rv = test_client.get("/-/search/{}".format("Needle 1"))
-    assert "Search matched 2 pages" in rv.data.decode()
+    assert "找到 2 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search 4
     rv = test_client.get("/-/search/{}".format("Haystack 1"))
-    assert "Search matched 2 pages" in rv.data.decode()
+    assert "找到 2 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search via post 1
     rv = test_client.post("/-/search", data={"query": "Haystack"})
-    assert "Search matched 4 pages" in rv.data.decode()
+    assert "找到 4 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search via post 2: case sensitive
     rv = test_client.post(
         "/-/search", data={"query": "HayStack", "is_casesensitive": "y"}
     )
-    assert "Search matched 4 pages" in rv.data.decode()
+    assert "找到 4 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search via post 3: case sensitive
     rv = test_client.post(
         "/-/search", data={"query": "NeEdle", "is_casesensitive": "y"}
     )
-    assert "Search matched 2 pages" in rv.data.decode()
+    assert "找到 2 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search via post 4: regex
     rv = test_client.post(
         "/-/search",
         data={"query": "NeEdle", "is_regexp": "y", "is_casesensitive": "y"},
     )
-    assert "Search matched 2 pages" in rv.data.decode()
+    assert "找到 2 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
     # search via post 4: regex
     rv = test_client.post(
         "/-/search", data={"query": "N[eE]+dle", "is_regexp": "y"}
     )
-    assert "Search matched 4 pages" in rv.data.decode()
+    assert "找到 4 个匹配页面" in rv.data.decode()
     assert rv.status_code == 200
 
 
@@ -610,7 +610,7 @@ def test_nested_files(test_client):
     # check that the parent page returns the page index
     rv = test_client.get("/{}".format(_inner_folder))
     assert rv.status_code == 200
-    assert 'Page Index' in rv.data.decode()
+    assert '页面索引' in rv.data.decode()
     assert _file_name.capitalize() in rv.data.decode()
 
     # upload an image

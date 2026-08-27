@@ -39,19 +39,19 @@ def test_sidebar_shortcuts(create_app, test_client):
     # test the default settings
     create_app.config["SIDEBAR_SHORTCUTS"] = "home pageindex createpage"
     sidebar_shortcuts, dropdown_shortcuts = get_sidebar_shortcuts(test_client)
-    assert ('Home', '/') in sidebar_shortcuts
+    assert ('首页', '/') in sidebar_shortcuts
     assert ('A - Z', '/-/index') in sidebar_shortcuts
-    assert ('Create page', '/-/create') in sidebar_shortcuts
-    assert ("Changelog", "/-/changelog") not in sidebar_shortcuts
+    assert ('新建页面', '/-/create') in sidebar_shortcuts
+    assert ("变更记录", "/-/changelog") not in sidebar_shortcuts
 
     assert ('Home', '/') not in dropdown_shortcuts
     assert ('A - Z', '/-/index') not in dropdown_shortcuts
-    assert ('Create page', '/-/create') not in dropdown_shortcuts
-    assert ("Changelog", "/-/changelog") in dropdown_shortcuts
+    assert ('新建页面', '/-/create') not in dropdown_shortcuts
+    assert ("变更记录", "/-/changelog") in dropdown_shortcuts
 
     # change preferences
     create_app.config["SIDEBAR_SHORTCUTS"] = "changelog"
-    assert ("Changelog", "/-/changelog") not in sidebar_shortcuts
+    assert ("变更记录", "/-/changelog") not in sidebar_shortcuts
 
 
 def test_sidebar_shortcuts_empty(create_app, test_client):
@@ -60,12 +60,12 @@ def test_sidebar_shortcuts_empty(create_app, test_client):
 
     assert ('Home', '/') not in sidebar_shortcuts
     assert ('A - Z', '/-/index') not in sidebar_shortcuts
-    assert ('Create page', '/-/create') not in sidebar_shortcuts
-    assert ("Changelog", "/-/changelog") not in sidebar_shortcuts
+    assert ('新建页面', '/-/create') not in sidebar_shortcuts
+    assert ("变更记录", "/-/changelog") not in sidebar_shortcuts
 
     assert ('A - Z', '/-/index') in dropdown_shortcuts
-    assert ('Create page', '/-/create') in dropdown_shortcuts
-    assert ("Changelog", "/-/changelog") in dropdown_shortcuts
+    assert ('新建页面', '/-/create') in dropdown_shortcuts
+    assert ("变更记录", "/-/changelog") in dropdown_shortcuts
 
 
 def get_sidebar_menu(test_client):
@@ -436,7 +436,7 @@ def _menutree_details(html):
     # the page index panel contains a <summary> "Page Index"
     for panel in panels:
         summary = panel.find("summary")
-        if summary and "Page Index" in summary.get_text():
+        if summary and "页面索引" in summary.get_text():
             return panel.find_all("details")
     return []
 

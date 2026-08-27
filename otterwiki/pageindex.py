@@ -221,9 +221,9 @@ class PageIndex:
 
         # build the title and description used in the meta og tags ...
         if self.path is None or self.path.rstrip("/") == "":
-            title = "Page Index"
+            title = "页面索引"
         else:
-            title = f"Page Index - {self.pagename}"
+            title = f"页面索引 - {self.pagename}"
 
         upsert_pagecrumbs(get_pagename(self.path or "/", full=True))
         return render_template(

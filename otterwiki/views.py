@@ -163,7 +163,7 @@ def about():
     htmlcontent, _, library_requirements = render.markdown(content)
     return render_template(
         "about.html",
-        title="About",
+        title="关于",
         htmlcontent=htmlcontent,
         __version__=__version__,
         library_requirements=library_requirements,
@@ -174,7 +174,7 @@ def about():
 def syntax():
     return render_template(
         "syntax.html",
-        title="Syntax",
+        title="语法",
         in_help=True,
         pagepath="",
     )
@@ -216,7 +216,7 @@ def help(topic=None):
         )
         return render_template(
             "help_syntax.html",
-            title="Help - Syntax",
+            title="帮助 - 语法",
             toc=toc,
             in_help=True,
             embedding_info=embedding_info,
@@ -235,7 +235,7 @@ def help(topic=None):
     # default help
     return render_template(
         "help.html",
-        title="Help - {}".format(topic.capitalize()) if topic else "Help",
+        title="帮助 - {}".format(topic.capitalize()) if topic else "帮助",
         content=content,
         toc=toc,
         library_requirements=library_requirements,
@@ -404,17 +404,17 @@ def create():
         # This is the default create page view
         return render_template(
             "create.html",
-            title="Create Page",
+            title="新建页面",
             pagename_prefixes=get_pagename_prefixes(),
             menutree=SidebarPageIndex("/").query(),
             custom_menu=SidebarMenu().query(),
         )
     elif pagename != pagename_sanitized:
         if pagename is not None and pagename != pagename_sanitized:
-            toast("Please check the pagename ...", "warning")
+            toast("请检查页面名称。", "warning")
         return render_template(
             "create.html",
-            title="Create Page",
+            title="新建页面",
             pagename=pagename_sanitized,
             pagename_prefixes=get_pagename_prefixes(),
             menutree=SidebarPageIndex("/").query(),
