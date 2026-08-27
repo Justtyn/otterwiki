@@ -1,10 +1,17 @@
 {#- vim: set et ts=8 sts=4 sw=4 ai: -#}
 {%- if has_permission('READ') %}
 {%- if menutree %}
-    <details class="collapse-panel" open>
+    {%- if menutree.tabs %}
+    <nav class="documentation-tabs" aria-label="文档分类">
+        {%- for tab in menutree.tabs %}
+        <a href="{{ url_for('view', path=tab.path) }}"{% if tab.active %} class="active" aria-current="page"{% endif %}>{{ tab.title }}</a>
+        {%- endfor %}
+    </nav>
+    {%- endif %}
+    <details class="collapse-panel{% if menutree.structured %} structured-menutree{% endif %}"{% if menutree.structured %} data-navigation-key="{{ menutree.namespace }}::panel"{% endif %} open>
 
         <summary class="collapse-header">
-            页面索引
+            {{ menutree.title|default("页面索引", true) }}
         </summary>
 
         <div class="collapse-content">
@@ -13,9 +20,14 @@
             {%- for key, value in menutree.items() recursive -%}
             {%- if value["children"] %}
             <li>
-                <details {% if config.SIDEBAR_MENUTREE_FOCUS == "OFF" or (pagepath and pagepath.lower().startswith(value.path.lower())) %}open{% endif %}>
+                <details{% if menutree.structured %} data-navigation-key="{{ menutree.namespace }}::{{ value.scope|default(value.path, true) }}::{{ value.header }}"{% endif %} {% if config.SIDEBAR_MENUTREE_FOCUS == "OFF" or value.active or (pagepath and pagepath.lower().startswith(value.path.lower())) %}open{% endif %}>
                     <summary class="sidebarmenu">
-                        <a href="/{{value["path"]}}"{% if pagepath and pagepath.lower() == value.path.lower() %} aria-current="page"{% endif %}>{{value["header"]}}</a>
+                        {%- if value.number %}<span class="navigation-number">{{ value.number }}</span>{% endif -%}
+                        {%- if value.linkable is sameas false %}
+                        <span class="navigation-label">{{value["header"]}}</span>
+                        {%- else %}
+                        <a href="{{ url_for('view', path=value.path) }}"{% if pagepath and pagepath.lower() == value.path.lower() %} aria-current="page"{% endif %}>{{value["header"]}}</a>
+                        {%- endif %}
                     </summary>
                     <ul class="sidebarmenu sidebarmenu-loop-{{ loop.depth % 4 }}">{{ loop(value["children"].items())}}
                     </ul>
@@ -24,10 +36,13 @@
             {%- else %}
                 <li>
                     <div class="summary-details">
-                        {%- if pagepath and pagepath.lower() == value.path.lower() %}
-                        <a href="/{{value["path"]}}" aria-current="page">{{value["header"]}}</a>
+                        {%- if value.number %}<span class="navigation-number">{{ value.number }}</span>{% endif -%}
+                        {%- if value.linkable is sameas false %}
+                        <span class="navigation-label">{{value["header"]}}</span>
+                        {%- elif pagepath and pagepath.lower() == value.path.lower() %}
+                        <a href="{{ url_for('view', path=value.path) }}" aria-current="page">{{value["header"]}}</a>
                         {%- else %}
-                        <a href="/{{value["path"]}}">{{value["header"]}}</a>
+                        <a href="{{ url_for('view', path=value.path) }}">{{value["header"]}}</a>
                         {%- endif %}
                     </div>
                 </li>

@@ -11,6 +11,7 @@ import regex
 import string
 import time
 import unicodedata
+import yaml
 from hashlib import sha256
 from functools import lru_cache
 from typing import List, Tuple
@@ -255,7 +256,26 @@ AXT_HEADING = re.compile(
 SETEX_HEADING = re.compile(r'([^\n]+)\n *(=|-){2,}[ \t]*\n+')
 
 
+def get_frontmatter(content):
+    """Return YAML front matter from the true start of a Markdown page."""
+    if not content.startswith("---\n"):
+        return {}
+    end = content.find("\n---", 4)
+    if end < 0:
+        return {}
+    try:
+        metadata = yaml.safe_load(content[4:end])
+    except (TypeError, ValueError, yaml.YAMLError):
+        return {}
+    return metadata if isinstance(metadata, dict) else {}
+
+
 def get_header(content):
+    metadata = get_frontmatter(content)
+    title = metadata.get("title")
+    if isinstance(title, str) and title.strip():
+        return title.strip().strip('"\'')
+
     filehead = content[:512]
     # find first markdown header in filehead
     heading = [line for (_, line) in AXT_HEADING.findall(filehead)]

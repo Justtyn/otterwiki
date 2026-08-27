@@ -11,7 +11,9 @@ from otterwiki.plugins import call_hook
 from otterwiki.gitstorage import StorageError
 from otterwiki.server import storage, app
 from otterwiki.renderer import clean_html, parse_custom_allowlist
+from otterwiki.structured_navigation import build_structured_navigation
 from otterwiki.util import (
+    get_header,
     get_page_directoryname,
     split_path,
     join_path,
@@ -128,6 +130,7 @@ class SidebarPageIndex:
             mode: filter/sort mode to use (constants from config)
             filter_order: if to use filters and sorting on page index
         """
+        self.pagepath = path or "/"
         self.path = get_page_directoryname(path or "/")
         if not app.config["RETAIN_PAGE_NAME_CASE"]:
             self.path = self.path.lower()
@@ -147,6 +150,11 @@ class SidebarPageIndex:
         # load pages
         self.tree: OrderedDict[str, SidebarPageIndexEntry] = OrderedDict()
         if self.mode:
+            structured_tree = build_structured_navigation(self.pagepath)
+            if structured_tree is not None:
+                self.tree = structured_tree
+                return
+
             # check if focus has been disabled, via SIDEBAR_MENUTREE_FOCUS
             if self.focus in ("OFF", "TOP"):
                 # without focus load all pages
@@ -169,19 +177,10 @@ class SidebarPageIndex:
             header string or none if not found
         """
         try:
-            filehead = storage.load(filename, size=512)
+            filehead = storage.load(filename, size=8192)
         except StorageError:
             return None
-        # find first markdown header in filehead
-        header = [line for (_, line) in self.AXT_HEADING.findall(filehead)]
-        if len(header):
-            return header[0]
-
-        header = [line for (line, _) in self.SETEX_HEADING.findall(filehead)]
-        if len(header):
-            return header[0]
-
-        return None
+        return get_header(filehead)
 
     def filter_order_tree(
         self,
@@ -284,10 +283,13 @@ class SidebarPageIndex:
                     full=True,
                     header=header if len(parts) == 1 else None,
                 ),
-                header=get_pagename_for_title(
-                    join_path(prefix + parts),
-                    full=False,
-                    header=header if len(parts) == 1 else None,
+                header=(
+                    header
+                    if len(parts) == 1 and header
+                    else get_pagename_for_title(
+                        join_path(prefix + parts),
+                        full=False,
+                    )
                 ),
             )
             tree[parts[0]] = new_entry

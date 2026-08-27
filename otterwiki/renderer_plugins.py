@@ -926,6 +926,34 @@ class mistunePluginFrontmatterTitle:
         h1_pattern = re.compile(r'^\s*#\s+\S.*$', re.MULTILINE)
         if h1_pattern.search(state.src):
             state.env['has_h1_heading'] = True
+            return
+
+        # Inject frontmatter titles into the Markdown source before parsing.
+        # That makes the generated H1 participate in anchors and the TOC just
+        # like a title authored directly in the document.
+        match = mistunePluginFrontmatter.FRONTMATTER_PATTERN.match(state.src)
+        if not match:
+            return
+        try:
+            metadata = yaml.safe_load(match.group(1))
+        except (TypeError, ValueError, yaml.YAMLError):
+            return
+        if not isinstance(metadata, dict):
+            return
+        title = metadata.get('title')
+        if not isinstance(title, str) or not title.strip():
+            return
+        title = ' '.join(title.strip('"\'').split())
+        escaped_title = re.sub(r'([\\`*_{}\[\]<>#+.!|])', r'\\\1', title)
+        state.process(
+            state.src[: match.end()]
+            + '\n\n# '
+            + escaped_title
+            + '\n'
+            + state.src[match.end() :]
+        )
+        state.env['has_h1_heading'] = True
+        state.env['frontmatter_title_injected'] = True
 
     def after_render(self, md, result, state):
         # Add H1 title if we have frontmatter title and no existing H1

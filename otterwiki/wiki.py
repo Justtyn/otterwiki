@@ -57,6 +57,7 @@ from otterwiki.pluginmgmt import collect_plugin_info
 from otterwiki.renderer import pygments_render
 from otterwiki.server import app, app_renderer, db, storage
 from otterwiki.sidebar import SidebarMenu, SidebarPageIndex
+from otterwiki.structured_navigation import number_document_headings
 from otterwiki.pageindex import PageIndex
 from otterwiki.util import (
     empty,
@@ -561,6 +562,10 @@ class Page:
         htmlcontent, toc, library_requirements = app_renderer.markdown(
             self.content, page_url=self.page_view_url
         )
+        menutree = SidebarPageIndex(self.pagepath)
+        navigation_tree = menutree.query()
+        if getattr(navigation_tree, "number_headings", False):
+            htmlcontent, toc = number_document_headings(htmlcontent, toc)
         update_ftoc_cache(self.filename, ftoc=toc)
 
         if len(toc) > 0:
@@ -579,8 +584,6 @@ class Page:
             title = self.pagename
         if self.revision is not None:
             title = "{} ({})".format(self.pagename, self.revision)
-
-        menutree = SidebarPageIndex(self.pagepath)
 
         htmlcontent = chain_hooks(
             "page_view_htmlcontent_postprocess", htmlcontent, self

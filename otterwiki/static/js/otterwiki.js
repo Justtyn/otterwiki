@@ -293,12 +293,17 @@ document.addEventListener("DOMContentLoaded", () => {
   detailsList.forEach((d, i) => {
     const summary = d.querySelector("summary");
     const link = summary?.querySelector("a");
-    const key = "otterwiki/summary/node" + (link?.pathname?.toLowerCase() || i);
+    const navigationKey = d.dataset.navigationKey;
+    const key = navigationKey
+      ? "otterwiki/structured-navigation/" + navigationKey
+      : "otterwiki/summary/node" + (link?.pathname?.toLowerCase() || i);
+    const containsCurrentPage = d.querySelector('a[aria-current="page"]') !== null;
 
     // Restore state
     const saved = sessionStorage.getItem(key);
     if (saved === "open") d.setAttribute("open", "");
-    if (saved === "closed") d.removeAttribute("open");
+    if (saved === "closed" && !containsCurrentPage) d.removeAttribute("open");
+    if (containsCurrentPage) d.setAttribute("open", "");
 
     // Save state
     const saveState = () => {

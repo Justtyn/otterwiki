@@ -290,3 +290,71 @@ a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px);
     text-align: left;
     padding: 0 !important;
 }
+
+/* Rule-driven product documentation navigation */
+.documentation-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .35rem;
+    margin: .5rem .75rem 1rem;
+    border-bottom: 1px solid var(--lm-dropdown-divider-bg-color);
+}
+
+.documentation-tabs a {
+    padding: .65rem .25rem;
+    color: rgba(0, 0, 0, .7);
+    text-align: center;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+}
+
+.documentation-tabs a:hover,
+.documentation-tabs a.active {
+    color: var(--lm-link-text-color);
+    border-bottom-color: var(--lm-link-text-color);
+}
+
+.dark-mode .documentation-tabs {
+    border-bottom-color: var(--dm-dropdown-divider-bg-color);
+}
+
+.dark-mode .documentation-tabs a {
+    color: var(--dm-sidebar-link-text-color-hover);
+}
+
+.dark-mode .documentation-tabs a:hover,
+.dark-mode .documentation-tabs a.active {
+    color: var(--dm-link-text-color);
+    border-bottom-color: var(--dm-link-text-color);
+}
+
+.structured-menutree .navigation-number {
+    flex: 0 0 auto;
+    color: rgba(0, 0, 0, .5);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.structured-menutree .navigation-label {
+    min-width: 0;
+    color: rgba(0, 0, 0, .78);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.dark-mode .structured-menutree .navigation-number {
+    color: rgba(255, 255, 255, .45);
+}
+
+.dark-mode .structured-menutree .navigation-label {
+    color: rgba(255, 255, 255, .78);
+}
+
+.structured-doc-page #frontmatter {
+    display: none;
+}
+
+.structured-doc-page .heading-number {
+    margin-right: .15em;
+    font-variant-numeric: tabular-nums;
+}

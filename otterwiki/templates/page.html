@@ -37,7 +37,7 @@
 {#
 #}
 {%- block content %}
-<article class="page">
+<article class="page{% if menutree.structured %} structured-doc-page{% endif %}">
 {{htmlcontent|safe}}
 </article>
 {{content}}

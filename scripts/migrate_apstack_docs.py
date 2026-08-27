@@ -21,7 +21,6 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 
-
 PAGE_UNSAFE = re.compile(r"[?.!#\\|$]")
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 INCLUDE = re.compile(r"^\s*include\((.+?)(?:\?level=(\d+))?\)\s*$")
@@ -93,6 +92,20 @@ class Migration:
         self.target_owners: dict[str, Path] = {}
         self.files_by_basename: dict[str, list[Path]] = {}
 
+    @staticmethod
+    def is_placeholder_page(path: Path) -> bool:
+        """Match OtterWiki housekeeping's definition of an empty page."""
+        if path.suffix.lower() != ".md" or path.stat().st_size > 512:
+            return False
+        content = path.read_text(
+            encoding="utf-8-sig", errors="replace"
+        ).strip()
+        if not content:
+            return True
+        if re.fullmatch(r"# ([^ \r\n]+)", content):
+            return True
+        return content.count("\n") + 1 < 3
+
     def select(self) -> None:
         if not self.docs.is_dir():
             raise SystemExit(f"源文档目录不存在：{self.docs}")
@@ -109,6 +122,11 @@ class Migration:
 
         for name in ("README.md", "APStack错误码总结.md"):
             path = self.source / name
+            if path.is_file():
+                self.selected_files.append(path)
+
+        for relative in (".portal.yml", ".idp/.model.yaml"):
+            path = self.source / relative
             if path.is_file():
                 self.selected_files.append(path)
 
@@ -178,6 +196,10 @@ class Migration:
             return PurePosixPath("apstack6/项目说明.md")
         if source_file == self.source / "APStack错误码总结.md":
             return PurePosixPath("apstack6/apstack错误码总结.md")
+        if source_file == self.source / ".portal.yml":
+            return PurePosixPath("apstack6/.portal.yml")
+        if source_file == self.source / ".idp/.model.yaml":
+            return PurePosixPath("apstack6/.idp/.model.yaml")
         if (
             source_file.parent == self.source
             or self.source / "img" in source_file.parents
@@ -216,6 +238,8 @@ class Migration:
             )
         if source_dir == self.source:
             return PurePosixPath("apstack6/项目说明")
+        if source_dir == self.source / ".idp":
+            return PurePosixPath("apstack6/.idp")
         if (
             source_dir == self.source / "img"
             or self.source / "img" in source_dir.parents
@@ -468,7 +492,17 @@ class Migration:
             line = self.rewrite_markdown_links(source_page, line)
             line = self.rewrite_text_links(source_page, line)
             result.append(line)
-        return "".join(result)
+        transformed = "".join(result)
+        if not embedded and self.is_placeholder_page(source_page):
+            if not transformed.strip():
+                title = source_page.stem
+                if title.casefold() in ("index", "readme"):
+                    title = source_page.parent.name
+                transformed = f"# {title}\n"
+            transformed = transformed.rstrip() + (
+                "\n\n> 此页面为文档目录入口，请使用左侧文档目录查看相关内容。\n"
+            )
+        return transformed
 
     def resolve_source_file(
         self, source_page: Path, raw_ref: str
@@ -584,7 +618,9 @@ title: APStack6 产品文档
             f"- 图片及其他附件：{self.stats.source_assets}",
             f"- 已展开 include 指令：{self.stats.expanded_includes}",
             f"- 已重写本地链接：{self.stats.rewritten_links}",
-            "- 已排除：构建配置、发布脚本、隐藏工具缓存、`.DS_Store`",
+            "- 结构规则：`.portal.yml`、`.idp/.model.yaml`、各级 `.sidebar.json(.bak)`",
+            "- 空白占位页：已补充目录入口提示，避免被 Wiki 维护工具误删",
+            "- 已排除：构建与发布脚本、隐藏工具缓存、`.DS_Store`",
             "",
             "## 文件类型",
             "",
