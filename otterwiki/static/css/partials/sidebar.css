@@ -1,5 +1,22 @@
+/* Sidebar width is driven by --sidebar-width so it can be resized by dragging. */
+.page-wrapper {
+    --sidebar-width: 20rem;
+}
+
+@media (min-width: 1201px) {
+    .page-wrapper {
+        --sidebar-width: 25rem;
+    }
+}
+
+@media (min-width: 1900px) {
+    .page-wrapper {
+        --sidebar-width: 35rem;
+    }
+}
+
 .sidebar {
-    width: 20rem;
+    width: var(--sidebar-width);
     background: #e2e2e2;
 }
 
@@ -9,64 +26,50 @@
 
 .page-wrapper.with-sidebar > .content-wrapper
 {
-    left: 20rem;
-    width: calc(100% - 20rem);
+    left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
 }
 
-.page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar:not(.navbar-fixed-bottom) {
-    left: 20rem;
-    width: calc(100% - 20rem);
-}
-
+.page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar:not(.navbar-fixed-bottom),
 .page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar.navbar-fixed-bottom
 {
-    left: 20rem;
-    width: calc(100% - 20rem);
+    left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
 }
 
-@media (min-width: 1201px) {
-    .sidebar {
-        width: 25rem;
-    }
-
-    .page-wrapper.with-sidebar > .content-wrapper
-    {
-        left: 25rem;
-        width: calc(100% - 25rem);
-    }
-
-    .page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar:not(.navbar-fixed-bottom) {
-        left: 25rem;
-        width: calc(100% - 25rem);
-    }
-
-    .page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar.navbar-fixed-bottom
-    {
-        left: 25rem;
-        width: calc(100% - 25rem);
-    }
+/* Sidebar resize handle */
+.sidebar-resize-handle {
+    position: fixed;
+    top: 5rem;               /* below the navbar, matching .with-navbar > .sidebar */
+    bottom: 0;
+    left: var(--sidebar-width);
+    transform: translateX(-50%);
+    width: 8px;
+    cursor: col-resize;
+    z-index: 25;
+    touch-action: none;
+    transition: background-color 0.15s ease;
 }
 
-@media (min-width: 1900px) {
-    .sidebar {
-        width: 35rem;
-    }
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle.is-dragging {
+    background-color: rgba(0, 0, 0, 0.15);
+}
 
-    .page-wrapper.with-sidebar > .content-wrapper
-    {
-        left: 35rem;
-        width: calc(100% - 35rem);
-    }
+.dark-mode .sidebar-resize-handle:hover,
+.dark-mode .sidebar-resize-handle.is-dragging {
+    background-color: rgba(255, 255, 255, 0.2);
+}
 
-    .page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar:not(.navbar-fixed-bottom) {
-        left: 35rem;
-        width: calc(100% - 35rem);
-    }
+/* Disable halfmoon's width/left transition while dragging */
+.page-wrapper.sidebar-resizing.with-sidebar .content-wrapper,
+.page-wrapper.sidebar-resizing.with-sidebar > .sidebar {
+    transition: none !important;
+}
 
-    .page-wrapper.with-sidebar[data-sidebar-type~="full-height"] > .navbar.navbar-fixed-bottom
-    {
-        left: 35rem;
-        width: calc(100% - 35rem);
+@media (max-width: 768px) {
+    .sidebar-resize-handle {
+        display: none;
     }
 }
 
@@ -88,6 +91,14 @@ a.sidebar-toc-3 { padding-left: calc(4 * var(--spacing) - var(--radius) - 13px);
 a.sidebar-toc-4 { padding-left: calc(5 * var(--spacing) - var(--radius) - 13px); padding-right: 0; }
 a.sidebar-toc-5 { padding-left: calc(6 * var(--spacing) - var(--radius) - 13px); padding-right: 0; }
 a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px); padding-right: 0; }
+
+/* Ellipsis for on-page TOC links (left sidebar on small screens, right extra-nav on XL) */
+.extra-nav a.sidebar-link,
+.sidebar-toc a.sidebar-link {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 .sidebar-title {
     margin-left: 1rem;
@@ -143,14 +154,21 @@ a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px);
     gap: .5rem;
 }
 
-.sidebarmenu li > div.summary-details > a {
-    overflow-wrap: anywhere;
-}
-
+.sidebarmenu li > div.summary-details > a,
 .sidebarmenu li > details > summary > a {
-    overflow-wrap: anywhere;
     min-width: 0;
     flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Long titles in the custom menu (direct links inside list items) */
+.sidebarmenu.parent-sidebar-menu > li > a {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .parent-sidebar-menu > li {
@@ -336,10 +354,17 @@ a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px);
 }
 
 .structured-menutree .navigation-label {
-    min-width: 0;
     color: rgba(0, 0, 0, .78);
     font-weight: 600;
-    overflow-wrap: anywhere;
+}
+
+/* Ellipsis for non-linkable navigation labels (structured and non-structured) */
+.sidebarmenu .navigation-label {
+    min-width: 0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dark-mode .structured-menutree .navigation-number {

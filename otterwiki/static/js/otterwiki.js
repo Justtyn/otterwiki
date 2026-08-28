@@ -346,3 +346,154 @@ document.querySelector('#content-wrapper').addEventListener('scroll', (event) =>
     }
   }
 });
+
+
+/* Sidebar horizontal resize + ellipsis tooltips for navigation titles */
+(function () {
+    'use strict';
+
+    var STORAGE_KEY = 'otterwiki/sidebar/width';
+
+    function storageGet() {
+        try {
+            return localStorage.getItem(STORAGE_KEY);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function storageSet(value) {
+        try {
+            localStorage.setItem(STORAGE_KEY, value);
+        } catch (e) {
+            /* storage unavailable: ignore */
+        }
+    }
+
+    // Add a native title tooltip only to titles that are actually truncated.
+    function updateNavTitles() {
+        var selector = '.sidebarmenu a, .sidebarmenu .navigation-label, .extra-nav a.sidebar-link, .sidebar-toc a.sidebar-link';
+        var items = document.querySelectorAll(selector);
+        items.forEach(function (el) {
+            var truncated = el.scrollWidth > el.clientWidth + 1;
+            if (truncated) {
+                if (el.dataset.autoTitle !== '1') {
+                    el.dataset.autoTitle = '1';
+                    el.setAttribute('title', el.textContent.trim());
+                }
+            } else if (el.dataset.autoTitle === '1') {
+                el.removeAttribute('title');
+                delete el.dataset.autoTitle;
+            }
+        });
+    }
+
+    function initSidebarResize() {
+        var pageWrapper = document.querySelector('.page-wrapper');
+        var sidebar = pageWrapper ? pageWrapper.querySelector('.sidebar') : null;
+        var handle = document.getElementById('sidebar-resize-handle');
+        if (!pageWrapper || !sidebar || !handle) {
+            return;
+        }
+
+        var MIN_REM = 18;
+        var MAX_REM = 45;
+        var MIN_CONTENT_PX = 200;
+        var OVERLAY_BREAKPOINT = 768;
+
+        function rootFontSize() {
+            return parseFloat(getComputedStyle(document.documentElement).fontSize) || 10;
+        }
+
+        var MIN = MIN_REM * rootFontSize();
+        var MAX = MAX_REM * rootFontSize();
+
+        function getWidth() {
+            return sidebar.getBoundingClientRect().width;
+        }
+
+        function setWidth(px) {
+            pageWrapper.style.setProperty('--sidebar-width', px + 'px');
+        }
+
+        function clamp(px) {
+            return Math.max(MIN, Math.min(MAX, window.innerWidth - MIN_CONTENT_PX, px));
+        }
+
+        // Restore the persisted width without triggering halfmoon's transition.
+        var saved = parseFloat(storageGet());
+        if (!isNaN(saved)) {
+            pageWrapper.classList.add('sidebar-resizing');
+            setWidth(clamp(saved));
+            pageWrapper.classList.remove('sidebar-resizing');
+        }
+
+        var dragging = false;
+        var startX = 0;
+        var startWidth = 0;
+
+        function endDrag() {
+            if (!dragging) {
+                return;
+            }
+            dragging = false;
+            pageWrapper.classList.remove('sidebar-resizing');
+            handle.classList.remove('is-dragging');
+            document.body.style.userSelect = '';
+            storageSet(String(getWidth()));
+            updateNavTitles();
+        }
+
+        handle.addEventListener('pointerdown', function (e) {
+            if (e.button !== 0 || window.innerWidth <= OVERLAY_BREAKPOINT) {
+                return;
+            }
+            dragging = true;
+            startX = e.clientX;
+            startWidth = getWidth();
+            handle.setPointerCapture(e.pointerId);
+            pageWrapper.classList.add('sidebar-resizing');
+            handle.classList.add('is-dragging');
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+
+        handle.addEventListener('pointermove', function (e) {
+            if (!dragging) {
+                return;
+            }
+            setWidth(clamp(startWidth + (e.clientX - startX)));
+        });
+
+        handle.addEventListener('pointerup', endDrag);
+        handle.addEventListener('pointercancel', endDrag);
+
+        var resizeTimer = null;
+        window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                setWidth(clamp(getWidth()));
+                updateNavTitles();
+            }, 100);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initSidebarResize();
+        updateNavTitles();
+    });
+
+    window.addEventListener('load', updateNavTitles);
+
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () { updateNavTitles(); });
+    }
+
+    // Re-evaluate truncation when a <details> panel is expanded or collapsed.
+    // (toggle does not bubble, so listen on the capture phase.)
+    document.addEventListener('toggle', function (e) {
+        if (e.target && e.target.matches && e.target.matches('details')) {
+            updateNavTitles();
+        }
+    }, true);
+})();
