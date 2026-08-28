@@ -274,33 +274,80 @@ def _run_migration(
 ) -> tuple[Migration, str, str]:
     stage_repo.mkdir(parents=True)
     repo = git.Repo.init(stage_repo)
-    with repo.config_writer() as config:
-        config.set_value("receive", "denyCurrentBranch", "updateInstead")
-    migration = Migration(source_root, stage_repo, True, False)
     try:
-        migration.select()
-        _validate_selected_files(migration, limits)
-        migration.write()
-        verification = migration.verify()
-    except SystemExit as error:
-        message = str(error) or "APStack 文档解析失败。"
-        raise DocumentImportError(message) from error
-    except DocumentImportError:
-        raise
-    except (OSError, ValueError, git.GitError) as error:
-        raise DocumentImportError(f"构建新文档仓库失败：{error}") from error
+        with repo.config_writer() as config:
+            config.set_value("receive", "denyCurrentBranch", "updateInstead")
+        migration = Migration(source_root, stage_repo, True, False)
+        try:
+            migration.select()
+            _validate_selected_files(migration, limits)
+            migration.write()
+            verification = migration.verify()
+        except SystemExit as error:
+            message = str(error) or "APStack 文档解析失败。"
+            raise DocumentImportError(message) from error
+        except DocumentImportError:
+            raise
+        except (OSError, ValueError, git.GitError) as error:
+            raise DocumentImportError(
+                f"构建新文档仓库失败：{error}"
+            ) from error
 
-    try:
-        repo.git.add(all=True)
-        commit = repo.index.commit(
-            IMPORT_COMMIT_MESSAGE,
-            author=git.Actor(author[0], author[1]),
-        )
-    except (OSError, ValueError, git.GitError) as error:
-        raise DocumentImportError(
-            f"创建新 Git 仓库提交失败：{error}"
-        ) from error
-    return migration, verification, commit.hexsha
+        try:
+            repo.git.add(all=True)
+            commit = repo.index.commit(
+                IMPORT_COMMIT_MESSAGE,
+                author=git.Actor(author[0], author[1]),
+            )
+        except (OSError, ValueError, git.GitError) as error:
+            raise DocumentImportError(
+                f"创建新 Git 仓库提交失败：{error}"
+            ) from error
+        return migration, verification, commit.hexsha
+    finally:
+        # GitPython keeps memory-mapped files alive on Windows until close().
+        # Leaving this repository open prevents the staged directory from
+        # being moved or removed and surfaces as WinError 32.
+        repo.close()
+
+
+def _remove_tree_with_retries(path: Path) -> None:
+    """Remove a tree despite Windows read-only attributes and short locks."""
+
+    def make_writable_and_retry(function, filename, _exc_info):
+        mode = os.stat(filename, follow_symlinks=False).st_mode
+        os.chmod(filename, mode | stat.S_IWRITE)
+        function(filename)
+
+    last_error: OSError | None = None
+    for delay in (0, 0.1, 0.25, 0.5, 1.0):
+        if delay:
+            time.sleep(delay)
+        try:
+            shutil.rmtree(path, onerror=make_writable_and_retry)
+            return
+        except FileNotFoundError:
+            return
+        except OSError as error:
+            last_error = error
+    if last_error is not None:
+        raise last_error
+
+
+def _cleanup_repository_backups(target: Path, backup: Path) -> list[str]:
+    """Remove the current and any stale pre-import backups."""
+    warnings: list[str] = []
+    candidates = {backup}
+    candidates.update(target.parent.glob(f".{target.name}.pre-import-*"))
+    for candidate in sorted(candidates, key=str):
+        if candidate.is_symlink():
+            warnings.append(f"拒绝删除符号链接形式的旧仓库备份：{candidate}")
+            continue
+        try:
+            _remove_tree_with_retries(candidate)
+        except OSError as error:
+            warnings.append(f"旧仓库备份未能自动删除：{candidate}（{error}）")
+    return warnings
 
 
 def _replace_repository(storage, stage_repo: Path) -> list[str]:
@@ -314,11 +361,20 @@ def _replace_repository(storage, stage_repo: Path) -> list[str]:
     if target.is_symlink() or not target.is_dir():
         raise DocumentImportError("当前内容仓库路径不是普通文件夹，拒绝替换。")
     try:
+        # Windows refuses to rename a Git working tree while GitPython still
+        # holds memory maps or subprocess handles below .git.
+        storage.repo.close()
+    except Exception as error:
+        raise DocumentImportError(
+            f"无法释放当前 Git 仓库文件句柄：{error}"
+        ) from error
+    try:
         os.replace(target, backup)
         try:
             os.replace(stage_repo, target)
         except OSError:
             os.replace(backup, target)
+            storage.repo = storage._read_repo()
             raise
 
         try:
@@ -330,6 +386,11 @@ def _replace_repository(storage, stage_repo: Path) -> list[str]:
             shutil.rmtree(failed_new, ignore_errors=True)
             raise
     except OSError as error:
+        if target.is_dir():
+            try:
+                storage.repo = storage._read_repo()
+            except Exception:
+                pass
         raise DocumentImportError(
             f"替换内容仓库失败，旧仓库已保留：{error}"
         ) from error
@@ -338,10 +399,7 @@ def _replace_repository(storage, stage_repo: Path) -> list[str]:
             f"加载新内容仓库失败，已恢复旧仓库：{error}"
         ) from error
 
-    try:
-        shutil.rmtree(backup)
-    except OSError as error:
-        warnings.append(f"旧仓库备份未能自动删除：{backup}（{error}）")
+    warnings.extend(_cleanup_repository_backups(target, backup))
     return warnings
 
 
@@ -389,7 +447,7 @@ def reset_repository_from_source(
     except DocumentImportError:
         raise
     except OSError as error:
-        raise DocumentImportError(f"无法创建临时构建目录：{error}") from error
+        raise DocumentImportError(f"临时构建目录处理失败：{error}") from error
 
     from otterwiki.structured_navigation import (
         clear_structured_navigation_cache,
@@ -519,6 +577,9 @@ def handle_document_import(form, files):
                     limits=limits,
                     author=get_author(),
                 )
+                result.source_name = Path(
+                    upload.filename.replace("\\", "/")
+                ).name
         else:
             source_path = Path(source_directory).expanduser()
             if not source_path.is_absolute():

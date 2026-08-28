@@ -11,7 +11,9 @@ from otterwiki.document_import import (
     CONFIRMATION_TEXT,
     DocumentImportError,
     ImportLimits,
+    _remove_tree_with_retries,
     _replace_repository,
+    _run_migration,
     extract_zip_safely,
     reset_repository_from_source,
 )
@@ -77,6 +79,12 @@ def test_reset_repository_rebuilds_git_and_imports_apstack(
         author=("Test", "test@example.org"),
         message="old history",
     )
+    target = Path(storage.path)
+    stale_backup = target.parent / f".{target.name}.pre-import-stale"
+    stale_backup.mkdir()
+    stale_file = stale_backup / "old-object"
+    stale_file.write_bytes(b"old git object")
+    stale_file.chmod(stat.S_IREAD)
 
     result = reset_repository_from_source(source, storage)
 
@@ -87,12 +95,58 @@ def test_reset_repository_rebuilds_git_and_imports_apstack(
     assert storage.exists("apstack6/components/demo/index.md")
     assert storage.exists("apstack6/components/demo/logo.png")
     assert not storage.exists("old-page.md")
+    assert not stale_backup.exists()
+    assert not list(target.parent.glob(f".{target.name}.pre-import-*"))
     assert len(storage.log()) == 1
     assert storage.repo.head.commit.hexsha == result.commit
     assert (
         storage.repo.config_reader().get_value("receive", "denyCurrentBranch")
         == "updateInstead"
     )
+
+
+def test_staging_repository_is_closed_before_it_is_moved(tmp_path):
+    source = _write_apstack_source(tmp_path / "APStackDoc")
+    stage = tmp_path / "stage"
+
+    _run_migration(
+        source,
+        stage,
+        ImportLimits(),
+        ("Test", "test@example.org"),
+    )
+
+    # Open GitPython memory maps prevent this rename on Windows (WinError 32).
+    moved = tmp_path / "moved-stage"
+    stage.rename(moved)
+    assert (moved / ".git").is_dir()
+
+
+def test_tree_removal_retries_after_windows_access_denied(
+    tmp_path, monkeypatch
+):
+    import otterwiki.document_import as document_import
+
+    tree = tmp_path / "old-repository"
+    tree.mkdir()
+    (tree / "object").write_bytes(b"git object")
+    real_rmtree = document_import.shutil.rmtree
+    attempts = 0
+
+    def fail_once(*args, **kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError(5, "simulated Windows access denied")
+        return real_rmtree(*args, **kwargs)
+
+    monkeypatch.setattr(document_import.shutil, "rmtree", fail_once)
+    monkeypatch.setattr(document_import.time, "sleep", lambda _delay: None)
+
+    _remove_tree_with_retries(tree)
+
+    assert attempts == 2
+    assert not tree.exists()
 
 
 def test_invalid_source_does_not_modify_existing_repository(
@@ -126,6 +180,7 @@ def test_repository_reload_failure_restores_old_repository(
     repo.index.commit(
         "replacement", author=git.Actor("Test", "test@example.org")
     )
+    repo.close()
 
     original_read_repo = storage._read_repo
     calls = 0
@@ -177,7 +232,12 @@ def test_zip_symlink_is_rejected(tmp_path):
 def test_admin_document_import_page_is_available(admin_client):
     response = admin_client.get("/-/admin/document_import")
     assert response.status_code == 200
-    assert CONFIRMATION_TEXT in response.data.decode()
+    page = response.data.decode()
+    assert CONFIRMATION_TEXT in page
+    assert 'id="document-import-overlay"' in page
+    assert 'class="progress-bar progress-bar-animated"' in page
+    assert 'id="document-import-form"' in page
+    assert "pageWrapper.inert = true" in page
 
 
 def test_document_import_page_rejects_non_admin(other_client):
@@ -230,13 +290,15 @@ def test_admin_can_rebuild_from_zip(admin_client, app_with_user, tmp_path):
         "/-/admin/document_import",
         data={
             "confirmation": CONFIRMATION_TEXT,
-            "archive": (archive, "APStackDoc.zip"),
+            "archive": (archive, "测试文档.zip"),
         },
         content_type="multipart/form-data",
         follow_redirects=True,
     )
 
     assert response.status_code == 200
-    assert "文档仓库重建完成" in response.data.decode()
+    page = response.data.decode()
+    assert "文档仓库重建完成" in page
+    assert "测试文档.zip" in page
     assert app_with_user.storage.exists("apstack6.md")
     assert len(app_with_user.storage.log()) == 1
