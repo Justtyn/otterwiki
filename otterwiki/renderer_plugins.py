@@ -1159,13 +1159,34 @@ class mistunePluginEmbeddings:
             )
 
 
+def _strip_table_row_lenient(line):
+    """Return the inner text of a table data row whose outer pipes may be
+    omitted (GFM permits the leading and/or trailing pipe of any row to
+    be dropped). mistune's pipe-table parser requires both outer pipes on
+    every row, so the strict table parser falls back to this helper for
+    rows written as "cell | cell". Returns None when the line is empty or
+    carries no pipe at all.
+    """
+    text = line.rstrip("\n").rstrip(" \t")
+    if not text.startswith("|") and text.startswith((" ", "\t")):
+        text = text.lstrip(" ")
+    if not text or "|" not in text:
+        return None
+    if text.startswith("|"):
+        text = text[1:]
+    if text.endswith("|"):
+        text = text[:-1]
+    return text
+
+
 class mistunePluginStrictTables:
     """mistune 3.3 does not validate the delimiter row of a table: any
     two consecutive lines with a matching number of unescaped pipes are
     parsed as a table. Re-register the table and nptable rules with a
     check that the second line is a valid delimiter row like
     |---|:---:| before handing over to mistunes parse functions, as
-    GFM requires."""
+    GFM requires. Data rows may omit their outer pipes; they are handled
+    through _strip_table_row_lenient."""
 
     DELIMITER_ROW_RE = re.compile(r' *:?-+:? *(?:\| *:?-+:? *)*')
 
@@ -1173,17 +1194,54 @@ class mistunePluginStrictTables:
         from mistune.plugins.table import (
             TABLE_PATTERN,
             NP_TABLE_PATTERN,
-            parse_table,
             parse_nptable,
+            _strip_pipe_table_row,
+            _process_thead,
+            _process_row,
+            _parse_invalid_pipe_table,
         )
 
         def parse_table_strict(block, m, state):
-            row = state.get_line(m.end()).strip()
-            if not (row.startswith('|') and row.endswith('|')):
+            pos = m.end()
+            header = _strip_pipe_table_row(m.group(0))
+            if header is None:
                 return None
-            if not self.DELIMITER_ROW_RE.fullmatch(row[1:-1]):
+            align_line = state.get_line(pos)
+            align_row = align_line.strip()
+            if not (align_row.startswith('|') and align_row.endswith('|')):
                 return None
-            return parse_table(block, m, state)
+            if not self.DELIMITER_ROW_RE.fullmatch(align_row[1:-1]):
+                return None
+            align = _strip_pipe_table_row(align_line)
+            if align is None:
+                return None
+            thead, aligns = _process_thead(header, align)
+            if not thead:
+                return _parse_invalid_pipe_table(state, pos + len(align_line))
+            pos += len(align_line)
+            rows = []
+            while pos < state.cursor_max:
+                line = state.get_line(pos)
+                text = _strip_pipe_table_row(line)
+                if text is None:
+                    # GFM allows a data row to omit its outer pipes.
+                    text = _strip_table_row_lenient(line)
+                    if text is None:
+                        break
+                    row = _process_row(text, aligns)
+                    if not row:
+                        break
+                else:
+                    row = _process_row(text, aligns)
+                    if not row:
+                        return _parse_invalid_pipe_table(
+                            state, pos + len(line)
+                        )
+                rows.append(row)
+                pos += len(line)
+            children = [thead, {"type": "table_body", "children": rows}]
+            state.append_token({"type": "table", "children": children})
+            return pos
 
         def parse_nptable_strict(block, m, state):
             row = state.get_line(m.end()).strip()

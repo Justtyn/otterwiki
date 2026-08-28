@@ -272,6 +272,31 @@ def test_table_align():
     assert '<td style="text-align:right">right td</td>' in html
 
 
+def test_table_data_rows_without_outer_pipes():
+    """Imported documents often write the header and delimiter rows with
+    outer pipes but drop them on the data rows, which GFM permits. The
+    strict table plugin must keep those rows inside the table instead of
+    rendering them as a paragraph."""
+    text = """| 版本     | 发布日期 | 版本更新涉及模块|
+| ---- | ---- |----------------|
+6.51.X | 2025-06-25 | [开发框架](./V6.X/V6.51.5-20250703/开发框架.md)  [运维管控](./V6.X/V6.51.5-20250703/运维管控.md)
+6.48.X | 2025-05-29 | [开发框架](V6.X/V6.48.29-20250716/开发框架.md)
+"""
+    html, _, _ = render.markdown(text)
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    assert table is not None
+    headers = [th.get_text(strip=True) for th in table.find_all("th")]
+    assert headers == ["版本", "发布日期", "版本更新涉及模块"]
+    rows = table.find_all("tr")
+    assert len(rows) == 3
+    first_cells = [td.get_text(strip=True) for td in rows[1].find_all("td")]
+    assert first_cells[0] == "6.51.X"
+    assert first_cells[1] == "2025-06-25"
+    assert len(rows[1].find_all("a")) == 2
+    assert rows[2].find_all("td")[0].get_text(strip=True) == "6.48.X"
+
+
 def test_table_requires_delimiter_row():
     """mistune 3.3 parses any two consecutive lines with a matching
     number of unescaped pipes as a table, since it does not validate
