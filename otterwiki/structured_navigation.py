@@ -209,11 +209,16 @@ class StructuredNavigation:
         if storage.isdir(path):
             landing_file = self._directory_landing_file(path)
             if landing_file is not None:
-                return (
+                landing_path = (
                     landing_file[:-3]
                     if landing_file.lower().endswith(".md")
                     else landing_file
                 )
+                # ``join_path`` follows the host filesystem and therefore
+                # inserts backslashes on Windows.  Navigation paths are URL
+                # paths and must always use forward slashes; otherwise Flask
+                # quotes the separator as ``%5C`` and the link returns 404.
+                return landing_path.replace("\\", "/")
         if storage.exists(path + ".md"):
             return path
         return path

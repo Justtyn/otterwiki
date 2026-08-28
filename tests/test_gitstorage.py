@@ -36,6 +36,43 @@ def test_store_and_load(storage):
     assert False == storage.store(filename, content=content, author=author)
 
 
+def test_text_files_are_opened_explicitly_as_utf8(storage, monkeypatch):
+    """Text storage must not depend on the Windows ANSI code page."""
+    target = os.path.join(storage.path, "中文.md")
+    real_open = open
+    text_open_encodings = []
+
+    def tracked_open(file, *args, **kwargs):
+        mode = kwargs.get("mode", args[0] if args else "r")
+        if os.fspath(file) == target and "b" not in mode:
+            text_open_encodings.append(kwargs.get("encoding"))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", tracked_open)
+
+    storage.update("中文.md", "# 中文页面\n")
+    assert storage.load("中文.md") == "# 中文页面\n"
+    assert text_open_encodings == ["utf-8", "utf-8"]
+
+
+def test_binary_files_do_not_receive_a_text_encoding(storage, monkeypatch):
+    target = os.path.join(storage.path, "image.bin")
+    real_open = open
+    binary_open_encodings = []
+
+    def tracked_open(file, *args, **kwargs):
+        mode = kwargs.get("mode", args[0] if args else "r")
+        if os.fspath(file) == target and "b" in mode:
+            binary_open_encodings.append(kwargs.get("encoding"))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", tracked_open)
+
+    storage.update("image.bin", b"\x00\xff", mode="wb")
+    assert storage.load("image.bin", mode="rb") == b"\x00\xff"
+    assert binary_open_encodings == [None, None]
+
+
 def test_load_fail(storage):
     with pytest.raises(gitstorage.StorageNotFound):
         storage.load("non-existent.md")

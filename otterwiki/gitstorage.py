@@ -143,7 +143,14 @@ class GitStorage(object):
                 )
             return content
         try:
-            with open(os.path.join(self.path, filename), mode=mode) as f:
+            open_kwargs = {"mode": mode}
+            if "b" not in mode:
+                # Wiki pages are UTF-8 regardless of the host locale.  In
+                # particular, Windows otherwise defaults to an ANSI code page
+                # such as CP936 and cannot read UTF-8 pages imported outside
+                # OtterWiki.
+                open_kwargs["encoding"] = "utf-8"
+            with open(os.path.join(self.path, filename), **open_kwargs) as f:
                 content = f.read(size)
         except (IOError, FileNotFoundError):
             raise StorageNotFound("{} not found.".format(filename))
@@ -368,7 +375,10 @@ class GitStorage(object):
                 os.path.join(self.path, dirname), mode=0o775, exist_ok=True
             )
         # store file on filesystem
-        with open(os.path.join(self.path, filename), mode) as f:
+        open_kwargs = {"mode": mode}
+        if "b" not in mode:
+            open_kwargs["encoding"] = "utf-8"
+        with open(os.path.join(self.path, filename), **open_kwargs) as f:
             f.write(content)
         # check if file has changed
         diff = self.repo.index.diff(None, paths=filename)

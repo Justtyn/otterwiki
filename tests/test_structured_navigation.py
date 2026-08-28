@@ -126,6 +126,25 @@ def test_directory_without_index_links_to_first_real_descendant(
     assert "assets" not in entries
 
 
+def test_windows_directory_landing_path_uses_url_separators(
+    create_app, req_ctx, monkeypatch
+):
+    from otterwiki.structured_navigation import StructuredNavigation
+
+    navigation = StructuredNavigation.__new__(StructuredNavigation)
+    monkeypatch.setattr(
+        navigation,
+        "_directory_landing_file",
+        lambda path: r"suite/components/demo\index.md",
+    )
+    monkeypatch.setattr(create_app.storage, "isdir", lambda path: True)
+
+    assert (
+        navigation._landing_path("suite/components/demo")
+        == "suite/components/demo/index"
+    )
+
+
 def test_structured_document_renders_tabs_numbers_and_numbered_toc(
     create_app, test_client
 ):
