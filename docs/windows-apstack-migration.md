@@ -65,13 +65,13 @@ $DocSource = (Resolve-Path "D:\documents\apstack-doc").Path
 $WikiRepo = [System.IO.Path]::GetFullPath(
     (Join-Path $ProjectRoot "app-data\repository")
 )
-$Python = "python"
+$Python = (Get-Command "python" -ErrorAction Stop).Source
 ```
 
-如果 `python` 命令不可用，可以改成 Windows Python Launcher：
+如果 `python` 命令不可用，但安装了 Windows Python Launcher，可以改成：
 
 ```powershell
-$Python = "py"
+$Python = (Get-Command "py" -ErrorAction Stop).Source
 ```
 
 如果只想使用项目虚拟环境中的 Python，则改成：
@@ -79,6 +79,18 @@ $Python = "py"
 ```powershell
 $Python = (Resolve-Path ".\venv\Scripts\python.exe").Path
 ```
+
+立即确认当前 PowerShell 会话中的四个变量都有值：
+
+```powershell
+$ProjectRoot
+$DocSource
+$WikiRepo
+$Python
+& $Python --version
+```
+
+最后一条命令必须正常显示 Python 版本。如果打开了新的 PowerShell 标签页或关闭后重新打开终端，需要重新执行本节中的变量赋值命令；PowerShell 变量不会自动传递到新会话。
 
 ## 四、执行删除前的强制路径检查
 
@@ -212,10 +224,19 @@ Remove-Item -LiteralPath (Join-Path $WikiRepo "apstack6.md") -Force
 
 常见错误：
 
+- `& 后面的表达式生成无效的对象`：当前会话中的 `$Python` 为空或不是命令路径。重新执行第三节的 `$Python = (Get-Command "python" -ErrorAction Stop).Source`，然后用 `& $Python --version` 检查；
 - `源文档目录不存在`：`$DocSource` 指错了，或把路径指向了别的目录；
 - `目标不是 OtterWiki Git 内容库`：`.git` 被删除了，或者 `$WikiRepo` 路径错误；
 - `目标路径冲突`：两个源文件经过小写化和非法字符清理后映射到了同一个目标路径；
 - 提示 `apstack6` 已存在：旧命名空间没有清理干净；重新导入时也可以改用 `--refresh`，但它不会删除残留的旧文件。
+
+如果不想使用变量，也可以直接写完整命令。请替换实际的源文档路径：
+
+```powershell
+python ".\scripts\migrate_apstack_docs.py" `
+    "D:\documents\apstack-doc" `
+    ".\app-data\repository"
+```
 
 ## 八、正式迁移
 
