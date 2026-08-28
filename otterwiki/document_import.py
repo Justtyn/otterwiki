@@ -311,16 +311,47 @@ def _run_migration(
         repo.close()
 
 
+def _make_tree_writable(path: Path) -> None:
+    """Best-effort clear of read-only bits so a tree can be deleted.
+
+    Git on Windows marks files below ``.git`` read-only, and
+    ``shutil.rmtree`` then refuses to remove them with WinError 5 (access
+    denied). Clearing the write bit up front makes the deletion reliable
+    instead of relying on the per-file retry during ``rmtree``.
+    """
+
+    def clear(entry: str) -> None:
+        try:
+            # Never follow symlinks: we must not chmod files outside the tree.
+            if os.path.islink(entry):
+                return
+            os.chmod(entry, os.stat(entry).st_mode | stat.S_IWRITE)
+        except OSError:
+            pass
+
+    clear(str(path))
+    for root, dirs, files in os.walk(path, topdown=False, followlinks=False):
+        for name in dirs + files:
+            clear(os.path.join(root, name))
+
+
 def _remove_tree_with_retries(path: Path) -> None:
     """Remove a tree despite Windows read-only attributes and short locks."""
 
     def make_writable_and_retry(function, filename, _exc_info):
-        mode = os.stat(filename, follow_symlinks=False).st_mode
-        os.chmod(filename, mode | stat.S_IWRITE)
+        try:
+            mode = os.stat(filename, follow_symlinks=False).st_mode
+        except OSError:
+            mode = stat.S_IWRITE
+        try:
+            os.chmod(filename, mode | stat.S_IWRITE)
+        except OSError:
+            pass
         function(filename)
 
     last_error: OSError | None = None
-    for delay in (0, 0.1, 0.25, 0.5, 1.0):
+    _make_tree_writable(path)
+    for delay in (0, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0):
         if delay:
             time.sleep(delay)
         try:

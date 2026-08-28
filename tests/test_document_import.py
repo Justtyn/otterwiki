@@ -11,6 +11,7 @@ from otterwiki.document_import import (
     CONFIRMATION_TEXT,
     DocumentImportError,
     ImportLimits,
+    _make_tree_writable,
     _remove_tree_with_retries,
     _replace_repository,
     _run_migration,
@@ -147,6 +148,21 @@ def test_tree_removal_retries_after_windows_access_denied(
 
     assert attempts == 2
     assert not tree.exists()
+
+
+def test_make_tree_writable_clears_readonly_bits(tmp_path):
+    tree = tmp_path / "old-repository"
+    objects = tree / "objects" / "07"
+    objects.mkdir(parents=True)
+    obj = objects / "object"
+    obj.write_bytes(b"git object")
+    obj.chmod(stat.S_IREAD)
+    objects.chmod(stat.S_IREAD | stat.S_IEXEC)
+
+    _make_tree_writable(tree)
+
+    assert obj.stat().st_mode & stat.S_IWRITE
+    assert objects.stat().st_mode & stat.S_IWRITE
 
 
 def test_invalid_source_does_not_modify_existing_repository(
