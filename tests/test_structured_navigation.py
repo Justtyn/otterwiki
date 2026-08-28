@@ -1,8 +1,19 @@
 #!/usr/bin/env python
 
 import json
+from pathlib import Path
 
 from bs4 import BeautifulSoup
+
+
+def test_sidebar_toggle_icons_are_ascii_safe():
+    css_path = (
+        Path(__file__).parents[1] / "otterwiki/static/css/partials/sidebar.css"
+    )
+    css = css_path.read_text(encoding="ascii")
+
+    assert "content: '\\25B9';" in css
+    assert "content: '\\25BF';" in css
 
 
 def _populate_structured_docs(storage):

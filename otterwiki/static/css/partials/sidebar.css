@@ -193,13 +193,14 @@ a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px);
 .sidebarmenu details > summary::before {
     width: 1.3rem;
     flex-shrink: 0;
-    content: '▹';
+    /* ASCII-only escape keeps this icon intact through Windows CP936 tools. */
+    content: '\25B9';
 }
 
 .sidebarmenu details[open] > summary::before {
     width: 1.3rem;
     flex-shrink: 0;
-    content: '▿';
+    content: '\25BF';
 }
 
 .sidebar-menu .summary-details::before {
