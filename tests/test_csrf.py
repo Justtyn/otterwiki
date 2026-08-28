@@ -11,7 +11,6 @@ import re
 import pytest
 from flask.testing import FlaskClient
 
-
 # ---------------------------------------------------------------------------
 # Fixtures -- raw client (no automatic CSRF token injection)
 # ---------------------------------------------------------------------------
@@ -247,6 +246,13 @@ class TestCSRFRejection:
         rv = raw_admin_client.post(
             "/-/admin/repository_management",
             data={},
+        )
+        assert rv.status_code == 400
+
+    def test_admin_document_import_rejected(self, raw_admin_client):
+        rv = raw_admin_client.post(
+            "/-/admin/document_import",
+            data={"confirmation": "RESET APSTACK"},
         )
         assert rv.status_code == 400
 

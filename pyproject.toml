@@ -70,7 +70,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["otterwiki"]
+packages = ["otterwiki", "scripts"]
 
 [tool.setuptools.dynamic]
 version = {attr = "otterwiki.version.__version__"}

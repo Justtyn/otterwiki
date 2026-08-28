@@ -323,6 +323,7 @@ def test_admin_endpoints_require_admin(app_with_user, other_client):
         ),
         ("/-/admin/content_and_editing", {}),
         ("/-/admin/repository_management", {}),
+        ("/-/admin/document_import", {}),
     ]
     for url, post_data in endpoints:
         rv = other_client.get(url)

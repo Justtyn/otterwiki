@@ -331,6 +331,21 @@ def admin_repository_management():
 
 
 @app.route(
+    "/-/admin/document_import", methods=["POST", "GET"]
+)  # pyright: ignore -- false positive
+@login_required
+def admin_document_import():
+    from otterwiki.document_import import (
+        document_import_form,
+        handle_document_import,
+    )
+
+    if request.method == "GET":
+        return document_import_form()
+    return handle_document_import(request.form, request.files)
+
+
+@app.route(
     "/-/admin/mail_preferences", methods=["POST", "GET"]
 )  # pyright: ignore -- false positive
 @login_required

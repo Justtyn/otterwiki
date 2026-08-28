@@ -1,0 +1,80 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "settings.html" %}
+{% block content %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full w-800">
+  <h2 class="card-title">重置并导入 APStack 文档</h2>
+
+  <div class="alert alert-danger" role="alert">
+    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> 此操作会重建整个内容仓库</h4>
+    当前 Wiki 的全部 Markdown、附件和 Git 历史都会被删除，并替换为从 APStack 源文档生成的新仓库。
+    系统会先在临时目录完成解析和校验，构建失败时不会改动当前仓库。执行期间请停止其他页面编辑和 Git 推送。
+  </div>
+
+  {% if import_error %}
+  <div class="alert alert-danger" role="alert">
+    <h4 class="alert-heading">导入失败</h4>
+    {{ import_error }}
+  </div>
+  {% endif %}
+
+  {% if result %}
+  <div class="alert alert-success" role="alert">
+    <h4 class="alert-heading">文档仓库重建完成</h4>
+    <ul>
+      <li>源目录：<code>{{ result.source_name }}</code></li>
+      <li>Markdown 页面：{{ result.pages }}</li>
+      <li>图片及其他附件：{{ result.assets }}</li>
+      <li>已重写链接：{{ result.rewritten_links }}</li>
+      <li>未解析引用：{{ result.unresolved_links }}</li>
+      <li>新 Git 提交：<code>{{ result.commit }}</code></li>
+      <li>耗时：{{ "%.2f"|format(result.duration_seconds) }} 秒</li>
+    </ul>
+    <pre style="white-space: pre-wrap;">{{ result.verification }}</pre>
+    {% for warning in result.warnings %}
+    <div class="text-danger">{{ warning }}</div>
+    {% endfor %}
+    <a class="btn btn-primary mt-10" href="{{ url_for('view', path='apstack6') }}">打开 APStack 文档</a>
+  </div>
+  {% endif %}
+
+  <form action="{{ url_for('admin_document_import') }}" method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+      <label for="archive">方式一：上传 ZIP 压缩包</label>
+      <input class="form-control" id="archive" name="archive" type="file" accept=".zip,application/zip">
+      <div class="form-text">
+        ZIP 可以直接包含 APStack 根目录，也可以额外套一层文件夹。压缩包上限为
+        {{ limits.max_archive_size // (1024 * 1024) }} MiB，解压后上限为
+        {{ limits.max_extracted_size // (1024 * 1024) }} MiB。
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="source_directory">方式二：服务器本机文件夹</label>
+      <input class="form-control" id="source_directory" name="source_directory" type="text"
+             value="{{ source_directory }}" placeholder="D:/workspace/APStackDoc">
+      <div class="form-text">
+        这里填写的是运行 OtterWiki 的服务器文件系统绝对路径，不是浏览器所在电脑的路径。
+        两种方式只能选择一种。
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="confirmation" class="required">最终确认</label>
+      <input class="form-control" id="confirmation" name="confirmation" type="text"
+             autocomplete="off" placeholder="{{ confirmation_text }}" required>
+      <div class="form-text">
+        请输入 <code>{{ confirmation_text }}</code>。此操作完成后，原 Git 历史无法从 Wiki 中恢复。
+      </div>
+    </div>
+
+    <button class="btn btn-danger" type="submit"
+            onclick="return confirm('确定删除当前全部文档和 Git 历史，并重新构建吗？');">
+      <i class="fas fa-sync-alt"></i> 重置并开始导入
+    </button>
+  </form>
+</div>
+</div>
+{% endblock %}
