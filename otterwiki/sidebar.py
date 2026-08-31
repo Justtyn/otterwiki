@@ -27,6 +27,24 @@ from otterwiki.helper import (
 
 class SidebarMenu:
     URI_SIMPLE = re.compile(r"^(((https?)\:\/\/)|(mailto:))\S+")
+    TYPES = ("link", "heading", "separator")
+
+    @staticmethod
+    def _as_bool(value, default: bool) -> bool:
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in ("1", "true", "yes", "on")
+        return bool(value)
+
+    def _resolve_link(self, link: str, title: str) -> str:
+        if empty(link):
+            return url_for("view", path=title)
+        if self.URI_SIMPLE.match(link):
+            return link
+        return url_for("view", path=link)
 
     def __init__(self):
         self.menu = []
@@ -49,10 +67,20 @@ class SidebarMenu:
         )
         # generate both config and menu from raw_config
         for entry in raw_config:
+            entry_type = entry.get("type", "")
+            if entry_type not in self.TYPES:
+                entry_type = (
+                    "separator"
+                    if entry.get("link") == "---"
+                    and empty(entry.get("title"))
+                    and empty(entry.get("icon"))
+                    else "link"
+                )
             if (
                 not entry.get("title", None)
                 and not entry.get("link", None)
                 and not entry.get("icon", None)
+                and entry_type != "separator"
             ):
                 continue
             link, title, icon = (
@@ -60,7 +88,27 @@ class SidebarMenu:
                 entry.get("title", ""),
                 entry.get("icon", ""),
             )
-            self.config.append({"link": link, "title": title, "icon": icon})
+            visible = self._as_bool(entry.get("visible"), True)
+            clickable = self._as_bool(
+                entry.get("clickable"), entry_type == "link"
+            )
+            if entry_type == "separator":
+                clickable = False
+            elif entry_type == "heading" and empty(link):
+                clickable = False
+            self.config.append(
+                {
+                    "type": entry_type,
+                    "link": link,
+                    "title": title,
+                    "icon": icon,
+                    "visible": visible,
+                    "clickable": clickable,
+                }
+            )
+
+            if not visible:
+                continue
 
             icon = clean_html(
                 icon,
@@ -69,8 +117,26 @@ class SidebarMenu:
             )
 
             # handle separator
-            if link == "---" and empty(title) and empty(icon):
+            if entry_type == "separator":
                 self.menu.append({"separator": True})
+                continue
+
+            if entry_type == "heading":
+                if empty(title):
+                    continue
+                self.menu.append(
+                    {
+                        "heading": True,
+                        "title": title,
+                        "icon": icon,
+                        "clickable": clickable,
+                        "link": (
+                            self._resolve_link(link, title)
+                            if clickable
+                            else ""
+                        ),
+                    }
+                )
                 continue
 
             if empty(link):
@@ -78,21 +144,17 @@ class SidebarMenu:
                     continue
                 self.menu.append(
                     {
-                        "link": url_for("view", path=title),
+                        "link": self._resolve_link(link, title),
                         "title": title,
                         "icon": icon,
                     }
                 )
-            elif self.URI_SIMPLE.match(link):
-                if empty(title):
-                    title = link
-                self.menu.append({"link": link, "title": title, "icon": icon})
             else:
                 if empty(title):
                     title = link
                 self.menu.append(
                     {
-                        "link": url_for("view", path=link),
+                        "link": self._resolve_link(link, title),
                         "title": title,
                         "icon": icon,
                     }

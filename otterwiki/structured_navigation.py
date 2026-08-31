@@ -18,6 +18,7 @@ The module intentionally returns the same entry shape as the regular
 from __future__ import annotations
 
 import copy
+import hashlib
 import html
 import json
 import posixpath
@@ -70,15 +71,19 @@ def _natural_sort_key(value: str) -> tuple[tuple[int, int | str], ...]:
 
 @dataclass
 class NavigationTab:
+    key: str
     title: str
     path: str
     active: bool = False
+    visible: bool = True
+    clickable: bool = True
 
 
 @dataclass
 class NavigationEntry:
     path: str
     header: str
+    node_id: str = ""
     scope: str = ""
     children: OrderedDict[str, "NavigationEntry"] = field(
         default_factory=OrderedDict
@@ -88,6 +93,8 @@ class NavigationEntry:
     active: bool = False
     configured: bool = False
     weight: float = 1000.0
+    visible: bool = True
+    custom: bool = False
 
 
 class NavigationTree(OrderedDict[str, NavigationEntry]):
@@ -100,6 +107,7 @@ class NavigationTree(OrderedDict[str, NavigationEntry]):
         self.tabs: list[NavigationTab] = []
         self.number_headings = False
         self.namespace = ""
+        self.section = ""
 
 
 def _clean_repo_path(value: str) -> str:
@@ -145,6 +153,16 @@ def _is_page_active(pagepath: str, target: str) -> bool:
     return page == target or page.startswith(target.rstrip("/") + "/")
 
 
+def _as_bool(value: Any, default: bool = True) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)
+
+
 class StructuredNavigation:
     def __init__(self, namespace: str, pagepath: str):
         self.namespace = _clean_repo_path(namespace)
@@ -155,9 +173,17 @@ class StructuredNavigation:
         self._landing_cache: dict[str, str | None] = {}
         self.portal_path = f"{self.namespace}/.portal.yml"
         self.model_path = f"{self.namespace}/.idp/.model.yaml"
+        self.override_path = f"{self.namespace}/.navigation.json"
         self.portal = _safe_load_yaml(self.portal_path)
         self.model = _safe_load_yaml(self.model_path)
+        self.override = self._load_override()
         self.mappings = self._load_mappings()
+
+    def _load_override(self) -> dict[str, Any]:
+        if not storage.exists(self.override_path):
+            return {}
+        value = _safe_load_json(self.override_path)
+        return value if isinstance(value, dict) else {}
 
     @classmethod
     def for_page(cls, pagepath: str) -> "StructuredNavigation | None":
@@ -171,6 +197,23 @@ class StructuredNavigation:
         ):
             return None
         navigation = cls(namespace, pagepath)
+        if not isinstance(navigation.portal, dict) or not isinstance(
+            navigation.model, list
+        ):
+            return None
+        return navigation
+
+    @classmethod
+    def for_namespace(
+        cls, namespace: str, pagepath: str | None = None
+    ) -> "StructuredNavigation | None":
+        namespace = _clean_repo_path(namespace)
+        if not namespace or not (
+            storage.exists(f"{namespace}/.portal.yml")
+            and storage.exists(f"{namespace}/.idp/.model.yaml")
+        ):
+            return None
+        navigation = cls(namespace, pagepath or namespace)
         if not isinstance(navigation.portal, dict) or not isinstance(
             navigation.model, list
         ):
@@ -223,20 +266,82 @@ class StructuredNavigation:
             return path
         return path
 
-    def _tabs(self, active: str) -> list[NavigationTab]:
-        definitions = (
-            ("产品手册", f"{self.namespace}/aps", "manual"),
-            ("产品组件", f"{self.namespace}/components", "components"),
-            ("参考指南", f"{self.namespace}/reference", "reference"),
-        )
+    def default_tabs(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "key": "manual",
+                "title": "产品手册",
+                "path": f"{self.namespace}/aps",
+                "visible": True,
+                "clickable": True,
+            },
+            {
+                "key": "components",
+                "title": "产品组件",
+                "path": f"{self.namespace}/components",
+                "visible": True,
+                "clickable": True,
+            },
+            {
+                "key": "reference",
+                "title": "参考指南",
+                "path": f"{self.namespace}/reference",
+                "visible": True,
+                "clickable": True,
+            },
+        ]
+
+    def tab_config(self) -> list[dict[str, Any]]:
+        configured = self.override.get("tabs")
+        if not isinstance(configured, list):
+            return self.default_tabs()
+        result = []
+        for index, item in enumerate(configured):
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title", "")).strip()
+            if not title:
+                continue
+            path = _clean_repo_path(str(item.get("path", "")))
+            key = str(item.get("key", f"custom-{index + 1}")).strip()
+            result.append(
+                {
+                    "key": key or f"custom-{index + 1}",
+                    "title": title,
+                    "path": path,
+                    "visible": _as_bool(item.get("visible"), True),
+                    "clickable": _as_bool(item.get("clickable"), True)
+                    and bool(path),
+                }
+            )
+        return result
+
+    def _tabs(
+        self, active: str, *, include_hidden: bool = False
+    ) -> list[NavigationTab]:
         tabs = []
-        for title, path, key in definitions:
-            if storage.isdir(path) or storage.exists(path + ".md"):
+        for definition in self.tab_config():
+            path = definition["path"]
+            visible = definition["visible"]
+            if not visible and not include_hidden:
+                continue
+            if not path or storage.isdir(path) or storage.exists(path + ".md"):
                 tabs.append(
                     NavigationTab(
-                        title=title,
-                        path=self._landing_path(path),
-                        active=active == key,
+                        key=definition["key"],
+                        title=definition["title"],
+                        path=self._landing_path(path) if path else "",
+                        active=(
+                            active == definition["key"]
+                            or (
+                                definition["key"]
+                                not in ("manual", "components", "reference")
+                                and bool(path)
+                                and _is_page_active(self.pagepath, path)
+                            )
+                        ),
+                        visible=visible,
+                        clickable=definition["clickable"],
                     )
                 )
         return tabs
@@ -251,7 +356,22 @@ class StructuredNavigation:
         else:
             section = "components"
 
-        tree = copy.deepcopy(
+        tree = self.base_tree(section)
+        self._add_custom_entries(tree, section)
+        self._apply_overrides(tree, section)
+        tree.tabs = self._tabs(section)
+        tree.title = (
+            str(self.override.get("title", "文档目录")).strip() or "文档目录"
+        )
+        tree.section = section
+        self._assign_numbers(tree)
+        self._mark_active(tree)
+        return tree
+
+    def base_tree(self, section: str) -> NavigationTree:
+        if section not in ("manual", "components", "reference"):
+            section = "components"
+        return copy.deepcopy(
             _cached_navigation_tree(
                 str(storage.path),
                 _repository_revision(),
@@ -260,9 +380,157 @@ class StructuredNavigation:
                 section,
             )
         )
-        tree.tabs = self._tabs(section)
-        self._mark_active(tree)
+
+    def section_config(self, section: str) -> dict[str, Any]:
+        sections = self.override.get("sections", {})
+        if not isinstance(sections, dict):
+            return {}
+        value = sections.get(section, {})
+        return value if isinstance(value, dict) else {}
+
+    def _find_entry(
+        self, tree: OrderedDict[str, NavigationEntry], node_id: str
+    ) -> NavigationEntry | None:
+        for entry in tree.values():
+            if entry.node_id == node_id:
+                return entry
+            found = self._find_entry(entry.children, node_id)
+            if found is not None:
+                return found
+        return None
+
+    def _add_custom_entries(self, tree: NavigationTree, section: str) -> None:
+        custom = self.section_config(section).get("custom", [])
+        if not isinstance(custom, list):
+            return
+        pending = [item for item in custom if isinstance(item, dict)]
+        # Multiple passes allow a custom item to use another custom item as
+        # its parent without requiring a particular serialization order.
+        for _ in range(len(pending) + 1):
+            if not pending:
+                break
+            remaining = []
+            for index, item in enumerate(pending):
+                node_id = str(item.get("id", "")).strip()
+                title = str(item.get("title", "")).strip()
+                if not node_id or not title:
+                    continue
+                parent_id = str(item.get("parent", "")).strip()
+                parent = (
+                    self._find_entry(tree, parent_id) if parent_id else None
+                )
+                if parent_id and parent is None:
+                    remaining.append(item)
+                    continue
+                path = _clean_repo_path(str(item.get("path", "")))
+                try:
+                    order = float(item.get("order", index))
+                except (TypeError, ValueError):
+                    order = float(index)
+                entry = NavigationEntry(
+                    path=path or self.namespace,
+                    header=title,
+                    node_id=node_id,
+                    scope=path,
+                    linkable=_as_bool(item.get("clickable"), False)
+                    and bool(path),
+                    configured=True,
+                    visible=_as_bool(item.get("visible"), True),
+                    custom=True,
+                    weight=order,
+                )
+                target = parent.children if parent is not None else tree
+                self._insert(target, node_id, entry)
+            if len(remaining) == len(pending):
+                break
+            pending = remaining
+
+    def _apply_overrides(
+        self,
+        tree: OrderedDict[str, NavigationEntry],
+        section: str,
+        *,
+        include_hidden: bool = False,
+    ) -> None:
+        section_config = self.section_config(section)
+        overrides = section_config.get("nodes", {})
+        if not isinstance(overrides, dict):
+            overrides = {}
+
+        ranked: list[tuple[float, int, str, NavigationEntry]] = []
+        for index, (key, entry) in enumerate(tree.items()):
+            override = overrides.get(entry.node_id, {})
+            if not isinstance(override, dict):
+                override = {}
+            title = str(override.get("title", "")).strip()
+            if title:
+                entry.header = title
+            entry.visible = _as_bool(override.get("visible"), entry.visible)
+            entry.linkable = _as_bool(
+                override.get("clickable"), entry.linkable
+            ) and bool(entry.path)
+            self._apply_overrides(
+                entry.children,
+                section,
+                include_hidden=include_hidden,
+            )
+            try:
+                default_order = entry.weight if entry.custom else index
+                order = float(override.get("order", default_order))
+            except (TypeError, ValueError):
+                order = float(index)
+            if entry.visible or include_hidden:
+                ranked.append((order, index, key, entry))
+
+        ranked.sort(key=lambda item: (item[0], item[1]))
+        tree.clear()
+        for _, _, key, entry in ranked:
+            tree[key] = entry
+
+    def editable_tree(self, section: str) -> NavigationTree:
+        tree = self.base_tree(section)
+        self._add_custom_entries(tree, section)
+        self._apply_overrides(tree, section, include_hidden=True)
+        tree.tabs = self._tabs(section, include_hidden=True)
+        tree.title = (
+            str(self.override.get("title", "文档目录")).strip() or "文档目录"
+        )
+        tree.section = section
+        self._assign_numbers(tree)
         return tree
+
+    @staticmethod
+    def flatten_tree(
+        tree: OrderedDict[str, NavigationEntry],
+        parent: str = "",
+        depth: int = 0,
+    ) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for order, entry in enumerate(tree.values()):
+            rows.append(
+                {
+                    "id": entry.node_id,
+                    "parent": parent,
+                    "depth": depth,
+                    "title": entry.header,
+                    "path": (
+                        entry.path
+                        if entry.linkable or entry.custom
+                        else entry.path
+                    ),
+                    "visible": entry.visible,
+                    "clickable": entry.linkable,
+                    "custom": entry.custom,
+                    "has_children": bool(entry.children),
+                    "order": order,
+                }
+            )
+            rows.extend(
+                StructuredNavigation.flatten_tree(
+                    entry.children, entry.node_id, depth + 1
+                )
+            )
+        return rows
 
     def _domains(self) -> list[dict[str, Any]]:
         return [item for item in self.model if isinstance(item, dict)]
@@ -307,6 +575,7 @@ class StructuredNavigation:
                     entry = NavigationEntry(
                         path=self._landing_path(root),
                         header=title,
+                        node_id=f"path:{root}",
                         scope=root,
                         configured=True,
                     )
@@ -321,6 +590,7 @@ class StructuredNavigation:
                 module_entry = NavigationEntry(
                     path=self.namespace,
                     header=module_name,
+                    node_id=f"module:{module.get('code', module_name)}",
                     children=children,
                     linkable=False,
                     configured=True,
@@ -499,6 +769,7 @@ class StructuredNavigation:
             entry = NavigationEntry(
                 path=target,
                 header=title or page_title or posixpath.basename(target),
+                node_id=f"path:{target}",
                 scope=target,
                 configured=configured,
                 weight=weight,
@@ -534,6 +805,7 @@ class StructuredNavigation:
         entry = NavigationEntry(
             path=self._landing_path(directory),
             header=title or page_title or posixpath.basename(directory),
+            node_id=f"path:{directory}",
             scope=directory,
             configured=configured,
             linkable=True,
@@ -695,6 +967,36 @@ class StructuredNavigation:
             if entry.children:
                 self._assign_numbers(entry.children, numbers)
 
+    def _assign_unique_node_ids(
+        self,
+        tree: OrderedDict[str, NavigationEntry],
+        parent_id: str,
+    ) -> None:
+        """Namespace path-based IDs by their parent to distinguish aliases.
+
+        Imported sidebars can intentionally show the same landing page more
+        than once under different headings.  A path alone is therefore not a
+        safe editor key.  The parent digest keeps IDs compact while remaining
+        stable when unrelated siblings are inserted or reordered.
+        """
+        parent_digest = hashlib.sha1(parent_id.encode("utf-8")).hexdigest()[
+            :12
+        ]
+        occurrences: dict[str, int] = {}
+        for entry in tree.values():
+            if entry.node_id.startswith("module:") and parent_id.startswith(
+                "section:"
+            ):
+                candidate = entry.node_id
+            else:
+                base = entry.node_id or f"path:{entry.scope or entry.path}"
+                candidate = f"{base}:in:{parent_digest}"
+            occurrences[candidate] = occurrences.get(candidate, 0) + 1
+            if occurrences[candidate] > 1:
+                candidate = f"{candidate}-{occurrences[candidate]}"
+            entry.node_id = candidate
+            self._assign_unique_node_ids(entry.children, candidate)
+
 
 def _repository_revision() -> str:
     try:
@@ -725,16 +1027,31 @@ def _cached_navigation_tree(
     else:
         tree = navigation._build_component_tree(expand_all=True)
 
+    navigation._assign_unique_node_ids(tree, f"section:{section}")
+
     tree.structured = True
     tree.title = "文档目录"
     tree.number_headings = True
     tree.namespace = namespace
-    navigation._assign_numbers(tree)
     return tree
 
 
 def clear_structured_navigation_cache() -> None:
     _cached_navigation_tree.cache_clear()
+
+
+def structured_navigation_namespaces() -> list[str]:
+    """Return repository roots that support the structured navigation UI."""
+    _, directories = storage.list("", depth=0)
+    namespaces = []
+    for path in directories:
+        namespace = _clean_repo_path(path)
+        if namespace and (
+            storage.exists(f"{namespace}/.portal.yml")
+            and storage.exists(f"{namespace}/.idp/.model.yaml")
+        ):
+            namespaces.append(namespace)
+    return sorted(set(namespaces), key=str.casefold)
 
 
 def structured_navigation_cache_info():

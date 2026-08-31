@@ -23,10 +23,11 @@ from otterwiki.wiki import (
     AutoRoute,
 )
 from otterwiki.sitemap import sitemap as generate_sitemap
-from otterwiki.pageindex import PageIndex
+from otterwiki.pageindex import PageIndex, search_page_paths
 from otterwiki.sidebar import SidebarPageIndex, SidebarMenu
 import otterwiki.auth
 import otterwiki.preferences
+import otterwiki.navigation_editor
 import otterwiki.tools
 from otterwiki.renderer import render
 from otterwiki.helper import (
@@ -346,6 +347,29 @@ def admin_document_import():
 
 
 @app.route(
+    "/-/admin/navigation", methods=["POST", "GET"]
+)  # pyright: ignore -- false positive
+@login_required
+def admin_navigation():
+    namespace = request.values.get("namespace", "")
+    section = request.values.get("section", "components")
+    if request.method == "GET":
+        return otterwiki.navigation_editor.navigation_editor_form(
+            namespace, section
+        )
+    try:
+        return otterwiki.navigation_editor.save_navigation_editor(request.form)
+    except otterwiki.navigation_editor.NavigationEditorError as error:
+        toast(str(error), "error")
+        return (
+            otterwiki.navigation_editor.navigation_editor_form(
+                namespace, section
+            ),
+            400,
+        )
+
+
+@app.route(
     "/-/admin/mail_preferences", methods=["POST", "GET"]
 )  # pyright: ignore -- false positive
 @login_required
@@ -409,6 +433,24 @@ def changelog_feed_atom():
 def pageindex():
     idx = PageIndex()
     return idx.render()
+
+
+@app.route("/-/api/v1/pages")
+def page_suggestions():
+    if not otterwiki.auth.has_permission("WRITE"):
+        abort(403)
+    try:
+        limit = int(request.args.get("limit", 30))
+    except (TypeError, ValueError):
+        limit = 30
+    return jsonify(
+        {
+            "pages": search_page_paths(
+                request.args.get("q", ""),
+                limit=limit,
+            )
+        }
+    )
 
 
 @app.route("/-/create", methods=["POST", "GET"])

@@ -7,6 +7,61 @@ import json
 from urllib.parse import unquote
 
 
+def test_editor_uses_lazy_wikilink_search(test_client, monkeypatch):
+    class UnexpectedPageIndex:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError(
+                "The editor must not build the full page index"
+            )
+
+    monkeypatch.setattr("otterwiki.wiki.PageIndex", UnexpectedPageIndex)
+
+    response = test_client.get("/Example/edit")
+    assert response.status_code == 200
+    soup = bs4.BeautifulSoup(response.data.decode(), "html.parser")
+    wikilink = soup.find(id="wikilink")
+    assert wikilink is not None
+    assert wikilink.name == "input"
+    assert wikilink.get("list") == "wikilink-options"
+    assert soup.find(id="wikilink-options").name == "datalist"
+    assert "/-/api/v1/pages" in response.data.decode()
+
+
+def test_wikilink_page_suggestions_are_filtered_and_limited(
+    create_app, test_client
+):
+    storage = create_app.storage
+    for filename in [
+        "Guides/AlphaStart.md",
+        "Guides/BetaAlpha.md",
+        "Reference/Other.md",
+    ]:
+        storage.store(
+            filename,
+            f"# {filename}\n",
+            author=("Test", "test@example.org"),
+        )
+
+    response = test_client.get("/-/api/v1/pages?q=alpha&limit=1")
+    assert response.status_code == 200
+    assert response.get_json() == {"pages": ["Guides/AlphaStart"]}
+
+    response = test_client.get("/-/api/v1/pages?q=ALPHA&limit=30")
+    assert response.status_code == 200
+    assert response.get_json()["pages"] == [
+        "Guides/AlphaStart",
+        "Guides/BetaAlpha",
+    ]
+
+
+def test_wikilink_page_suggestions_require_write_permission(
+    create_app, test_client
+):
+    create_app.config["WRITE_ACCESS"] = "REGISTERED"
+    response = test_client.get("/-/api/v1/pages?q=home")
+    assert response.status_code == 403
+
+
 def test_urlquote(test_client):
     for pagename in [
         "Example",

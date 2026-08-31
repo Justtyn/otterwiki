@@ -85,6 +85,23 @@ def get_sidebar_menu(test_client):
         for li in ul.find_all("li"):
             if li.find("hr"):
                 menu_items.append({"type": "separator"})
+            elif "custom-menu-heading" in li.get("class", []):
+                target = li.find(
+                    ["a", "span"],
+                    class_=[
+                        "custom-menu-heading-link",
+                        "custom-menu-heading-label",
+                    ],
+                )
+                menu_items.append(
+                    {
+                        "type": "heading",
+                        "text": target.text.strip(),
+                        "clickable": target.name == "a",
+                        "href": target.get("href"),
+                        "html": str(target),
+                    }
+                )
             elif li.find("a"):
                 a = li.find("a")
                 menu_items.append(
@@ -122,7 +139,12 @@ def test_sidebar_custom_menu(create_app, test_client, req_ctx):
     create_app.config["SIDEBAR_CUSTOM_MENU"] = (
         """[{"link": "Home", "title": ""}]"""
     )
-    assert [{'link': 'Home', 'title': '', 'icon': ''}] == SidebarMenu().config
+    config = SidebarMenu().config
+    assert config[0]["type"] == "link"
+    assert config[0]["link"] == "Home"
+    assert config[0]["title"] == ""
+    assert config[0]["visible"] is True
+    assert config[0]["clickable"] is True
     menu_data = get_sidebar_menu(test_client)
     assert menu_data
     assert ('Home', '/Home') in menu_data["links"]
@@ -130,11 +152,10 @@ def test_sidebar_custom_menu(create_app, test_client, req_ctx):
     create_app.config["SIDEBAR_CUSTOM_MENU"] = (
         """[{"link":"https://example.com", "title":"Example"}]"""
     )
-    assert {
-        "title": "Example",
-        "link": "https://example.com",
-        "icon": "",
-    } in SidebarMenu().config
+    config = SidebarMenu().config
+    assert config[0]["title"] == "Example"
+    assert config[0]["link"] == "https://example.com"
+    assert config[0]["icon"] == ""
     menu_data = get_sidebar_menu(test_client)
     assert menu_data
     assert ('Example', 'https://example.com') in menu_data["links"]
@@ -142,9 +163,10 @@ def test_sidebar_custom_menu(create_app, test_client, req_ctx):
     create_app.config["SIDEBAR_CUSTOM_MENU"] = (
         """[{"link": "/Example", "title": ""}]"""
     )
-    assert [
-        {'link': '/Example', 'title': '', 'icon': ''}
-    ] == SidebarMenu().config
+    config = SidebarMenu().config
+    assert config[0]["link"] == "/Example"
+    assert config[0]["title"] == ""
+    assert config[0]["icon"] == ""
     menu_data = get_sidebar_menu(test_client)
     assert menu_data
     assert ('/Example', '/Example') in menu_data["links"]
@@ -314,6 +336,80 @@ def test_sidebar_custom_menu_backward_compatibility(
     menu_data = get_sidebar_menu(test_client)
     assert menu_data is not None
     assert ("Home Page", "/Home") in menu_data["links"]
+
+
+def test_sidebar_custom_menu_heading_visibility_and_clickability(
+    create_app, test_client, req_ctx
+):
+    from otterwiki.sidebar import SidebarMenu
+
+    create_app.config["SIDEBAR_CUSTOM_MENU"] = json.dumps(
+        [
+            {
+                "type": "heading",
+                "title": "开发指南",
+                "link": "",
+                "visible": True,
+                "clickable": False,
+            },
+            {
+                "type": "heading",
+                "title": "参考资料",
+                "link": "Reference",
+                "visible": True,
+                "clickable": True,
+            },
+            {
+                "type": "heading",
+                "title": "暂不显示",
+                "link": "Hidden",
+                "visible": False,
+                "clickable": True,
+            },
+        ],
+        ensure_ascii=False,
+    )
+
+    config = SidebarMenu().config
+    assert len(config) == 3
+    assert config[0]["type"] == "heading"
+    assert config[0]["clickable"] is False
+    assert config[2]["visible"] is False
+
+    menu_data = get_sidebar_menu(test_client)
+    headings = [
+        item for item in menu_data["items"] if item["type"] == "heading"
+    ]
+    assert [
+        (item["text"], item["clickable"], item["href"]) for item in headings
+    ] == [
+        ("开发指南", False, None),
+        ("参考资料", True, "/Reference"),
+    ]
+    assert (
+        headings[0]["html"]
+        .lstrip()
+        .startswith('<span class="custom-menu-heading-label">')
+    )
+    assert (
+        headings[1]["html"]
+        .lstrip()
+        .startswith('<a class="custom-menu-heading-link" href="/Reference">')
+    )
+    assert "暂不显示" not in test_client.get("/").data.decode()
+
+
+def test_sidebar_custom_menu_explicit_separator_can_be_hidden(
+    create_app, test_client, req_ctx
+):
+    create_app.config["SIDEBAR_CUSTOM_MENU"] = json.dumps(
+        [
+            {"type": "separator", "visible": False},
+            {"type": "link", "link": "Home", "visible": True},
+        ]
+    )
+    menu_data = get_sidebar_menu(test_client)
+    assert [item["type"] for item in menu_data["items"]] == ["link"]
 
 
 def test_sidebar_menutree_with_invalid_utf8(create_app, req_ctx):

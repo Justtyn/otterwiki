@@ -13,6 +13,18 @@
             {%- for entry in custom_menu -%}
                 {%- if entry.get('separator') -%}
                 <li><hr></li>
+                {%- elif entry.get('heading') -%}
+                <li class="custom-menu-heading">
+                    {%- if entry.get('clickable') -%}
+                    <a class="custom-menu-heading-link" href="{{entry.link}}">
+                        {%- if entry.get('icon') -%}{{entry.icon|safe}} {% endif -%}{{entry.title}}
+                    </a>
+                    {%- else -%}
+                    <span class="custom-menu-heading-label">
+                        {%- if entry.get('icon') -%}{{entry.icon|safe}} {% endif -%}{{entry.title}}
+                    </span>
+                    {%- endif -%}
+                </li>
                 {%- else -%}
                 <li> <a href="{{entry.link}}">
                     {%- if entry.get('icon') -%}{{entry.icon|safe}} {% endif -%}{{entry.title}}

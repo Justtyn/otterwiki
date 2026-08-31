@@ -2,6 +2,7 @@
 # vim: set et ts=8 sts=4 sw=4 ai:
 
 import os
+from functools import lru_cache
 from timeit import default_timer as timer
 from urllib.parse import unquote
 
@@ -45,6 +46,64 @@ class PageIndexEntry:
     url: str
     toc: List[Tuple[int, str, str]] | None = None
     has_children: bool = False
+
+
+def _repository_revision() -> str:
+    try:
+        return storage.repo.head.commit.hexsha
+    except (TypeError, ValueError):
+        return "unborn"
+
+
+@lru_cache(maxsize=16)
+def _cached_page_paths(
+    repository_path: str,
+    revision: str,
+    retain_page_name_case: bool,
+) -> tuple[str, ...]:
+    """Return lightweight Wiki page paths without parsing page contents.
+
+    The editor only needs link targets. Building a full ``PageIndex`` here
+    used to parse every document's table of contents and perform one cache
+    query per page, which made opening the editor scale with the whole Wiki.
+    """
+    del repository_path, revision, retain_page_name_case
+    files, _ = storage.list()
+    paths = {
+        get_pagename(filename, full=True)
+        for filename in files
+        if filename.lower().endswith(".md")
+    }
+    return tuple(sorted(paths, key=str.casefold))
+
+
+def page_paths() -> tuple[str, ...]:
+    return _cached_page_paths(
+        str(storage.path),
+        _repository_revision(),
+        bool(app.config["RETAIN_PAGE_NAME_CASE"]),
+    )
+
+
+def search_page_paths(query: str = "", limit: int = 30) -> list[str]:
+    """Find link targets using a small, revision-cached path index."""
+    needle = query.strip().casefold()[:256]
+    limit = max(1, min(limit, 50))
+    matches = [
+        path
+        for path in page_paths()
+        if not needle or needle in path.casefold()
+    ]
+    if needle:
+        matches.sort(
+            key=lambda path: (
+                not path.rsplit("/", 1)[-1].casefold().startswith(needle),
+                not path.casefold().startswith(needle),
+                len(path),
+                path.casefold(),
+            )
+        )
+    return matches[:limit]
 
 
 class PageIndex:

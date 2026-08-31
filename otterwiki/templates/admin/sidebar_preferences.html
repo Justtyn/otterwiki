@@ -29,31 +29,56 @@
 {##}
 <h3 class="card-title">自定义菜单</h3>
 <div class="my-5">
-    可在侧边栏中添加常用页面或外部链接。
+    可在侧边栏中添加常用页面、外部链接、标题栏和分隔线。
 </div>
 <ul class="mb-20">
     <li>链接 Wiki 页面时，在“页面／链接”中填写完整路径。</li>
     <li>添加外部链接时，填写 URL，并在“标题”中填写显示名称。</li>
+    <li>标题栏可以只作为分组标签；启用“可点击”后需填写页面或链接。</li>
+    <li>关闭“显示”只会隐藏该项目，配置和排序位置仍会保留。</li>
     <li>可在“图标”中填写 HTML 来使用 <a href="https://fontawesome.com/v5/search?q=link&ic=free-collection" target="_blank">FontAwesome 5 <i class="fas fa-external-link-alt"></i></a> 图标，例如 <code>&lt;i class="fas fa-question-circle"&gt;&lt;/i&gt;</code>。</li>
-    <li>创建分隔线时，将“页面／链接”设为 <code>---</code>，其他字段留空。</li>
 </ul>
+<div class="table-responsive">
 <table>
     <thead>
+      <tr>
         <th>&nbsp;</th>
+        <th>类型</th>
         <th>页面／链接</th>
         <th>标题 <em>（可选）</em></th>
         <th>图标 <em>（可选）</em></th>
+        <th>显示</th>
+        <th>可点击</th>
         <th>&nbsp;</th>
+      </tr>
     </thead>
     <tbody id="custom-page-index">
-{% for entry in custom_menu + [{"link":"","title":"","icon":""}] %}
+{% for entry in custom_menu + [{"type":"link","link":"","title":"","icon":"","visible":true,"clickable":true}] %}
+{% set entry_type = entry.get("type", "separator" if entry.get("link") == "---" and not entry.get("title") and not entry.get("icon") else "link") %}
+{% set entry_visible = entry.get("visible", true) %}
+{% set entry_clickable = entry.get("clickable", entry_type == "link") %}
         <tr>
             <td class="pr-10">
                 <span class="btn btn-square btn-sm btn-handle"><i class="fas fa-arrows-alt"></i></span>
             </td>
+            <td>
+                <select name="type" class="form-control custom-menu-type">
+                    {% for type_value, type_title in [("link", "链接"), ("heading", "标题栏"), ("separator", "分隔线")] %}
+                    <option value="{{type_value}}"{% if entry_type == type_value %} selected{% endif %}>{{type_title}}</option>
+                    {% endfor %}
+                </select>
+            </td>
             <td><input type="text" name="link" placeholder="..." class="w-200 form-control" value="{{entry.link}}"/></td>
             <td><input type="text" name="title" placeholder="" class="w-200 form-control" value="{{entry.title}}"> </td>
             <td><input type="text" name="icon" placeholder="" class="w-200 form-control" value="{{entry.icon or ''}}"> </td>
+            <td>
+                <input type="hidden" name="visible" value="{{'True' if entry_visible else 'False'}}">
+                <input class="custom-menu-visible" type="checkbox" title="是否显示"{% if entry_visible %} checked{% endif %}>
+            </td>
+            <td>
+                <input type="hidden" name="clickable" value="{{'True' if entry_clickable else 'False'}}">
+                <input class="custom-menu-clickable" type="checkbox" title="是否可点击"{% if entry_clickable %} checked{% endif %}>
+            </td>
             <td class="pl-10">
                 <span class="btn btn-square btn-sm" onclick="cloneRow(this);"><i class="fas fa-clone"></i></span>
                 <span class="btn btn-square btn-sm btn-danger" onclick="deleteRow(this);"><i class="far fa-trash-alt"></i></span>
@@ -62,14 +87,17 @@
 {% endfor %}
     </tbody>
 </table>
+</div>
 <div class="form-group">
         <label for="find-page-select" class="mt-5" style="display:block;">选择要添加的页面</label>
         <select id="find-page-select" size="1" class="form-control w-400 mw-full" style="display:inline;">
-        {%- for page in ["", "---"] + pages %}
+        {%- for page in [""] + pages %}
             <option value="{{page}}">{{page if page else "..."}}</option>
         {%- endfor %}
         </select>
-        <span class="btn btn-square btn-sm" onclick="addPageRow();"><i class="fas fa-level-up-alt"></i></span>
+        <button class="btn btn-sm" type="button" onclick="addPageRow();"><i class="fas fa-level-up-alt"></i> 添加页面</button>
+        <button class="btn btn-sm" type="button" onclick="addMenuRow('heading');"><i class="fas fa-heading"></i> 添加标题栏</button>
+        <button class="btn btn-sm" type="button" onclick="addMenuRow('separator');"><i class="fas fa-minus"></i> 添加分隔线</button>
 </div>
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
@@ -129,6 +157,52 @@
         handle: '.btn-handle',
         animation: 150,
     });
+    const customMenuBody = document.getElementById('custom-page-index');
+
+    function syncMenuRow(row) {
+        row.querySelector('input[name="visible"]').value =
+            row.querySelector('.custom-menu-visible').checked ? 'True' : 'False';
+        row.querySelector('input[name="clickable"]').value =
+            row.querySelector('.custom-menu-clickable').checked ? 'True' : 'False';
+    }
+
+    function updateMenuRow(row, typeChanged = false) {
+        const type = row.querySelector('.custom-menu-type').value;
+        const link = row.querySelector('input[name="link"]');
+        const title = row.querySelector('input[name="title"]');
+        const icon = row.querySelector('input[name="icon"]');
+        const clickable = row.querySelector('.custom-menu-clickable');
+        const visible = row.querySelector('.custom-menu-visible').checked;
+
+        if (type === 'separator') {
+            link.value = '---';
+            title.value = '';
+            icon.value = '';
+            clickable.checked = false;
+            clickable.disabled = true;
+        } else {
+            if (typeChanged && link.value === '---') link.value = '';
+            clickable.disabled = type === 'link';
+            if (type === 'link') clickable.checked = true;
+        }
+
+        link.readOnly = type === 'separator' || (type === 'heading' && !clickable.checked);
+        title.readOnly = type === 'separator';
+        icon.readOnly = type === 'separator';
+        row.style.opacity = visible ? '1' : '.55';
+        syncMenuRow(row);
+    }
+
+    function clearMenuRow(row, type = 'link') {
+        row.querySelector('.custom-menu-type').value = type;
+        for (const input of row.querySelectorAll('input[type="text"]')) {
+            input.value = '';
+        }
+        row.querySelector('.custom-menu-visible').checked = true;
+        row.querySelector('.custom-menu-clickable').checked = type === 'link';
+        updateMenuRow(row, true);
+    }
+
     function cloneRow(btn, empty = false) {
         var row;
         if (btn == null) {
@@ -139,11 +213,10 @@
         var tbody = row.closest("tbody");
         var new_row = row.cloneNode(true);
         if (empty) {
-            for (c of new_row.querySelectorAll('input')) {
-                c.value = '';
-            }
+            clearMenuRow(new_row);
         }
         row.parentNode.insertBefore(new_row, row.nextSibling);
+        updateMenuRow(new_row);
         return new_row;
     }
     function deleteRow(btn) {
@@ -151,9 +224,7 @@
         var row = btn.closest("tr");
         // the thead row is counted, too.
         if (table.rows.length < 3) {
-            for (c of row.querySelectorAll('input')) {
-                c.value = '';
-            }
+            clearMenuRow(row);
         } else {
             table.deleteRow(row.rowIndex);
         }
@@ -170,6 +241,30 @@
         row.querySelector("input[name='link']").value = pageSelect.value;
         row.querySelector("input[name='title']").value = '';
         row.querySelector("input[name='icon']").value = '';
+        row.querySelector('.custom-menu-type').value = 'link';
+        row.querySelector('.custom-menu-visible').checked = true;
+        row.querySelector('.custom-menu-clickable').checked = true;
+        updateMenuRow(row, true);
     }
+    function addMenuRow(type) {
+        const lastrow = customMenuBody.lastElementChild;
+        const row = (
+            lastrow.querySelector("input[name='link']").value === ''
+            && lastrow.querySelector("input[name='title']").value === ''
+        ) ? lastrow : cloneRow(null, true);
+        clearMenuRow(row, type);
+        if (type === 'heading') {
+            row.querySelector("input[name='title']").focus();
+        }
+    }
+
+    customMenuBody.addEventListener('change', function(event) {
+        const row = event.target.closest('tr');
+        if (row) updateMenuRow(row, event.target.classList.contains('custom-menu-type'));
+    });
+    for (const row of customMenuBody.querySelectorAll('tr')) updateMenuRow(row);
+    customMenuBody.closest('form').addEventListener('submit', function() {
+        for (const row of customMenuBody.querySelectorAll('tr')) syncMenuRow(row);
+    });
 </script>
 {% endblock %}

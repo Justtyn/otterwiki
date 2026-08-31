@@ -1,0 +1,607 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "settings.html" %}
+{% block head %}
+{{ super() }}
+<style>
+  .navigation-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: end;
+  }
+  .navigation-editor-toolbar .form-group {
+    margin-bottom: 0;
+  }
+  .navigation-editor-table th,
+  .navigation-editor-table td {
+    vertical-align: middle;
+  }
+  .navigation-editor-table .navigation-title-input {
+    min-width: 18rem;
+  }
+  .navigation-editor-table .navigation-path-input {
+    min-width: 22rem;
+  }
+  .navigation-node-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+  .navigation-tree-toggle,
+  .navigation-tree-toggle-placeholder {
+    flex: 0 0 2.6rem;
+    width: 2.6rem;
+  }
+  .navigation-tree-toggle {
+    height: 2.6rem;
+    padding: 0;
+    border: 0;
+    color: var(--lm-muted-text-color);
+    background: transparent;
+    cursor: pointer;
+  }
+  .dark-mode .navigation-tree-toggle {
+    color: var(--dm-muted-text-color);
+  }
+  .navigation-tree-toggle:hover,
+  .navigation-tree-toggle:focus {
+    color: var(--primary-color);
+  }
+  .navigation-tree-toggle.has-no-children {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .navigation-node-number {
+    flex: 0 0 auto;
+    color: var(--lm-muted-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .dark-mode .navigation-node-number {
+    color: var(--dm-muted-text-color);
+  }
+  .navigation-row[aria-hidden="true"] {
+    opacity: .55;
+  }
+  .navigation-row.is-filtered {
+    display: none;
+  }
+  .navigation-row.is-collapsed-child {
+    display: none;
+  }
+  .navigation-tree-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem;
+  }
+  .navigation-tree-controls .form-control {
+    width: auto;
+    min-width: 13rem;
+  }
+  .navigation-row-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .3rem;
+  }
+  .navigation-switch-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    white-space: nowrap;
+  }
+  .navigation-editor-empty {
+    padding: 3rem;
+    text-align: center;
+  }
+  .navigation-save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem -2rem -2rem;
+    padding: 1.2rem 2rem;
+    background: var(--lm-card-bg-color);
+    border-top: 1px solid var(--lm-card-border-color);
+  }
+  .dark-mode .navigation-save-bar {
+    background: var(--dm-card-bg-color);
+    border-top-color: var(--dm-card-border-color);
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+  <h2 class="card-title">文档导航编辑</h2>
+  <p class="text-muted">
+    这里编辑的是文档页面左侧的分类标签和目录树。导入文件仍作为基础数据；这里保存的名称、顺序、显示和点击设置会覆盖导入结果。
+  </p>
+
+  {% if not namespaces %}
+  <div class="alert alert-secondary" role="alert">
+    当前仓库中没有找到支持可视化编辑的结构化文档。请先完成 APStack 文档导入。
+  </div>
+  {% else %}
+  <form class="navigation-editor-toolbar mb-20" action="{{ url_for('admin_navigation') }}" method="GET">
+    <div class="form-group">
+      <label for="navigation-namespace">文档库</label>
+      <select class="form-control" id="navigation-namespace" name="namespace">
+        {% for item in namespaces %}
+        <option value="{{ item }}"{% if item == namespace %} selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="navigation-section">正在编辑</label>
+      <select class="form-control" id="navigation-section" name="section">
+        {% for key, label in sections %}
+        <option value="{{ key }}"{% if key == section %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-secondary" type="submit">切换</button>
+    <a class="btn btn-link" href="{{ url_for('view', path=namespace) }}">返回文档</a>
+  </form>
+
+  <form id="navigation-editor-form" action="{{ url_for('admin_navigation') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="namespace" value="{{ namespace }}">
+    <input type="hidden" name="section" value="{{ section }}">
+    <input type="hidden" id="navigation-payload" name="navigation_payload">
+
+    <div class="form-group mw-full w-400">
+      <label for="navigation-title">目录标题</label>
+      <input class="form-control" id="navigation-title" type="text" maxlength="120"
+             value="{{ navigation_title }}" required>
+    </div>
+
+    <h3 class="content-title">顶部分类标签</h3>
+    <p class="text-muted">对应截图中的“产品手册 / 产品组件 / 参考指南”。可以改名、调整顺序、隐藏或取消点击。</p>
+    <div class="table-responsive mb-10">
+      <table class="table navigation-editor-table" id="navigation-tabs-table">
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>页面路径</th>
+            <th>显示</th>
+            <th>可点击</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tab in tabs %}
+          <tr class="navigation-tab-row" data-key="{{ tab.key }}">
+            <td><input class="form-control navigation-tab-title" type="text" maxlength="120" value="{{ tab.title }}" required></td>
+            <td><input class="form-control navigation-tab-path navigation-path-input" type="text" maxlength="500" value="{{ tab.path }}"></td>
+            <td><label class="navigation-switch-label"><input class="navigation-tab-visible" type="checkbox"{% if tab.visible %} checked{% endif %}> 显示</label></td>
+            <td><label class="navigation-switch-label"><input class="navigation-tab-clickable" type="checkbox"{% if tab.clickable %} checked{% endif %}> 可点击</label></td>
+            <td>
+              <div class="navigation-row-actions">
+                <button class="btn btn-sm btn-secondary navigation-tab-up" type="button" title="上移"><i class="fas fa-arrow-up"></i></button>
+                <button class="btn btn-sm btn-secondary navigation-tab-down" type="button" title="下移"><i class="fas fa-arrow-down"></i></button>
+                <button class="btn btn-sm btn-danger navigation-tab-delete" type="button" title="删除"><i class="fas fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button class="btn btn-sm btn-secondary mb-20" id="navigation-add-tab" type="button"><i class="fas fa-plus"></i> 添加分类标签</button>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-end mb-10">
+      <div>
+        <h3 class="content-title mb-5">目录树</h3>
+        <p class="text-muted mb-0">导入项可以改名或隐藏；自定义项可以直接删除。上移、下移只会调整同一级目录的顺序。</p>
+      </div>
+      <div class="form-group mb-0 mw-full w-300">
+        <label for="navigation-filter">筛选目录项</label>
+        <input class="form-control" id="navigation-filter" type="search" placeholder="输入名称或路径">
+      </div>
+    </div>
+
+    <div class="mb-10">
+      <button class="btn btn-sm btn-secondary navigation-add-root" data-kind="heading" type="button"><i class="fas fa-heading"></i> 添加根标题</button>
+      <button class="btn btn-sm btn-secondary navigation-add-root" data-kind="link" type="button"><i class="fas fa-link"></i> 添加根链接</button>
+    </div>
+
+    <div class="navigation-tree-controls mb-10" aria-label="目录展开控制">
+      <label class="mb-0" for="navigation-expand-level">展开层级</label>
+      <select class="form-control form-control-sm" id="navigation-expand-level">
+        <option value="1">只显示第 1 级</option>
+        <option value="2" selected>展开到第 2 级</option>
+        <option value="3">展开到第 3 级</option>
+        <option value="4">展开到第 4 级</option>
+        <option value="all">全部展开</option>
+        <option value="custom" hidden>自定义</option>
+      </select>
+      <button class="btn btn-sm btn-secondary" id="navigation-expand-all" type="button"><i class="fas fa-angle-double-down"></i> 全部展开</button>
+      <button class="btn btn-sm btn-secondary" id="navigation-collapse-all" type="button"><i class="fas fa-angle-double-right"></i> 全部收起</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table navigation-editor-table" id="navigation-tree-table">
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>页面路径</th>
+            <th>显示</th>
+            <th>可点击</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="navigation-tree-body">
+          {% for row in navigation_rows %}
+          <tr class="navigation-row" data-id="{{ row.id }}" data-parent="{{ row.parent }}"
+              data-depth="{{ row.depth }}" data-custom="{{ 'true' if row.custom else 'false' }}"
+              data-collapsed="false" data-has-children="{{ 'true' if row.has_children else 'false' }}"
+              aria-hidden="{{ 'false' if row.visible else 'true' }}">
+            <td>
+              <div class="navigation-node-title-wrap" style="padding-left: {{ row.depth * 2 }}rem">
+                <button class="navigation-tree-toggle{% if not row.has_children %} has-no-children{% endif %}"
+                        type="button" aria-label="收起 {{ row.title }}" aria-expanded="true"
+                        {% if not row.has_children %}disabled tabindex="-1"{% endif %}>
+                  <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                </button>
+                <span class="navigation-node-number">{{ row.depth + 1 }}级</span>
+                <input class="form-control navigation-node-title navigation-title-input" type="text"
+                       maxlength="200" value="{{ row.title }}" required>
+              </div>
+            </td>
+            <td><input class="form-control navigation-node-path navigation-path-input" type="text"
+                       maxlength="500" value="{{ row.path }}"{% if not row.custom %} readonly{% endif %}></td>
+            <td><label class="navigation-switch-label"><input class="navigation-node-visible" type="checkbox"{% if row.visible %} checked{% endif %}> 显示</label></td>
+            <td><label class="navigation-switch-label"><input class="navigation-node-clickable" type="checkbox"{% if row.clickable %} checked{% endif %}> 可点击</label></td>
+            <td>
+              <div class="navigation-row-actions">
+                <button class="btn btn-sm btn-secondary navigation-node-up" type="button" title="上移"><i class="fas fa-arrow-up"></i></button>
+                <button class="btn btn-sm btn-secondary navigation-node-down" type="button" title="下移"><i class="fas fa-arrow-down"></i></button>
+                <button class="btn btn-sm btn-secondary navigation-node-add-heading" type="button" title="添加子标题"><i class="fas fa-heading"></i></button>
+                <button class="btn btn-sm btn-secondary navigation-node-add-link" type="button" title="添加子链接"><i class="fas fa-link"></i></button>
+                {% if row.custom %}<button class="btn btn-sm btn-danger navigation-node-delete" type="button" title="删除"><i class="fas fa-trash"></i></button>{% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if not navigation_rows %}<div class="navigation-editor-empty text-muted">当前分类没有可编辑的目录项。</div>{% endif %}
+    </div>
+
+    <div class="navigation-save-bar">
+      <span class="text-muted">修改会保存到文档仓库，并产生一条 Git 记录。</span>
+      <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> 保存导航</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+</div>
+{% endblock %}
+{% block js %}
+{{ super() }}
+{% if namespaces %}
+<script type="text/javascript">
+(function () {
+  "use strict";
+
+  const form = document.getElementById("navigation-editor-form");
+  const treeBody = document.getElementById("navigation-tree-body");
+  const tabBody = document.querySelector("#navigation-tabs-table tbody");
+  const filter = document.getElementById("navigation-filter");
+  const levelControl = document.getElementById("navigation-expand-level");
+  let customSequence = 0;
+
+  function newId(prefix) {
+    customSequence += 1;
+    return prefix + ":" + Date.now() + "-" + customSequence;
+  }
+
+  function treeRows() {
+    return Array.from(treeBody.querySelectorAll(".navigation-row"));
+  }
+
+  function rowBlock(row) {
+    const rows = treeRows();
+    const start = rows.indexOf(row);
+    const depth = Number(row.dataset.depth);
+    let end = start + 1;
+    while (end < rows.length && Number(rows[end].dataset.depth) > depth) {
+      end += 1;
+    }
+    return rows.slice(start, end);
+  }
+
+  function siblingRows(row) {
+    return treeRows().filter(function (candidate) {
+      return candidate.dataset.parent === row.dataset.parent &&
+        candidate.dataset.depth === row.dataset.depth;
+    });
+  }
+
+  function setRowCollapsed(row, collapsed) {
+    const toggle = row.querySelector(".navigation-tree-toggle");
+    if (!toggle || toggle.classList.contains("has-no-children")) {
+      row.dataset.collapsed = "false";
+      return;
+    }
+    row.dataset.collapsed = collapsed ? "true" : "false";
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggle.setAttribute(
+      "aria-label",
+      (collapsed ? "展开 " : "收起 ") +
+        row.querySelector(".navigation-node-title").value
+    );
+    const icon = toggle.querySelector("i");
+    icon.classList.toggle("fa-chevron-right", collapsed);
+    icon.classList.toggle("fa-chevron-down", !collapsed);
+  }
+
+  function refreshToggleControls() {
+    const rows = treeRows();
+    const parentIds = new Set(rows.map(function (row) { return row.dataset.parent; }));
+    rows.forEach(function (row) {
+      const hasChildren = parentIds.has(row.dataset.id);
+      const toggle = row.querySelector(".navigation-tree-toggle");
+      row.dataset.hasChildren = hasChildren ? "true" : "false";
+      toggle.classList.toggle("has-no-children", !hasChildren);
+      toggle.disabled = !hasChildren;
+      toggle.tabIndex = hasChildren ? 0 : -1;
+      if (!hasChildren) {
+        row.dataset.collapsed = "false";
+      }
+      setRowCollapsed(row, row.dataset.collapsed === "true");
+    });
+  }
+
+  function refreshTreeDisplay() {
+    const query = filter.value.trim().toLocaleLowerCase();
+    const rows = treeRows();
+    const byId = new Map(rows.map(function (row) { return [row.dataset.id, row]; }));
+    const shown = new Set();
+
+    if (query) {
+      rows.forEach(function (row) {
+        const title = row.querySelector(".navigation-node-title").value.toLocaleLowerCase();
+        const path = row.querySelector(".navigation-node-path").value.toLocaleLowerCase();
+        if (title.includes(query) || path.includes(query)) {
+          shown.add(row.dataset.id);
+          let parent = row.dataset.parent;
+          while (parent && byId.has(parent)) {
+            shown.add(parent);
+            parent = byId.get(parent).dataset.parent;
+          }
+        }
+      });
+    }
+
+    rows.forEach(function (row) {
+      row.classList.toggle(
+        "is-filtered",
+        Boolean(query) && !shown.has(row.dataset.id)
+      );
+      let collapsedByAncestor = false;
+      let parent = row.dataset.parent;
+      while (!query && parent && byId.has(parent)) {
+        const parentRow = byId.get(parent);
+        if (parentRow.dataset.collapsed === "true") {
+          collapsedByAncestor = true;
+          break;
+        }
+        parent = parentRow.dataset.parent;
+      }
+      row.classList.toggle("is-collapsed-child", collapsedByAncestor);
+    });
+  }
+
+  function applyExpandLevel(value) {
+    const level = value === "all" ? Number.POSITIVE_INFINITY : Number(value);
+    treeRows().forEach(function (row) {
+      if (row.dataset.hasChildren === "true") {
+        setRowCollapsed(row, Number(row.dataset.depth) >= level - 1);
+      }
+    });
+    refreshTreeDisplay();
+  }
+
+  function moveTreeRow(row, direction) {
+    const siblings = siblingRows(row);
+    const position = siblings.indexOf(row);
+    const targetPosition = position + direction;
+    if (targetPosition < 0 || targetPosition >= siblings.length) {
+      return;
+    }
+    const block = rowBlock(row);
+    const target = siblings[targetPosition];
+    const targetBlock = rowBlock(target);
+    const fragment = document.createDocumentFragment();
+    block.forEach(function (item) { fragment.appendChild(item); });
+    if (direction < 0) {
+      treeBody.insertBefore(fragment, target);
+    } else {
+      treeBody.insertBefore(fragment, targetBlock[targetBlock.length - 1].nextSibling);
+    }
+    refreshTreeDisplay();
+  }
+
+  function rowMarkup(id, parent, depth, kind) {
+    const title = kind === "heading" ? "新标题" : "新链接";
+    const clickable = kind === "link" ? " checked" : "";
+    const indent = depth * 2;
+    return '<tr class="navigation-row" data-id="' + id + '" data-parent="' + parent +
+      '" data-depth="' + depth + '" data-custom="true" data-collapsed="false" data-has-children="false" aria-hidden="false">' +
+      '<td><div class="navigation-node-title-wrap" style="padding-left:' + indent + 'rem">' +
+      '<button class="navigation-tree-toggle has-no-children" type="button" aria-expanded="true" disabled tabindex="-1"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>' +
+      '<span class="navigation-node-number">' + (depth + 1) + '级</span>' +
+      '<input class="form-control navigation-node-title navigation-title-input" type="text" maxlength="200" value="' + title + '" required></div></td>' +
+      '<td><input class="form-control navigation-node-path navigation-path-input" type="text" maxlength="500" value="" placeholder="例如：apstack6/guide"></td>' +
+      '<td><label class="navigation-switch-label"><input class="navigation-node-visible" type="checkbox" checked> 显示</label></td>' +
+      '<td><label class="navigation-switch-label"><input class="navigation-node-clickable" type="checkbox"' + clickable + '> 可点击</label></td>' +
+      '<td><div class="navigation-row-actions">' +
+      '<button class="btn btn-sm btn-secondary navigation-node-up" type="button" title="上移"><i class="fas fa-arrow-up"></i></button>' +
+      '<button class="btn btn-sm btn-secondary navigation-node-down" type="button" title="下移"><i class="fas fa-arrow-down"></i></button>' +
+      '<button class="btn btn-sm btn-secondary navigation-node-add-heading" type="button" title="添加子标题"><i class="fas fa-heading"></i></button>' +
+      '<button class="btn btn-sm btn-secondary navigation-node-add-link" type="button" title="添加子链接"><i class="fas fa-link"></i></button>' +
+      '<button class="btn btn-sm btn-danger navigation-node-delete" type="button" title="删除"><i class="fas fa-trash"></i></button>' +
+      '</div></td></tr>';
+  }
+
+  function addTreeRow(parentRow, kind) {
+    const parent = parentRow ? parentRow.dataset.id : "";
+    const depth = parentRow ? Number(parentRow.dataset.depth) + 1 : 0;
+    const holder = document.createElement("tbody");
+    holder.innerHTML = rowMarkup(newId("custom"), parent, depth, kind);
+    const row = holder.firstElementChild;
+    if (parentRow) {
+      const block = rowBlock(parentRow);
+      treeBody.insertBefore(row, block[block.length - 1].nextSibling);
+    } else {
+      treeBody.appendChild(row);
+    }
+    if (parentRow) {
+      parentRow.dataset.collapsed = "false";
+    }
+    refreshToggleControls();
+    refreshTreeDisplay();
+    row.querySelector(".navigation-node-title").select();
+  }
+
+  function deleteTreeRow(row) {
+    if (!window.confirm("删除这个自定义目录项及其全部子项？")) {
+      return;
+    }
+    rowBlock(row).forEach(function (item) { item.remove(); });
+    refreshToggleControls();
+    refreshTreeDisplay();
+  }
+
+  function updateVisibility(row) {
+    row.setAttribute(
+      "aria-hidden",
+      row.querySelector(".navigation-node-visible").checked ? "false" : "true"
+    );
+  }
+
+  treeBody.addEventListener("click", function (event) {
+    const button = event.target.closest("button");
+    const row = event.target.closest(".navigation-row");
+    if (!button || !row) { return; }
+    if (button.classList.contains("navigation-tree-toggle")) {
+      setRowCollapsed(row, row.dataset.collapsed !== "true");
+      levelControl.value = "custom";
+      refreshTreeDisplay();
+      return;
+    }
+    if (button.classList.contains("navigation-node-up")) { moveTreeRow(row, -1); }
+    if (button.classList.contains("navigation-node-down")) { moveTreeRow(row, 1); }
+    if (button.classList.contains("navigation-node-add-heading")) { addTreeRow(row, "heading"); }
+    if (button.classList.contains("navigation-node-add-link")) { addTreeRow(row, "link"); }
+    if (button.classList.contains("navigation-node-delete")) { deleteTreeRow(row); }
+  });
+
+  treeBody.addEventListener("change", function (event) {
+    if (event.target.classList.contains("navigation-node-visible")) {
+      updateVisibility(event.target.closest(".navigation-row"));
+    }
+  });
+
+  document.querySelectorAll(".navigation-add-root").forEach(function (button) {
+    button.addEventListener("click", function () { addTreeRow(null, button.dataset.kind); });
+  });
+
+  document.getElementById("navigation-add-tab").addEventListener("click", function () {
+    const row = document.createElement("tr");
+    row.className = "navigation-tab-row";
+    row.dataset.key = newId("tab");
+    row.innerHTML = '<td><input class="form-control navigation-tab-title" type="text" maxlength="120" value="新分类" required></td>' +
+      '<td><input class="form-control navigation-tab-path navigation-path-input" type="text" maxlength="500" placeholder="例如：apstack6/guide"></td>' +
+      '<td><label class="navigation-switch-label"><input class="navigation-tab-visible" type="checkbox" checked> 显示</label></td>' +
+      '<td><label class="navigation-switch-label"><input class="navigation-tab-clickable" type="checkbox" checked> 可点击</label></td>' +
+      '<td><div class="navigation-row-actions"><button class="btn btn-sm btn-secondary navigation-tab-up" type="button" title="上移"><i class="fas fa-arrow-up"></i></button>' +
+      '<button class="btn btn-sm btn-secondary navigation-tab-down" type="button" title="下移"><i class="fas fa-arrow-down"></i></button>' +
+      '<button class="btn btn-sm btn-danger navigation-tab-delete" type="button" title="删除"><i class="fas fa-trash"></i></button></div></td>';
+    tabBody.appendChild(row);
+    row.querySelector(".navigation-tab-title").select();
+  });
+
+  tabBody.addEventListener("click", function (event) {
+    const button = event.target.closest("button");
+    const row = event.target.closest(".navigation-tab-row");
+    if (!button || !row) { return; }
+    if (button.classList.contains("navigation-tab-up") && row.previousElementSibling) {
+      tabBody.insertBefore(row, row.previousElementSibling);
+    }
+    if (button.classList.contains("navigation-tab-down") && row.nextElementSibling) {
+      tabBody.insertBefore(row.nextElementSibling, row);
+    }
+    if (button.classList.contains("navigation-tab-delete")) { row.remove(); }
+  });
+
+  filter.addEventListener("input", refreshTreeDisplay);
+
+  levelControl.addEventListener("change", function () {
+    if (levelControl.value !== "custom") {
+      applyExpandLevel(levelControl.value);
+    }
+  });
+
+  document.getElementById("navigation-expand-all").addEventListener("click", function () {
+    levelControl.value = "all";
+    applyExpandLevel("all");
+  });
+
+  document.getElementById("navigation-collapse-all").addEventListener("click", function () {
+    treeRows().forEach(function (row) {
+      if (row.dataset.hasChildren === "true") {
+        setRowCollapsed(row, true);
+      }
+    });
+    levelControl.value = "custom";
+    refreshTreeDisplay();
+  });
+
+  form.addEventListener("submit", function (event) {
+    if (!form.checkValidity()) {
+      event.preventDefault();
+      form.reportValidity();
+      return;
+    }
+    const siblingOrder = new Map();
+    const nodes = treeRows().map(function (row) {
+      const parent = row.dataset.parent;
+      const order = siblingOrder.get(parent) || 0;
+      siblingOrder.set(parent, order + 1);
+      return {
+        id: row.dataset.id,
+        parent: parent,
+        title: row.querySelector(".navigation-node-title").value,
+        path: row.querySelector(".navigation-node-path").value,
+        visible: row.querySelector(".navigation-node-visible").checked,
+        clickable: row.querySelector(".navigation-node-clickable").checked,
+        order: order
+      };
+    });
+    const tabs = Array.from(tabBody.querySelectorAll(".navigation-tab-row")).map(function (row) {
+      return {
+        key: row.dataset.key,
+        title: row.querySelector(".navigation-tab-title").value,
+        path: row.querySelector(".navigation-tab-path").value,
+        visible: row.querySelector(".navigation-tab-visible").checked,
+        clickable: row.querySelector(".navigation-tab-clickable").checked
+      };
+    });
+    document.getElementById("navigation-payload").value = JSON.stringify({
+      title: document.getElementById("navigation-title").value,
+      tabs: tabs,
+      nodes: nodes
+    });
+  });
+
+  refreshToggleControls();
+  applyExpandLevel(levelControl.value);
+})();
+</script>
+{% endif %}
+{% endblock %}

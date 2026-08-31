@@ -183,6 +183,112 @@ def test_structured_document_renders_tabs_numbers_and_numbered_toc(
     assert soup.select_one("article #frontmatter") is not None
 
 
+def test_admin_can_edit_imported_navigation_and_add_heading(
+    create_app, admin_client
+):
+    _populate_structured_docs(create_app.storage)
+
+    editor = admin_client.get(
+        "/-/admin/navigation?namespace=suite&section=components"
+    )
+    assert editor.status_code == 200
+    editor_page = editor.data.decode()
+    assert "文档导航编辑" in editor_page
+    assert "添加根标题" in editor_page
+    assert 'data-id="module:development"' in editor_page
+    assert 'id="navigation-expand-level"' in editor_page
+    assert 'id="navigation-collapse-all"' in editor_page
+    assert 'data-has-children="true"' in editor_page
+    assert "refreshTreeDisplay" in editor_page
+
+    payload = {
+        "title": "自定义目录",
+        "tabs": [
+            {
+                "key": "manual",
+                "title": "手册",
+                "path": "suite/aps",
+                "visible": False,
+                "clickable": True,
+            },
+            {
+                "key": "components",
+                "title": "组件中心",
+                "path": "suite/components",
+                "visible": True,
+                "clickable": False,
+            },
+            {
+                "key": "reference",
+                "title": "资料",
+                "path": "suite/reference",
+                "visible": True,
+                "clickable": True,
+            },
+        ],
+        "nodes": [
+            {
+                "id": "module:development",
+                "parent": "",
+                "title": "手工维护的平台",
+                "path": "suite",
+                "visible": True,
+                "clickable": False,
+                "order": 0,
+            },
+            {
+                "id": "custom:guide-heading",
+                "parent": "module:development",
+                "title": "自定义标题",
+                "path": "",
+                "visible": True,
+                "clickable": False,
+                "order": -1,
+            },
+        ],
+    }
+    response = admin_client.post(
+        "/-/admin/navigation",
+        data={
+            "namespace": "suite",
+            "section": "components",
+            "navigation_payload": json.dumps(payload, ensure_ascii=False),
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert create_app.storage.exists("suite/.navigation.json")
+
+    from otterwiki.sidebar import SidebarPageIndex
+
+    tree = SidebarPageIndex("suite/components/demo/demo/one").query()
+    assert tree.title == "自定义目录"
+    assert [(tab.title, tab.clickable) for tab in tree.tabs] == [
+        ("组件中心", False),
+        ("资料", True),
+    ]
+    module = next(iter(tree.values()))
+    assert module.header == "手工维护的平台"
+    assert next(iter(module.children.values())).header == "自定义标题"
+
+    page = admin_client.get("/suite/components/demo/demo/one")
+    soup = BeautifulSoup(page.data, "html.parser")
+    assert soup.select_one(".documentation-tabs span").get_text(
+        strip=True
+    ) == ("组件中心")
+    assert soup.select_one(".documentation-tabs a").get_text(strip=True) == (
+        "资料"
+    )
+    assert soup.select_one(".documentation-navigation-actions a") is not None
+
+
+def test_navigation_editor_rejects_non_admin(create_app, other_client):
+    _populate_structured_docs(create_app.storage)
+    assert other_client.get("/-/admin/navigation").status_code == 403
+    assert other_client.post("/-/admin/navigation", data={}).status_code == 403
+
+
 def test_heading_numbering_preserves_non_heading_html_and_existing_numbers():
     from otterwiki.structured_navigation import number_document_headings
 
@@ -239,6 +345,19 @@ def test_complete_tree_is_available_before_visiting_child_pages(
         "第二页",
         "第一页",
     ]
+
+
+def test_editor_node_ids_are_unique_even_for_repeated_landing_paths(
+    create_app, req_ctx
+):
+    from otterwiki.structured_navigation import StructuredNavigation
+
+    _populate_structured_docs(create_app.storage)
+    navigation = StructuredNavigation.for_namespace("suite")
+    tree = navigation.editable_tree("components")
+    rows = navigation.flatten_tree(tree)
+
+    assert len([row["id"] for row in rows]) == len({row["id"] for row in rows})
 
 
 def test_page_metadata_is_read_once_per_navigation_build(

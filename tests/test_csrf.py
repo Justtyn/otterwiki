@@ -228,6 +228,13 @@ class TestCSRFRejection:
         )
         assert rv.status_code == 400
 
+    def test_admin_navigation_rejected(self, raw_admin_client):
+        rv = raw_admin_client.post(
+            "/-/admin/navigation",
+            data={},
+        )
+        assert rv.status_code == 400
+
     def test_admin_permissions_rejected(self, raw_admin_client):
         rv = raw_admin_client.post(
             "/-/admin/permissions_and_registration",

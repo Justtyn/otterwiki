@@ -782,8 +782,6 @@ class Page:
                 len(files), timer() - t_start
             )
         )
-        # get page listing
-        page_idx = PageIndex()
         # collect embedding_info to display in the markdown syntax help
         embedding_info = collect_plugin_info(category="Syntax/Embeddings")
 
@@ -799,7 +797,6 @@ class Page:
                 )
             ),
             files=files,
-            pages=list(page_idx.pages()),
             cursor_line=cursor_line,
             cursor_ch=cursor_ch,
             revision=(

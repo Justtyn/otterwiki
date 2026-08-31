@@ -21,3 +21,4 @@ docker-compose.override.yml
 .idea
 otterwiki*.tgz
 node_modules/
+/static

@@ -4,9 +4,20 @@
     {%- if menutree.tabs %}
     <nav class="documentation-tabs" aria-label="文档分类">
         {%- for tab in menutree.tabs %}
+        {%- if tab.clickable %}
         <a href="{{ url_for('view', path=tab.path) }}"{% if tab.active %} class="active" aria-current="page"{% endif %}>{{ tab.title }}</a>
+        {%- else %}
+        <span{% if tab.active %} class="active" aria-current="page"{% endif %}>{{ tab.title }}</span>
+        {%- endif %}
         {%- endfor %}
     </nav>
+    {%- endif %}
+    {%- if menutree.structured and has_permission('ADMIN') %}
+    <div class="documentation-navigation-actions">
+        <a href="{{ url_for('admin_navigation', namespace=menutree.namespace, section=menutree.section) }}">
+            <i class="fas fa-pen" aria-hidden="true"></i> 编辑导航
+        </a>
+    </div>
     {%- endif %}
     <details class="collapse-panel{% if menutree.structured %} structured-menutree{% endif %}"{% if menutree.structured %} data-navigation-key="{{ menutree.namespace }}::panel"{% endif %} open>
 

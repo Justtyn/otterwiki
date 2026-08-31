@@ -369,12 +369,9 @@
                     <h5 class="sidebar-title">WikiLink <i class="fa fa-link"></i></h5>
                     <div class="sidebar-divider" ></div>
                     <form class="ml-10">
-                        <select class="form-control" id="wikilink">
-                          <option value="" selected="selected" disabled="disabled">选择要链接的页面</option>
-{% for p in pages %}
-                          <option value="{{p[1]}}">{{p[1]}}</option>
-{% endfor %}
-                        </select>
+                        <input class="form-control" id="wikilink" list="wikilink-options" autocomplete="off" placeholder="输入页面名称搜索">
+                        <datalist id="wikilink-options"></datalist>
+                        <div id="wikilink-search-status" class="font-size-12 text-muted mt-5" aria-live="polite"></div>
                         <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_wikilink()" title="插入编辑器" ><i class="fas fa-paste"></i></button>
                         <button class="btn mt-5" type="button" onclick="otterwiki_editor.insert_wikilink(false)" title="插入编辑器，并以页面名作为链接文字" ><i class="fa fa-heading"></i></button>
                     </form>
@@ -522,6 +519,52 @@
     const preview_block = document.querySelector("#preview_block");
     var cm_last_change = 0;
     var cm_save_timer = null;
+
+    const wikilink_input = document.getElementById('wikilink');
+    const wikilink_options = document.getElementById('wikilink-options');
+    const wikilink_status = document.getElementById('wikilink-search-status');
+    let wikilink_search_timer = null;
+    let wikilink_search_controller = null;
+
+    function searchWikiLinks() {
+        if (!wikilink_input || !wikilink_options) return;
+        if (wikilink_search_controller) wikilink_search_controller.abort();
+        wikilink_search_controller = new AbortController();
+        const params = new URLSearchParams({q: wikilink_input.value, limit: '30'});
+        fetch({{ url_for('page_suggestions') | tojson }} + '?' + params.toString(), {
+            signal: wikilink_search_controller.signal,
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Page search failed');
+                return response.json();
+            })
+            .then(function(data) {
+                wikilink_options.replaceChildren();
+                for (const page of data.pages || []) {
+                    const option = document.createElement('option');
+                    option.value = page;
+                    wikilink_options.appendChild(option);
+                }
+                if (wikilink_status) {
+                    wikilink_status.textContent = data.pages && data.pages.length
+                        ? `找到 ${data.pages.length} 个页面`
+                        : '没有匹配页面';
+                }
+            })
+            .catch(function(error) {
+                if (error.name !== 'AbortError' && wikilink_status) {
+                    wikilink_status.textContent = '页面搜索暂时不可用';
+                }
+            });
+    }
+
+    if (wikilink_input) {
+        wikilink_input.addEventListener('focus', searchWikiLinks, {once: true});
+        wikilink_input.addEventListener('input', function() {
+            window.clearTimeout(wikilink_search_timer);
+            wikilink_search_timer = window.setTimeout(searchWikiLinks, 150);
+        });
+    }
 
     save_draft = function() {
         cm_last_change = Date.now();

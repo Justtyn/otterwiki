@@ -132,23 +132,64 @@ def handle_mail_preferences(form):
 def handle_sidebar_preferences(form):
     if not has_permission("ADMIN"):
         abort(403)
-    custom_menu_js = json.dumps(
-        [
-            {
-                "link": x[0],
-                "title": x[1],
-                "icon": x[2] if len(x) > 2 else "",
-            }
-            for x in list(
-                zip(
-                    form.getlist("link"),
-                    form.getlist("title"),
-                    form.getlist("icon"),
-                )
+    fields = {
+        name: form.getlist(name)
+        for name in ("type", "link", "title", "icon", "visible", "clickable")
+    }
+    row_count = max((len(values) for values in fields.values()), default=0)
+    custom_menu = []
+    for index in range(row_count):
+        link = (
+            fields["link"][index].strip()
+            if index < len(fields["link"])
+            else ""
+        )
+        title = (
+            fields["title"][index].strip()
+            if index < len(fields["title"])
+            else ""
+        )
+        icon = (
+            fields["icon"][index].strip()
+            if index < len(fields["icon"])
+            else ""
+        )
+        entry_type = (
+            fields["type"][index] if index < len(fields["type"]) else ""
+        )
+        if entry_type not in SidebarMenu.TYPES:
+            entry_type = (
+                "separator"
+                if link == "---" and not title and not icon
+                else "link"
             )
-            if x[0].strip() or x[1].strip() or (len(x) > 2 and x[2].strip())
-        ]
-    )
+        if entry_type != "separator" and not (link or title or icon):
+            continue
+        visible = (
+            fields["visible"][index].lower() == "true"
+            if index < len(fields["visible"])
+            else True
+        )
+        clickable = (
+            fields["clickable"][index].lower() == "true"
+            if index < len(fields["clickable"])
+            else entry_type == "link"
+        )
+        if entry_type == "separator":
+            link, title, icon, clickable = "---", "", "", False
+        elif entry_type == "heading" and not link:
+            clickable = False
+        custom_menu.append(
+            {
+                "type": entry_type,
+                "link": link,
+                "title": title,
+                "icon": icon,
+                "visible": visible,
+                "clickable": clickable,
+            }
+        )
+    custom_menu_js = json.dumps(custom_menu, ensure_ascii=False)
 
     _update_preference("SIDEBAR_CUSTOM_MENU", custom_menu_js)
 

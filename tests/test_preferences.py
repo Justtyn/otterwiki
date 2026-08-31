@@ -2,6 +2,7 @@
 # vim: set et ts=8 sts=4 sw=4 ai:
 
 from datetime import datetime
+import json
 from bs4 import BeautifulSoup
 
 
@@ -324,6 +325,7 @@ def test_admin_endpoints_require_admin(app_with_user, other_client):
         ("/-/admin/content_and_editing", {}),
         ("/-/admin/repository_management", {}),
         ("/-/admin/document_import", {}),
+        ("/-/admin/navigation", {}),
     ]
     for url, post_data in endpoints:
         rv = other_client.get(url)
@@ -397,6 +399,51 @@ def test_sidebar_preferences(app_with_user, admin_client):
     )
     assert app_with_user.config['SIDEBAR_MENUTREE_MODE'] == "SORTED"
     assert app_with_user.config['SIDEBAR_MENUTREE_MAXDEPTH'] == "42"
+
+
+def test_sidebar_preferences_save_extended_menu_items(
+    app_with_user, admin_client
+):
+    response = admin_client.post(
+        "/-/admin/sidebar_preferences",
+        data={
+            "type": ["heading", "link", "separator"],
+            "link": ["Reference", "Home", "---"],
+            "title": ["参考资料", "首页", ""],
+            "icon": ["", "", ""],
+            "visible": ["True", "False", "True"],
+            "clickable": ["True", "True", "False"],
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    menu = json.loads(app_with_user.config["SIDEBAR_CUSTOM_MENU"])
+    assert menu == [
+        {
+            "type": "heading",
+            "link": "Reference",
+            "title": "参考资料",
+            "icon": "",
+            "visible": True,
+            "clickable": True,
+        },
+        {
+            "type": "link",
+            "link": "Home",
+            "title": "首页",
+            "icon": "",
+            "visible": False,
+            "clickable": True,
+        },
+        {
+            "type": "separator",
+            "link": "---",
+            "title": "",
+            "icon": "",
+            "visible": True,
+            "clickable": False,
+        },
+    ]
 
 
 def test_user_edit(app_with_user, admin_client):

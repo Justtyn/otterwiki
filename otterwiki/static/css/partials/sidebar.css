@@ -171,6 +171,39 @@ a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px);
     text-overflow: ellipsis;
 }
 
+.sidebarmenu.parent-sidebar-menu > li.custom-menu-heading {
+    margin-top: 1.2rem;
+    padding-top: .8rem;
+    border-top: 1px solid rgba(0, 0, 0, .12);
+}
+
+.sidebarmenu.parent-sidebar-menu > li.custom-menu-heading:first-child {
+    margin-top: 0;
+    border-top: 0;
+}
+
+.custom-menu-heading-label,
+.custom-menu-heading-link {
+    display: block;
+    overflow: hidden;
+    color: rgba(0, 0, 0, .62);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: .03em;
+    line-height: 1.6rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dark-mode .sidebarmenu.parent-sidebar-menu > li.custom-menu-heading {
+    border-top-color: rgba(255, 255, 255, .14);
+}
+
+.dark-mode .custom-menu-heading-label,
+.dark-mode .custom-menu-heading-link {
+    color: rgba(255, 255, 255, .72);
+}
+
 .parent-sidebar-menu > li {
     padding-left: 2rem;
 }
@@ -313,38 +346,70 @@ a.sidebar-toc-6 { padding-left: calc(7 * var(--spacing) - var(--radius) - 13px);
 /* Rule-driven product documentation navigation */
 .documentation-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
     gap: .35rem;
     margin: .5rem .75rem 1rem;
     border-bottom: 1px solid var(--lm-dropdown-divider-bg-color);
 }
 
-.documentation-tabs a {
+.documentation-tabs a,
+.documentation-tabs span {
+    display: block;
+    min-width: 0;
     padding: .65rem .25rem;
     color: rgba(0, 0, 0, .7);
     text-align: center;
     text-decoration: none;
     border-bottom: 3px solid transparent;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .documentation-tabs a:hover,
-.documentation-tabs a.active {
+.documentation-tabs a.active,
+.documentation-tabs span.active {
     color: var(--lm-link-text-color);
     border-bottom-color: var(--lm-link-text-color);
+}
+
+.documentation-navigation-actions {
+    margin: -.3rem 1rem .4rem;
+    text-align: right;
+}
+
+.documentation-navigation-actions a {
+    color: rgba(0, 0, 0, .55);
+    font-size: 1.15rem;
+    text-decoration: none;
+}
+
+.documentation-navigation-actions a:hover {
+    color: var(--lm-link-text-color);
 }
 
 .dark-mode .documentation-tabs {
     border-bottom-color: var(--dm-dropdown-divider-bg-color);
 }
 
-.dark-mode .documentation-tabs a {
+.dark-mode .documentation-tabs a,
+.dark-mode .documentation-tabs span {
     color: var(--dm-sidebar-link-text-color-hover);
 }
 
 .dark-mode .documentation-tabs a:hover,
-.dark-mode .documentation-tabs a.active {
+.dark-mode .documentation-tabs a.active,
+.dark-mode .documentation-tabs span.active {
     color: var(--dm-link-text-color);
     border-bottom-color: var(--dm-link-text-color);
+}
+
+.dark-mode .documentation-navigation-actions a {
+    color: rgba(255, 255, 255, .55);
+}
+
+.dark-mode .documentation-navigation-actions a:hover {
+    color: var(--dm-link-text-color);
 }
 
 .structured-menutree .navigation-number {
