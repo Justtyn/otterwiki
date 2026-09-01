@@ -437,10 +437,17 @@
         state.pageSize = Number(pageSizeElement.value) || 10;
         loadTasks(1);
     });
-    document.getElementById("scan-task-page-jump-button").addEventListener("click", function () {
+    function jumpToPage() {
         var pageCount = Math.max(1, Math.ceil(state.total / state.pageSize));
         var target = Math.min(pageCount, Math.max(1, Number(pageJumpElement.value) || 1));
         loadTasks(target);
+    }
+    pageJumpElement.addEventListener("change", jumpToPage);
+    pageJumpElement.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            jumpToPage();
+        }
     });
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && drawer.classList.contains("open")) {

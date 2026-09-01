@@ -76,6 +76,8 @@ def test_scan_task_page_has_table_filter_pagination_and_drawer(admin_client):
         in html
     )
     assert 'id="scan-application-clear" class="btn btn-action"' not in html
+    assert 'id="scan-task-page-jump-button"' not in html
+    assert '<span class="page-unit">页</span>' in html
     assert "查看应用快照" not in html  # rendered safely by JavaScript
 
 
