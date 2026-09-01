@@ -7,6 +7,11 @@ SITE_NAME         = 'Otterwiki'
 # Configure the path to the repository:
 REPOSITORY        = '/path/to/the/repository/root'
 
+# APStack 接口管理。这里只配置服务地址，具体接口路径由应用维护。
+# 使用 Docker 时，localhost 指向容器本身，请改为宿主机或接口服务的可访问地址。
+APSTACK_API_BASE_URL = 'http://localhost:9988'
+# APSTACK_API_TIMEOUT = 10
+
 # The Logo can be the url of any image, even an attachment. e.g.:
 # SITE_LOGO       = '//Home/a/logo.png'
 
@@ -47,4 +52,3 @@ SQLALCHEMY_DATABASE_URI = ''
 # MAIL_PORT = 1025
 # MAIL_USERNAME = None
 # MAIL_PASSWORD = None
-

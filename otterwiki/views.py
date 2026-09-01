@@ -28,6 +28,7 @@ from otterwiki.sidebar import SidebarPageIndex, SidebarMenu
 import otterwiki.auth
 import otterwiki.preferences
 import otterwiki.navigation_editor
+import otterwiki.interface_management
 import otterwiki.tools
 from otterwiki.renderer import render
 from otterwiki.helper import (
@@ -389,6 +390,39 @@ def admin():
         return otterwiki.preferences.admin_form()
     else:
         return otterwiki.preferences.handle_preferences(request.form)
+
+
+@app.route("/-/interface")
+@app.route("/-/interface/<string:tab>")
+@login_required
+def interface_management(tab="workbench"):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+
+    tabs = otterwiki.interface_management.INTERFACE_TABS
+    selected = next((item for item in tabs if item.slug == tab), None)
+    if selected is None:
+        abort(404)
+    return render_template(
+        "interface_management.html",
+        title=f"接口管理 - {selected.label}",
+        interface_tabs=tabs,
+        active_tab=selected,
+    )
+
+
+@app.route("/-/interface/api/dashboard/summary")
+@login_required
+def interface_dashboard_summary():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        data = otterwiki.interface_management.fetch_dashboard_summary()
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return jsonify({"code": 502, "msg": str(error)}), 502
+    response = jsonify({"code": 200, "msg": "成功", "data": data})
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.route("/-/user/", methods=["POST", "GET"])

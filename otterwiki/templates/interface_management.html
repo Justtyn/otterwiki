@@ -1,0 +1,79 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "layout.html" %}
+
+{% block head %}
+{{ super() }}
+<link href="{{ url_for('static', filename='css/interface-management.css') | debug_unixtime }}" rel="stylesheet" media="screen" />
+{% endblock %}
+
+{% block page_wrapper_config %}with-navbar{% endblock %}
+{% block sidebaroverlay %}{% endblock %}
+{% block navbarsearch %}{% endblock %}
+{% block extra_nav %}{% endblock %}
+
+{% block content_wrapper %}
+<main class="interface-shell">
+    <header class="interface-header">
+        <div class="interface-title">
+            <i class="fas fa-plug" aria-hidden="true"></i>
+            <span>接口管理</span>
+        </div>
+        <nav class="interface-tabs" aria-label="接口管理子页面">
+        {% for tab in interface_tabs %}
+            <a href="{{ url_for('interface_management', tab=tab.slug) }}"
+               class="interface-tab{% if tab.slug == active_tab.slug %} active{% endif %}"
+               {% if tab.slug == active_tab.slug %}aria-current="page"{% endif %}>{{ tab.label }}</a>
+        {% endfor %}
+        </nav>
+    </header>
+
+    <section class="interface-main" data-active-tab="{{ active_tab.slug }}">
+    {% if active_tab.slug == "workbench" %}
+        <div id="dashboard-error" class="alert alert-danger dashboard-error" role="alert" hidden></div>
+        <div class="dashboard-summary" aria-label="工作台统计">
+            <article class="summary-card summary-system">
+                <div class="summary-icon"><i class="fas fa-desktop" aria-hidden="true"></i></div>
+                <div class="summary-copy"><span>系统数</span><strong data-summary="systemCount">--</strong></div>
+            </article>
+            <article class="summary-card summary-application">
+                <div class="summary-icon"><i class="far fa-file-alt" aria-hidden="true"></i></div>
+                <div class="summary-copy"><span>应用数</span><strong data-summary="applicationCount">--</strong></div>
+            </article>
+            <article class="summary-card summary-snapshot">
+                <div class="summary-icon"><i class="fas fa-camera" aria-hidden="true"></i></div>
+                <div class="summary-copy"><span>应用快照数</span><strong data-summary="snapshotCount">--</strong></div>
+            </article>
+            <article class="summary-card summary-asset">
+                <div class="summary-icon"><i class="fas fa-database" aria-hidden="true"></i></div>
+                <div class="summary-copy"><span>交易资产数</span><strong data-summary="assetCount">--</strong></div>
+            </article>
+        </div>
+
+        <section class="activity-card" aria-labelledby="recent-activity-title">
+            <h2 id="recent-activity-title">最近扫描与快照</h2>
+            <div id="recent-activity" class="activity-list" aria-live="polite">
+                <div class="activity-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</div>
+            </div>
+        </section>
+    {% else %}
+        <section class="interface-placeholder">
+            <div class="placeholder-icon"><i class="fas fa-link" aria-hidden="true"></i></div>
+            <h1>{{ active_tab.label }}</h1>
+            <p>页面结构已就绪，待对应外部 API 接口信息确认后即可接入。</p>
+        </section>
+    {% endif %}
+    </section>
+</main>
+{% endblock %}
+
+{% block js %}
+{{ super() }}
+{% if active_tab.slug == "workbench" %}
+<script>
+window.interfaceDashboardConfig = {
+    summaryUrl: {{ url_for('interface_dashboard_summary') | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/interface-management.js') | debug_unixtime }}"></script>
+{% endif %}
+{% endblock %}

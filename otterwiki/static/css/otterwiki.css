@@ -30,6 +30,14 @@
     min-width: 4.6rem;
 }
 
+.interface-management-navbar-btn {
+    align-items: center;
+    display: inline-flex;
+    gap: .7rem;
+    margin-right: 1rem;
+    white-space: nowrap;
+}
+
 /* Headlines and anchors */
 h1, h2, h3, h4, h5, h6 {
     margin-top: 1.5rem;
@@ -576,6 +584,12 @@ mark {
     color: rgba(0, 0, 0, 0.85);
     background-color: var(--gray-color);
     border-color: var(--gray-color);
+}
+
+@media (max-width: 700px) {
+    .interface-management-navbar-btn span {
+        display: none;
+    }
 }
 
 .external::after {
