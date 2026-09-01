@@ -55,6 +55,296 @@
                 <div class="activity-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</div>
             </div>
         </section>
+    {% elif active_tab.slug == "applications" %}
+        <section class="management-card">
+            <nav class="management-subtabs" aria-label="应用管理子页面">
+                <a href="{{ url_for('interface_management', tab='applications', section='systems') }}"
+                   class="management-subtab{% if application_section == 'systems' %} active{% endif %}"
+                   {% if application_section == 'systems' %}aria-current="page"{% endif %}>系统管理</a>
+                <a href="{{ url_for('interface_management', tab='applications', section='applications') }}"
+                   class="management-subtab{% if application_section == 'applications' %} active{% endif %}"
+                   {% if application_section == 'applications' %}aria-current="page"{% endif %}>应用管理</a>
+            </nav>
+
+        {% if application_section == "systems" %}
+            <div class="management-panel">
+                <div id="system-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="management-toolbar">
+                    <button id="system-create-button" type="button" class="btn btn-primary">
+                        <i class="fas fa-plus" aria-hidden="true"></i> 新增
+                    </button>
+                </div>
+                <div class="system-table-wrap">
+                    <table class="system-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">系统编码</th>
+                                <th scope="col">系统名称</th>
+                                <th scope="col">所属部门</th>
+                                <th scope="col">状态</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="system-table-body">
+                            <tr><td colspan="5" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="系统列表分页">
+                    <span>共 <strong id="system-total">0</strong> 条</span>
+                    <label class="sr-only" for="system-page-size">每页条数</label>
+                    <select id="system-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <button id="system-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="system-current-page" class="current-page">1</span>
+                    <button id="system-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="system-page-jump">前往</label>
+                    <input id="system-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+
+            <div id="system-drawer-backdrop" class="system-drawer-backdrop" hidden></div>
+            <aside id="system-drawer" class="system-drawer" role="dialog" aria-modal="true" aria-labelledby="system-drawer-title" aria-hidden="true">
+                <header class="system-drawer-header">
+                    <h2 id="system-drawer-title">新增系统</h2>
+                    <button id="system-drawer-close" type="button" class="btn btn-action" aria-label="关闭"><i class="fas fa-times" aria-hidden="true"></i></button>
+                </header>
+                <form id="system-form" class="system-form">
+                    <input id="system-id" type="hidden">
+                    <div class="form-group">
+                        <label for="system-code" class="required">系统编码</label>
+                        <input id="system-code" class="form-control" type="text" maxlength="200" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="system-name" class="required">系统名称</label>
+                        <input id="system-name" class="form-control" type="text" maxlength="300" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="system-owner-dept">所属部门</label>
+                        <input id="system-owner-dept" class="form-control" type="text" maxlength="300" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="system-status">状态</label>
+                        <select id="system-status" class="form-control">
+                            <option value="ACTIVE">启用</option>
+                            <option value="OFFLINE">停用</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="system-remark">备注</label>
+                        <textarea id="system-remark" class="form-control" maxlength="2000" rows="4" placeholder="请输入"></textarea>
+                    </div>
+                    <footer class="system-drawer-footer">
+                        <button id="system-form-cancel" class="btn" type="button">取消</button>
+                        <button id="system-form-submit" class="btn btn-primary" type="submit">确定</button>
+                    </footer>
+                </form>
+            </aside>
+        {% else %}
+            <div class="management-panel">
+                <div id="application-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="management-toolbar">
+                    <button id="application-create-button" type="button" class="btn btn-primary">
+                        <i class="fas fa-plus" aria-hidden="true"></i> 新增
+                    </button>
+                </div>
+                <div class="system-table-wrap">
+                    <table class="system-table application-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">所属系统名称</th>
+                                <th scope="col">应用编码</th>
+                                <th scope="col">应用名称</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="application-table-body">
+                            <tr><td colspan="4" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="应用列表分页">
+                    <span>共 <strong id="application-total">0</strong> 条</span>
+                    <label class="sr-only" for="application-page-size">每页条数</label>
+                    <select id="application-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="50">50条/页</option>
+                    </select>
+                    <button id="application-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="application-current-page" class="current-page">1</span>
+                    <button id="application-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="application-page-jump">前往</label>
+                    <input id="application-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+
+            <div id="application-drawer-backdrop" class="system-drawer-backdrop" hidden></div>
+            <aside id="application-drawer" class="system-drawer" role="dialog" aria-modal="true" aria-labelledby="application-drawer-title" aria-hidden="true">
+                <header class="system-drawer-header">
+                    <h2 id="application-drawer-title">新增应用</h2>
+                    <button id="application-drawer-close" type="button" class="btn btn-action" aria-label="关闭"><i class="fas fa-times" aria-hidden="true"></i></button>
+                </header>
+                <form id="application-form" class="system-form application-form">
+                    <input id="application-id" type="hidden">
+                    <div class="application-form-grid">
+                        <div class="form-group">
+                            <label for="application-system-id" class="required">所属系统</label>
+                            <select id="application-system-id" class="form-control" required>
+                                <option value="">请选择</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="application-code" class="required">应用编码</label>
+                            <input id="application-code" class="form-control" type="text" maxlength="200" required autocomplete="off" placeholder="请输入">
+                        </div>
+                        <div class="form-group">
+                            <label for="application-name" class="required">应用名称</label>
+                            <input id="application-name" class="form-control" type="text" maxlength="300" required autocomplete="off" placeholder="请输入">
+                        </div>
+                        <div class="form-group">
+                            <label for="application-package-source" class="required">包来源类型</label>
+                            <select id="application-package-source" class="form-control" required>
+                                <option value="">请选择</option>
+                                <option value="LOCAL_FILE">LOCAL_FILE</option>
+                                <option value="LOCAL_DIR">LOCAL_DIR</option>
+                                <option value="MAVEN_REPO">MAVEN_REPO</option>
+                            </select>
+                        </div>
+                        <div class="form-group application-local-field">
+                            <label for="application-package-rule">包名匹配规则</label>
+                            <input id="application-package-rule" class="form-control" type="text" maxlength="500" autocomplete="off" placeholder="请输入">
+                        </div>
+                        <div class="form-group application-local-field">
+                            <label for="application-package-path">部署包路径</label>
+                            <input id="application-package-path" class="form-control" type="text" maxlength="1000" autocomplete="off" placeholder="请输入">
+                        </div>
+                        <div class="form-group application-maven-field" hidden>
+                            <label for="application-package-group">Maven groupId</label>
+                            <input id="application-package-group" class="form-control" type="text" maxlength="500" autocomplete="off" placeholder="请输入">
+                        </div>
+                        <div class="form-group application-maven-field" hidden>
+                            <label for="application-package-artifact">Maven artifactId</label>
+                            <input id="application-package-artifact" class="form-control" type="text" maxlength="500" autocomplete="off" placeholder="请输入">
+                        </div>
+                        <div class="form-group application-field-full">
+                            <label for="application-remark">备注</label>
+                            <textarea id="application-remark" class="form-control" maxlength="2000" rows="4" placeholder="请输入"></textarea>
+                        </div>
+                    </div>
+                    <footer class="system-drawer-footer">
+                        <button id="application-form-cancel" class="btn" type="button">取消</button>
+                        <button id="application-form-submit" class="btn btn-primary" type="submit">确定</button>
+                    </footer>
+                </form>
+            </aside>
+        {% endif %}
+        </section>
+    {% elif active_tab.slug == "scan-tasks" %}
+        <section class="management-card scan-task-card">
+            <div class="management-panel">
+                <div id="scan-task-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="scan-task-toolbar">
+                    <div class="scan-application-filter">
+                        <label class="sr-only" for="scan-application-filter">搜索应用名称</label>
+                        <input id="scan-application-filter" class="form-control" type="text" list="scan-application-options" placeholder="搜索应用名称" autocomplete="off">
+                        <datalist id="scan-application-options"></datalist>
+                        <button id="scan-application-clear" class="btn" type="button" hidden>清空</button>
+                    </div>
+                    <button id="scan-task-create-button" type="button" class="btn btn-primary">
+                        <i class="fas fa-plus" aria-hidden="true"></i> 新增
+                    </button>
+                </div>
+                <div class="scan-task-table-wrap">
+                    <table class="system-table scan-task-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">应用名称</th>
+                                <th scope="col">任务状态</th>
+                                <th scope="col">包来源类型</th>
+                                <th scope="col">扫描包名称</th>
+                                <th scope="col">扫描包路径</th>
+                                <th scope="col">本次解析出的版本</th>
+                                <th scope="col">操作人</th>
+                                <th scope="col">开始时间</th>
+                                <th scope="col">结束时间</th>
+                                <th scope="col">错误信息</th>
+                                <th scope="col">创建时间</th>
+                                <th scope="col" class="scan-task-actions-column">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scan-task-table-body">
+                            <tr><td colspan="12" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="扫描任务列表分页">
+                    <span>共 <strong id="scan-task-total">0</strong> 条</span>
+                    <label class="sr-only" for="scan-task-page-size">每页条数</label>
+                    <select id="scan-task-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="scan-task-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="scan-task-current-page" class="current-page">1</span>
+                    <button id="scan-task-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="scan-task-page-jump">前往</label>
+                    <input id="scan-task-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <button id="scan-task-page-jump-button" class="btn" type="button">页</button>
+                </div>
+            </div>
+        </section>
+
+        <div id="scan-task-drawer-backdrop" class="system-drawer-backdrop" hidden></div>
+        <aside id="scan-task-drawer" class="system-drawer" role="dialog" aria-modal="true" aria-labelledby="scan-task-drawer-title" aria-hidden="true">
+            <header class="system-drawer-header">
+                <h2 id="scan-task-drawer-title">新增扫描</h2>
+                <button id="scan-task-drawer-close" type="button" class="btn btn-action" aria-label="关闭"><i class="fas fa-times" aria-hidden="true"></i></button>
+            </header>
+            <form id="scan-task-form" class="system-form scan-task-form">
+                <div class="form-group">
+                    <label for="scan-task-application" class="required">应用</label>
+                    <select id="scan-task-application" class="form-control" required>
+                        <option value="">请选择</option>
+                    </select>
+                </div>
+                <div id="scan-task-maven-fields" hidden>
+                    <div class="form-group">
+                        <label for="scan-task-version" class="required">部署包版本</label>
+                        <select id="scan-task-version" class="form-control">
+                            <option value="">请选择</option>
+                        </select>
+                        <small id="scan-task-version-help" class="scan-field-help"></small>
+                    </div>
+                    <div class="form-group">
+                        <label for="scan-task-package-name">包名称</label>
+                        <input id="scan-task-package-name" class="form-control" type="text" maxlength="500" autocomplete="off" placeholder="请输入">
+                    </div>
+                </div>
+                <div id="scan-task-upload-fields">
+                    <div class="form-group">
+                        <label for="scan-task-file" class="required">待扫描的 tar.gz 文件</label>
+                        <div class="scan-file-picker">
+                            <input id="scan-task-file" type="file" accept=".gz,application/gzip" hidden>
+                            <label for="scan-task-file" class="btn btn-primary"><i class="fas fa-upload" aria-hidden="true"></i> 点击上传</label>
+                            <span id="scan-task-file-name">未选择文件</span>
+                        </div>
+                        <small class="scan-field-help">只能上传 .gz 文件，限 1 个文件</small>
+                    </div>
+                </div>
+                <footer class="system-drawer-footer">
+                    <button id="scan-task-form-cancel" class="btn" type="button">取消</button>
+                    <button id="scan-task-form-submit" class="btn btn-primary" type="submit">确定</button>
+                </footer>
+            </form>
+        </aside>
     {% else %}
         <section class="interface-placeholder">
             <div class="placeholder-icon"><i class="fas fa-link" aria-hidden="true"></i></div>
@@ -75,5 +365,35 @@ window.interfaceDashboardConfig = {
 };
 </script>
 <script src="{{ url_for('static', filename='js/interface-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "applications" and application_section == "systems" %}
+<script>
+window.interfaceSystemsConfig = {
+    systemsUrl: {{ url_for('interface_systems') | tojson }},
+    csrfToken: {{ csrf_token() | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/system-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "applications" and application_section == "applications" %}
+<script>
+window.interfaceApplicationsConfig = {
+    applicationsUrl: {{ url_for('interface_applications') | tojson }},
+    systemsUrl: {{ url_for('interface_systems') | tojson }},
+    csrfToken: {{ csrf_token() | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/application-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "scan-tasks" %}
+<script>
+window.interfaceScanTasksConfig = {
+    scanTasksUrl: {{ url_for('interface_scan_tasks') | tojson }},
+    uploadUrl: {{ url_for('interface_scan_task_upload') | tojson }},
+    applicationsUrl: {{ url_for('interface_applications') | tojson }},
+    packageVersionsUrl: {{ url_for('interface_application_package_versions', app_id='__APP_ID__') | tojson }},
+    snapshotsUrl: {{ url_for('interface_management', tab='application-snapshots') | tojson }},
+    csrfToken: {{ csrf_token() | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/scan-task-management.js') | debug_unixtime }}"></script>
 {% endif %}
+<script src="{{ url_for('static', filename='js/table-column-resize.js') | debug_unixtime }}"></script>
 {% endblock %}

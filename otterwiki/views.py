@@ -45,7 +45,7 @@ from otterwiki.util import (
 from otterwiki.plugins import call_hook, collect_hook
 import otterwiki.pluginmgmt
 
-from flask_login import login_required
+from flask_login import current_user, login_required
 from otterwiki.server import csrf
 from flask_wtf.csrf import CSRFError
 
@@ -403,11 +403,17 @@ def interface_management(tab="workbench"):
     selected = next((item for item in tabs if item.slug == tab), None)
     if selected is None:
         abort(404)
+    application_section = None
+    if tab == "applications":
+        application_section = request.args.get("section", "systems")
+        if application_section not in ("systems", "applications"):
+            abort(404)
     return render_template(
         "interface_management.html",
         title=f"接口管理 - {selected.label}",
         interface_tabs=tabs,
         active_tab=selected,
+        application_section=application_section,
     )
 
 
@@ -419,10 +425,302 @@ def interface_dashboard_summary():
     try:
         data = otterwiki.interface_management.fetch_dashboard_summary()
     except otterwiki.interface_management.InterfaceAPIError as error:
-        return jsonify({"code": 502, "msg": str(error)}), 502
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
     response = jsonify({"code": 200, "msg": "成功", "data": data})
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@app.route("/-/interface/api/systems", methods=["GET", "POST"])
+@login_required
+def interface_systems():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        if request.method == "GET":
+            page_no = request.args.get("pageNo", 1, type=int) or 1
+            page_size = request.args.get("pageSize", 10, type=int) or 10
+            page_no = min(max(page_no, 1), 100_000)
+            page_size = min(max(page_size, 1), 100)
+            data = otterwiki.interface_management.fetch_systems(
+                page_no, page_size
+            )
+            response = jsonify({"code": 200, "msg": "成功", "data": data})
+            response.headers["Cache-Control"] = "no-store"
+            return response
+
+        payload = otterwiki.interface_management.validate_system_payload(
+            request.get_json(silent=True)
+        )
+        result = otterwiki.interface_management.request_api_json(
+            "POST",
+            otterwiki.interface_management.SYSTEMS_PATH,
+            json_body=payload,
+        )
+        return jsonify(result)
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/systems/<path:system_id>", methods=["PUT", "DELETE"]
+)
+@login_required
+def interface_system(system_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        path = otterwiki.interface_management.system_path(system_id)
+        if request.method == "PUT":
+            payload = otterwiki.interface_management.validate_system_payload(
+                request.get_json(silent=True)
+            )
+            result = otterwiki.interface_management.request_api_json(
+                "PUT", path, json_body=payload
+            )
+        else:
+            result = otterwiki.interface_management.request_api_json(
+                "DELETE", path
+            )
+        return jsonify(result)
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/applications", methods=["GET", "POST"])
+@login_required
+def interface_applications():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        if request.method == "GET":
+            page_no = request.args.get("pageNo", 1, type=int) or 1
+            page_size = request.args.get("pageSize", 10, type=int) or 10
+            page_no = min(max(page_no, 1), 100_000)
+            page_size = min(max(page_size, 1), 100)
+            data = otterwiki.interface_management.fetch_applications(
+                page_no, page_size
+            )
+            response = jsonify({"code": 200, "msg": "成功", "data": data})
+            response.headers["Cache-Control"] = "no-store"
+            return response
+
+        payload = otterwiki.interface_management.validate_application_payload(
+            request.get_json(silent=True)
+        )
+        result = otterwiki.interface_management.request_api_json(
+            "POST",
+            otterwiki.interface_management.APPLICATIONS_PATH,
+            json_body=payload,
+        )
+        return jsonify(result)
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/applications/<path:app_id>",
+    methods=["PUT", "DELETE"],
+)
+@login_required
+def interface_application(app_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        path = otterwiki.interface_management.application_path(app_id)
+        if request.method == "PUT":
+            payload = (
+                otterwiki.interface_management.validate_application_payload(
+                    request.get_json(silent=True)
+                )
+            )
+            result = otterwiki.interface_management.request_api_json(
+                "PUT", path, json_body=payload
+            )
+        else:
+            result = otterwiki.interface_management.request_api_json(
+                "DELETE", path
+            )
+        return jsonify(result)
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/scan-tasks", methods=["GET", "POST"])
+@login_required
+def interface_scan_tasks():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        if request.method == "GET":
+            page_no = request.args.get("pageNo", 1, type=int) or 1
+            page_size = request.args.get("pageSize", 10, type=int) or 10
+            page_no = min(max(page_no, 1), 100_000)
+            page_size = min(max(page_size, 1), 100)
+            data = otterwiki.interface_management.fetch_scan_tasks(
+                page_no,
+                page_size,
+                request.args.get("appId", ""),
+            )
+            response = jsonify({"code": 200, "msg": "成功", "data": data})
+            response.headers["Cache-Control"] = "no-store"
+            return response
+
+        payload = otterwiki.interface_management.validate_scan_task_payload(
+            request.get_json(silent=True), current_user.name or ""
+        )
+        result = otterwiki.interface_management.request_api_json(
+            "POST",
+            otterwiki.interface_management.SCAN_TASKS_PATH,
+            json_body=payload,
+        )
+        return jsonify(result)
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/scan-tasks/upload", methods=["POST"])
+@login_required
+def interface_scan_task_upload():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        app_id = str(request.form.get("appId", "")).strip()[:200]
+        if not app_id:
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "请选择应用。", 400
+            )
+        upload = request.files.get("file")
+        if upload is None or not upload.filename:
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "请选择待扫描的 .gz 文件。", 400
+            )
+        if not upload.filename.lower().endswith(".gz"):
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "只能上传 .gz 文件。", 400
+            )
+        try:
+            max_size = int(
+                app.config.get(
+                    "APSTACK_SCAN_UPLOAD_MAX_SIZE", 256 * 1024 * 1024
+                )
+            )
+        except (TypeError, ValueError):
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "扫描包上传大小配置无效。"
+            )
+        file_data = upload.stream.read(max_size + 1)
+        if len(file_data) > max_size:
+            raise otterwiki.interface_management.InterfaceAPIError(
+                f"扫描包超过允许上限（{max_size // (1024 * 1024)} MiB）。",
+                413,
+            )
+        result = otterwiki.interface_management.request_api_multipart(
+            f"{otterwiki.interface_management.SCAN_TASKS_PATH}/upload",
+            fields={
+                "appId": app_id,
+                "operator": str(current_user.name or "")[:300],
+                "packageName": str(
+                    request.form.get("packageName", "")
+                ).strip()[:500],
+            },
+            filename=upload.filename,
+            file_data=file_data,
+        )
+        return jsonify(result)
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/scan-tasks/<path:scan_task_id>/run",
+    methods=["POST"],
+)
+@login_required
+def interface_scan_task_run(scan_task_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        path = otterwiki.interface_management.scan_task_path(
+            scan_task_id, "run"
+        )
+        return jsonify(
+            otterwiki.interface_management.request_api_json("POST", path)
+        )
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/scan-tasks/<path:scan_task_id>",
+    methods=["DELETE"],
+)
+@login_required
+def interface_scan_task_delete(scan_task_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        path = otterwiki.interface_management.scan_task_path(
+            scan_task_id, "delete"
+        )
+        return jsonify(
+            otterwiki.interface_management.request_api_json("DELETE", path)
+        )
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/applications/<path:app_id>/package-versions",
+    methods=["GET"],
+)
+@login_required
+def interface_application_package_versions(app_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        payload = otterwiki.interface_management.request_api_json(
+            "GET",
+            otterwiki.interface_management.package_versions_path(app_id),
+        )
+        data = otterwiki.interface_management.normalise_package_versions(
+            payload
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
 
 
 @app.route("/-/user/", methods=["POST", "GET"])

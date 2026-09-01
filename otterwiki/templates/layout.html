@@ -130,10 +130,17 @@
 {%- endblock %}
             <div class="navbar-content ml-auto">
 {%- if has_permission('ADMIN') %}
+{%- if request.endpoint == 'interface_management' %}
+                <a href="{{ url_for('index') }}" id="interface-management-btn" class="btn btn-primary interface-management-navbar-btn" role="button">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    <span>返回文档</span>
+                </a>
+{%- else %}
                 <a href="{{ url_for('interface_management') }}" id="interface-management-btn" class="btn btn-primary interface-management-navbar-btn" role="button">
                     <i class="fas fa-plug" aria-hidden="true"></i>
                     <span>接口管理</span>
                 </a>
+{%- endif %}
 {%- endif %}
 {%- block navbarsearch %}
                 <form action="{{ url_for("search") }}" method="post" class="relative">
