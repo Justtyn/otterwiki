@@ -352,6 +352,7 @@
     color: #4a5360;
     font-weight: 600;
     position: relative;
+    white-space: nowrap;
 }
 
 .table-column-resizer {
@@ -392,9 +393,25 @@
     user-select: none !important;
 }
 
+/* The action column is pinned to the right so it stays visible while the
+   table scrolls horizontally when its columns are wider than the container. */
+.system-table th:last-child,
 .system-table td:last-child {
     white-space: nowrap;
-    width: 15rem;
+    position: sticky;
+    right: 0;
+}
+
+.system-table td:last-child {
+    background: #fff;
+    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
+    z-index: 2;
+}
+
+.system-table th:last-child {
+    background: #f7f8fa;
+    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
+    z-index: 3;
 }
 
 .system-table-action {
@@ -682,6 +699,8 @@ body.system-drawer-open { overflow: hidden; }
 .dark-mode .management-subtab.active { color: #5eb6ff; }
 .dark-mode .system-table { color: #e4e7eb; }
 .dark-mode .system-table th { background: #20262d; color: #c7ccd3; }
+.dark-mode .system-table th:last-child { background: #20262d; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
+.dark-mode .system-table td:last-child { background: #252b32; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
 .dark-mode .table-column-resizer:hover::after,
 .dark-mode .table-column-resizer:focus::after,
 .dark-mode .table-column-resizer.is-dragging::after { background: #5eb6ff; }
