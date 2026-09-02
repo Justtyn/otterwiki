@@ -1,5 +1,6 @@
 import io
 import re
+from pathlib import Path
 
 
 def _csrf_token(client):
@@ -67,6 +68,31 @@ def test_interface_page_has_all_tabs(admin_client):
         "API网关",
     ):
         assert label in html
+
+
+def test_all_interface_table_headers_use_shared_sticky_positioning():
+    stylesheet = (
+        Path(__file__).parents[1]
+        / "otterwiki/static/css/interface-management.css"
+    ).read_text(encoding="utf-8")
+
+    header_rule = re.search(
+        r"\.system-table th \{(?P<body>.*?)\n\}",
+        stylesheet,
+        re.DOTALL,
+    )
+    assert header_rule is not None
+    assert "position: sticky;" in header_rule.group("body")
+    assert "top: 0;" in header_rule.group("body")
+    assert "z-index: 3;" in header_rule.group("body")
+
+    fixed_header_rule = re.search(
+        r"\.system-table th:last-child \{(?P<body>.*?)\n\}",
+        stylesheet,
+        re.DOTALL,
+    )
+    assert fixed_header_rule is not None
+    assert "z-index: 4;" in fixed_header_rule.group("body")
 
 
 def test_unknown_interface_tab_returns_not_found(admin_client):
