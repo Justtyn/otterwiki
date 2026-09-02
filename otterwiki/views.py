@@ -408,12 +408,53 @@ def interface_management(tab="workbench"):
         application_section = request.args.get("section", "systems")
         if application_section not in ("systems", "applications"):
             abort(404)
+    snapshot_app_id = ""
+    snapshot_app_version = ""
+    module_app_id = ""
+    module_app_snapshot_id = ""
+    asset_relation_code = ""
+    gateway_asset_code = ""
+    gateway_asset_name = ""
+    gateway_asset_status = ""
+    if tab == "application-snapshots":
+        snapshot_app_id = str(request.args.get("appId", "")).strip()[:200]
+        snapshot_app_version = str(request.args.get("appVersion", "")).strip()[
+            :500
+        ]
+    elif tab == "module-snapshots":
+        module_app_id = str(request.args.get("appId", "")).strip()[:200]
+        module_app_snapshot_id = str(
+            request.args.get("appSnapshotId")
+            or request.args.get("snapshotId", "")
+        ).strip()[:200]
+    elif tab == "asset-relations":
+        asset_relation_code = str(request.args.get("assetCode", "")).strip()[
+            :500
+        ]
+    elif tab == "api-gateway":
+        gateway_asset_code = str(request.args.get("assetCode", "")).strip()[
+            :500
+        ]
+        gateway_asset_name = str(request.args.get("assetName", "")).strip()[
+            :500
+        ]
+        status = str(request.args.get("status", "")).strip()[:50]
+        if status in otterwiki.interface_management.API_GATEWAY_ASSET_STATUSES:
+            gateway_asset_status = status
     return render_template(
         "interface_management.html",
         title=f"接口管理 - {selected.label}",
         interface_tabs=tabs,
         active_tab=selected,
         application_section=application_section,
+        snapshot_app_id=snapshot_app_id,
+        snapshot_app_version=snapshot_app_version,
+        module_app_id=module_app_id,
+        module_app_snapshot_id=module_app_snapshot_id,
+        asset_relation_code=asset_relation_code,
+        gateway_asset_code=gateway_asset_code,
+        gateway_asset_name=gateway_asset_name,
+        gateway_asset_status=gateway_asset_status,
     )
 
 
@@ -712,6 +753,132 @@ def interface_application_package_versions(app_id):
         )
         data = otterwiki.interface_management.normalise_package_versions(
             payload
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/application-snapshots", methods=["GET"])
+@login_required
+def interface_application_snapshots():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        page_no = request.args.get("pageNo", 1, type=int) or 1
+        page_size = request.args.get("pageSize", 10, type=int) or 10
+        page_no = min(max(page_no, 1), 100_000)
+        page_size = min(max(page_size, 1), 100)
+        data = otterwiki.interface_management.fetch_application_snapshots(
+            page_no,
+            page_size,
+            request.args.get("appId", ""),
+            request.args.get("appVersion", ""),
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/application-snapshots/<path:snapshot_id>",
+    methods=["DELETE"],
+)
+@login_required
+def interface_application_snapshot_delete(snapshot_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        path = otterwiki.interface_management.application_snapshot_delete_path(
+            snapshot_id
+        )
+        return jsonify(
+            otterwiki.interface_management.request_api_json("DELETE", path)
+        )
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/module-snapshots", methods=["GET"])
+@login_required
+def interface_module_snapshots():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        page_no = request.args.get("pageNo", 1, type=int) or 1
+        page_size = request.args.get("pageSize", 10, type=int) or 10
+        page_no = min(max(page_no, 1), 100_000)
+        page_size = min(max(page_size, 1), 100)
+        data = otterwiki.interface_management.fetch_module_snapshots(
+            page_no,
+            page_size,
+            request.args.get("appId", ""),
+            request.args.get("appSnapshotId", ""),
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/asset-relations", methods=["GET"])
+@login_required
+def interface_asset_relations():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        page_no = request.args.get("pageNo", 1, type=int) or 1
+        page_size = request.args.get("pageSize", 10, type=int) or 10
+        page_no = min(max(page_no, 1), 100_000)
+        page_size = min(max(page_size, 1), 100)
+        data = otterwiki.interface_management.fetch_asset_relations(
+            page_no,
+            page_size,
+            request.args.get("assetCode", ""),
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/api-gateway-assets", methods=["GET"])
+@login_required
+def interface_api_gateway_assets():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        page_no = request.args.get("pageNo", 1, type=int) or 1
+        page_size = request.args.get("pageSize", 10, type=int) or 10
+        page_no = min(max(page_no, 1), 100_000)
+        page_size = min(max(page_size, 1), 100)
+        data = otterwiki.interface_management.fetch_api_gateway_assets(
+            page_no,
+            page_size,
+            request.args.get("assetCode", ""),
+            request.args.get("assetName", ""),
+            request.args.get("status", ""),
         )
         response = jsonify({"code": 200, "msg": "成功", "data": data})
         response.headers["Cache-Control"] = "no-store"

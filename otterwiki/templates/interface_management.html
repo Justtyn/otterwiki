@@ -345,6 +345,221 @@
                 </footer>
             </form>
         </aside>
+    {% elif active_tab.slug == "application-snapshots" %}
+        <section class="management-card application-snapshot-card">
+            <div class="management-panel">
+                <div id="application-snapshot-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="application-snapshot-toolbar">
+                    <div class="application-snapshot-filters">
+                        <div class="scan-application-filter application-snapshot-app-filter">
+                            <label class="sr-only" for="application-snapshot-app-filter">搜索应用名称</label>
+                            <input id="application-snapshot-app-filter" class="form-control" type="text" list="application-snapshot-app-options" placeholder="搜索应用名称" autocomplete="off">
+                            <datalist id="application-snapshot-app-options"></datalist>
+                            <button id="application-snapshot-app-clear" class="btn" type="button" hidden>清空</button>
+                        </div>
+                        <div class="application-snapshot-version-filter">
+                            <label class="sr-only" for="application-snapshot-version">搜索应用版本号</label>
+                            <input id="application-snapshot-version" class="form-control" type="search" maxlength="500" placeholder="搜索应用版本号" autocomplete="off">
+                            <button id="application-snapshot-search" class="interface-inline-search-button" type="button" aria-label="搜索应用版本号"><i class="fas fa-search" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                    <button id="application-snapshot-compare" type="button" class="btn btn-primary">发起版本对比</button>
+                </div>
+                <div class="application-snapshot-table-wrap">
+                    <table class="system-table application-snapshot-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">应用名称</th>
+                                <th scope="col">应用版本号</th>
+                                <th scope="col">修订号</th>
+                                <th scope="col">上传包名称</th>
+                                <th scope="col">上传包哈希</th>
+                                <th scope="col">资产哈希</th>
+                                <th scope="col">快照ID</th>
+                                <th scope="col">前一版快照ID</th>
+                                <th scope="col">创建时间</th>
+                                <th scope="col" class="application-snapshot-actions-column">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="application-snapshot-table-body">
+                            <tr><td colspan="10" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="应用快照列表分页">
+                    <span>共 <strong id="application-snapshot-total">0</strong> 条</span>
+                    <label class="sr-only" for="application-snapshot-page-size">每页条数</label>
+                    <select id="application-snapshot-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="application-snapshot-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="application-snapshot-current-page" class="current-page">1</span>
+                    <button id="application-snapshot-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="application-snapshot-page-jump">前往</label>
+                    <input id="application-snapshot-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+        </section>
+    {% elif active_tab.slug == "module-snapshots" %}
+        <section class="management-card module-snapshot-card">
+            <div class="management-panel">
+                <div id="module-snapshot-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="module-snapshot-toolbar">
+                    <div class="scan-application-filter module-snapshot-app-filter">
+                        <label class="sr-only" for="module-snapshot-app-filter">搜索应用ID</label>
+                        <input id="module-snapshot-app-filter" class="form-control" type="text" list="module-snapshot-app-options" placeholder="搜索应用ID" autocomplete="off">
+                        <datalist id="module-snapshot-app-options"></datalist>
+                        <button id="module-snapshot-app-clear" class="btn" type="button" hidden>清空</button>
+                    </div>
+                    <div class="module-snapshot-id-filter">
+                        <label class="sr-only" for="module-snapshot-id">搜索应用快照ID</label>
+                        <input id="module-snapshot-id" class="form-control" type="search" maxlength="200" placeholder="搜索应用快照ID" autocomplete="off">
+                        <button id="module-snapshot-search" class="interface-inline-search-button" type="button" aria-label="搜索应用快照ID"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="module-snapshot-table-wrap">
+                    <table class="system-table module-snapshot-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">应用名称</th>
+                                <th scope="col">artifactId</th>
+                                <th scope="col">groupId</th>
+                                <th scope="col">jar包名称</th>
+                                <th scope="col">jar路径</th>
+                                <th scope="col">创建时间</th>
+                                <th scope="col" class="module-snapshot-actions-column">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="module-snapshot-table-body">
+                            <tr><td colspan="7" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="模块快照列表分页">
+                    <span>共 <strong id="module-snapshot-total">0</strong> 条</span>
+                    <label class="sr-only" for="module-snapshot-page-size">每页条数</label>
+                    <select id="module-snapshot-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="module-snapshot-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="module-snapshot-current-page" class="current-page">1</span>
+                    <button id="module-snapshot-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="module-snapshot-page-jump">前往</label>
+                    <input id="module-snapshot-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+        </section>
+    {% elif active_tab.slug == "asset-relations" %}
+        <section class="management-card asset-relation-card">
+            <div class="management-panel">
+                <div id="asset-relation-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="asset-relation-toolbar">
+                    <div class="asset-relation-search-filter">
+                        <label class="sr-only" for="asset-relation-code">搜索源资产ID</label>
+                        <input id="asset-relation-code" class="form-control" type="search" maxlength="500" placeholder="搜索源资产ID" autocomplete="off">
+                        <button id="asset-relation-search" class="interface-inline-search-button" type="button" aria-label="搜索源资产ID"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    </div>
+                </div>
+                <div class="asset-relation-table-wrap">
+                    <table class="system-table asset-relation-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">关联类型</th>
+                                <th scope="col">源资产</th>
+                                <th scope="col">目标资产</th>
+                                <th scope="col">序号</th>
+                                <th scope="col">匹配规则</th>
+                                <th scope="col">关联服务</th>
+                            </tr>
+                        </thead>
+                        <tbody id="asset-relation-table-body">
+                            <tr><td colspan="6" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="资产关系列表分页">
+                    <span>共 <strong id="asset-relation-total">0</strong> 条</span>
+                    <label class="sr-only" for="asset-relation-page-size">每页条数</label>
+                    <select id="asset-relation-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="asset-relation-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="asset-relation-current-page" class="current-page">1</span>
+                    <button id="asset-relation-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="asset-relation-page-jump">前往</label>
+                    <input id="asset-relation-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+        </section>
+    {% elif active_tab.slug == "api-gateway" %}
+        <section class="management-card api-gateway-card">
+            <div class="management-panel">
+                <div id="api-gateway-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="api-gateway-toolbar">
+                    <div class="api-gateway-code-filter">
+                        <label class="sr-only" for="api-gateway-asset-code">搜索资产编码</label>
+                        <input id="api-gateway-asset-code" class="form-control" type="search" maxlength="500" placeholder="搜索资产编码" autocomplete="off">
+                    </div>
+                    <div class="api-gateway-name-filter">
+                        <label class="sr-only" for="api-gateway-asset-name">搜索资产名称</label>
+                        <input id="api-gateway-asset-name" class="form-control" type="search" maxlength="500" placeholder="搜索资产名称" autocomplete="off">
+                        <button id="api-gateway-search" class="interface-inline-search-button" type="button" aria-label="搜索 API 网关资产"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="api-gateway-status-filter">
+                        <label class="sr-only" for="api-gateway-status">搜索状态</label>
+                        <select id="api-gateway-status" class="form-control">
+                            <option value="">搜索状态</option>
+                            <option value="published">已发布</option>
+                            <option value="downline">已下线</option>
+                            <option value="waitTest">待测试</option>
+                            <option value="waitPublish">待发布</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="api-gateway-table-wrap">
+                    <table class="system-table api-gateway-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">资产编码</th>
+                                <th scope="col">资产名称</th>
+                                <th scope="col">状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="api-gateway-table-body">
+                            <tr><td colspan="3" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="API 网关资产列表分页">
+                    <span>共 <strong id="api-gateway-total">0</strong> 条</span>
+                    <label class="sr-only" for="api-gateway-page-size">每页条数</label>
+                    <select id="api-gateway-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="api-gateway-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="api-gateway-current-page" class="current-page">1</span>
+                    <button id="api-gateway-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="api-gateway-page-jump">前往</label>
+                    <input id="api-gateway-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+        </section>
     {% else %}
         <section class="interface-placeholder">
             <div class="placeholder-icon"><i class="fas fa-link" aria-hidden="true"></i></div>
@@ -394,6 +609,48 @@ window.interfaceScanTasksConfig = {
 };
 </script>
 <script src="{{ url_for('static', filename='js/scan-task-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "application-snapshots" %}
+<script>
+window.interfaceApplicationSnapshotsConfig = {
+    snapshotsUrl: {{ url_for('interface_application_snapshots') | tojson }},
+    applicationsUrl: {{ url_for('interface_applications') | tojson }},
+    moduleSnapshotsUrl: {{ url_for('interface_management', tab='module-snapshots') | tojson }},
+    comparisonUrl: {{ url_for('interface_management', tab='version-comparison') | tojson }},
+    initialAppId: {{ snapshot_app_id | tojson }},
+    initialAppVersion: {{ snapshot_app_version | tojson }},
+    csrfToken: {{ csrf_token() | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/application-snapshot-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "module-snapshots" %}
+<script>
+window.interfaceModuleSnapshotsConfig = {
+    moduleSnapshotsUrl: {{ url_for('interface_module_snapshots') | tojson }},
+    applicationsUrl: {{ url_for('interface_applications') | tojson }},
+    transactionAssetsUrl: {{ url_for('interface_management', tab='transaction-assets') | tojson }},
+    initialAppId: {{ module_app_id | tojson }},
+    initialAppSnapshotId: {{ module_app_snapshot_id | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/module-snapshot-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "asset-relations" %}
+<script>
+window.interfaceAssetRelationsConfig = {
+    relationsUrl: {{ url_for('interface_asset_relations') | tojson }},
+    initialAssetCode: {{ asset_relation_code | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/asset-relation-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "api-gateway" %}
+<script>
+window.interfaceApiGatewayConfig = {
+    assetsUrl: {{ url_for('interface_api_gateway_assets') | tojson }},
+    initialAssetCode: {{ gateway_asset_code | tojson }},
+    initialAssetName: {{ gateway_asset_name | tojson }},
+    initialStatus: {{ gateway_asset_status | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/api-gateway-management.js') | debug_unixtime }}"></script>
 {% endif %}
 <script src="{{ url_for('static', filename='js/table-column-resize.js') | debug_unixtime }}"></script>
 {% endblock %}

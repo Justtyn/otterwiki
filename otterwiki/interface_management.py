@@ -16,6 +16,18 @@ DASHBOARD_SUMMARY_PATH = "/idp/api/dashboard/summary"
 SYSTEMS_PATH = "/idp/api/systems"
 APPLICATIONS_PATH = "/idp/api/applications"
 SCAN_TASKS_PATH = "/idp/api/scan-tasks"
+SNAPSHOTS_PATH = "/idp/api/snapshot"
+APPLICATION_SNAPSHOTS_PATH = f"{SNAPSHOTS_PATH}/applist"
+MODULE_SNAPSHOTS_PATH = f"{SNAPSHOTS_PATH}/moduleList"
+ASSETS_PATH = "/idp/api/assets"
+ASSET_RELATIONS_PATH = f"{ASSETS_PATH}/relations"
+API_GATEWAY_ASSETS_PATH = f"{ASSETS_PATH}/txs"
+API_GATEWAY_ASSET_STATUSES = (
+    "published",
+    "downline",
+    "waitTest",
+    "waitPublish",
+)
 PACKAGE_SOURCE_TYPES = ("LOCAL_FILE", "LOCAL_DIR", "MAVEN_REPO")
 SCAN_TASK_STATUSES = ("INIT", "RUNNING", "SUCCESS", "FAIL")
 MAX_RESPONSE_SIZE = 2 * 1024 * 1024
@@ -456,6 +468,336 @@ def normalise_scan_task_page(payload: Any) -> dict[str, Any]:
         "pageNo": max(1, _count(source.get("pageNo")) or 1),
         "pageSize": max(1, _count(source.get("pageSize")) or 10),
     }
+
+
+def normalise_application_snapshot_page(payload: Any) -> dict[str, Any]:
+    """Keep only fields displayed by the application snapshot list."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("应用快照列表数据格式不正确。")
+
+    source_records = source.get("records")
+    if not isinstance(source_records, list):
+        source_records = source.get("content")
+    if not isinstance(source_records, list):
+        source_records = source.get("list")
+    if not isinstance(source_records, list):
+        source_records = []
+
+    records: list[dict[str, str]] = []
+    for item in source_records:
+        if not isinstance(item, dict):
+            continue
+        records.append(
+            {
+                "appId": _text(item.get("appId"), 200),
+                "applicationName": _text(
+                    item.get("applicationName") or item.get("appName"), 300
+                ),
+                "appVersion": _text(item.get("appVersion")),
+                "revisionNo": _text(item.get("revisionNo"), 100),
+                "packageName": _text(
+                    item.get("packageName") or item.get("uploadPackageName"),
+                    500,
+                ),
+                "packageHash": _text(
+                    item.get("packageHash") or item.get("uploadPackageHash"),
+                    500,
+                ),
+                "assetHash": _text(item.get("assetHash"), 500),
+                "snapshotId": _text(
+                    item.get("snapshotId")
+                    or item.get("appSnapshotId")
+                    or item.get("id"),
+                    200,
+                ),
+                "previousSnapshotId": _text(
+                    item.get("previousSnapshotId")
+                    or item.get("prevSnapshotId"),
+                    200,
+                ),
+                "createdAt": _text(
+                    item.get("createdAt") or item.get("createTime"), 100
+                ),
+            }
+        )
+
+    total = source.get("total")
+    if total is None:
+        total = source.get("totalElements")
+    return {
+        "records": records,
+        "total": _count(total),
+        "pageNo": max(1, _count(source.get("pageNo")) or 1),
+        "pageSize": max(1, _count(source.get("pageSize")) or 10),
+    }
+
+
+def fetch_application_snapshots(
+    page_no: int,
+    page_size: int,
+    app_id: str = "",
+    app_version: str = "",
+) -> dict[str, Any]:
+    query: dict[str, Any] = {"pageNo": page_no, "pageSize": page_size}
+    app_id = _text(app_id, 200).strip()
+    app_version = _text(app_version).strip()
+    if app_id:
+        query["appId"] = app_id
+    if app_version:
+        query["appVersion"] = app_version
+    payload = request_api_json("GET", APPLICATION_SNAPSHOTS_PATH, query=query)
+    return normalise_application_snapshot_page(payload)
+
+
+def application_snapshot_delete_path(snapshot_id: Any) -> str:
+    value = _text(snapshot_id, 200).strip()
+    if not value:
+        raise InterfaceAPIError("缺少应用快照 ID。", 400)
+    return f"{SNAPSHOTS_PATH}/delete/{quote(value, safe='')}"
+
+
+def normalise_module_snapshot_page(payload: Any) -> dict[str, Any]:
+    """Keep only fields displayed by the module snapshot list."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("模块快照列表数据格式不正确。")
+
+    source_records = source.get("records")
+    if not isinstance(source_records, list):
+        source_records = source.get("content")
+    if not isinstance(source_records, list):
+        source_records = source.get("list")
+    if not isinstance(source_records, list):
+        source_records = []
+
+    records: list[dict[str, str]] = []
+    for item in source_records:
+        if not isinstance(item, dict):
+            continue
+        records.append(
+            {
+                "appId": _text(item.get("appId"), 200),
+                "appSnapshotId": _text(
+                    item.get("appSnapshotId")
+                    or item.get("applicationSnapshotId"),
+                    200,
+                ),
+                "moduleSnapshotId": _text(
+                    item.get("moduleSnapshotId")
+                    or item.get("snapshotId")
+                    or item.get("id"),
+                    200,
+                ),
+                "applicationName": _text(
+                    item.get("applicationName") or item.get("appName"), 300
+                ),
+                "artifactId": _text(item.get("artifactId"), 500),
+                "groupId": _text(item.get("groupId"), 500),
+                "jarName": _text(
+                    item.get("jarName")
+                    or item.get("packageName")
+                    or item.get("moduleName"),
+                    500,
+                ),
+                "jarPath": _text(
+                    item.get("jarPath") or item.get("modulePath"), 2000
+                ),
+                "createdAt": _text(
+                    item.get("createdAt") or item.get("createTime"), 100
+                ),
+            }
+        )
+
+    total = source.get("total")
+    if total is None:
+        total = source.get("totalElements")
+    return {
+        "records": records,
+        "total": _count(total),
+        "pageNo": max(1, _count(source.get("pageNo")) or 1),
+        "pageSize": max(1, _count(source.get("pageSize")) or 10),
+    }
+
+
+def fetch_module_snapshots(
+    page_no: int,
+    page_size: int,
+    app_id: str = "",
+    app_snapshot_id: str = "",
+) -> dict[str, Any]:
+    query: dict[str, Any] = {"pageNo": page_no, "pageSize": page_size}
+    app_id = _text(app_id, 200).strip()
+    app_snapshot_id = _text(app_snapshot_id, 200).strip()
+    if app_id:
+        query["appId"] = app_id
+    if app_snapshot_id:
+        query["appSnapshotId"] = app_snapshot_id
+    payload = request_api_json("GET", MODULE_SNAPSHOTS_PATH, query=query)
+    return normalise_module_snapshot_page(payload)
+
+
+def _relation_json_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value[:4000]
+    try:
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))[
+            :4000
+        ]
+    except (TypeError, ValueError):
+        return _text(value, 4000)
+
+
+def normalise_asset_relation_page(payload: Any) -> dict[str, Any]:
+    """Keep only fields displayed by the asset relation list."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("资产关系列表数据格式不正确。")
+
+    source_records = source.get("records")
+    if not isinstance(source_records, list):
+        source_records = source.get("content")
+    if not isinstance(source_records, list):
+        source_records = source.get("list")
+    if not isinstance(source_records, list):
+        source_records = []
+
+    records: list[dict[str, str]] = []
+    for item in source_records:
+        if not isinstance(item, dict):
+            continue
+        relation = item.get("relation")
+        record = relation if isinstance(relation, dict) else item
+        sequence = record.get("seqNo")
+        if sequence is None:
+            sequence = record.get("sequenceNo")
+        records.append(
+            {
+                "relType": _text(
+                    record.get("relType") or record.get("relationType"), 200
+                ),
+                "srcAssetCode": _text(
+                    record.get("srcAssetCode")
+                    or record.get("sourceAssetCode"),
+                    500,
+                ),
+                "targetAssetCode": _text(
+                    record.get("targetAssetCode") or record.get("targetCode"),
+                    500,
+                ),
+                "seqNo": _text(sequence if sequence is not None else "", 100),
+                "matchRule": _text(
+                    record.get("matchRule") or record.get("matchRules"),
+                    1000,
+                ),
+                "relAttrsJson": _relation_json_text(
+                    record.get("relAttrsJson")
+                    if record.get("relAttrsJson") is not None
+                    else record.get("relationAttributes")
+                ),
+            }
+        )
+
+    total = source.get("total")
+    if total is None:
+        total = source.get("totalElements")
+    return {
+        "records": records,
+        "total": _count(total),
+        "pageNo": max(1, _count(source.get("pageNo")) or 1),
+        "pageSize": max(1, _count(source.get("pageSize")) or 10),
+    }
+
+
+def fetch_asset_relations(
+    page_no: int, page_size: int, asset_code: str = ""
+) -> dict[str, Any]:
+    query: dict[str, Any] = {"pageNo": page_no, "pageSize": page_size}
+    asset_code = _text(asset_code, 500).strip()
+    if asset_code:
+        query["assetCode"] = asset_code
+    payload = request_api_json("GET", ASSET_RELATIONS_PATH, query=query)
+    return normalise_asset_relation_page(payload)
+
+
+def normalise_api_gateway_asset_page(payload: Any) -> dict[str, Any]:
+    """Keep only fields displayed by the API gateway asset list."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("API 网关资产列表数据格式不正确。")
+
+    source_records = source.get("records")
+    if not isinstance(source_records, list):
+        source_records = source.get("content")
+    if not isinstance(source_records, list):
+        source_records = source.get("list")
+    if not isinstance(source_records, list):
+        source_records = []
+
+    records: list[dict[str, str]] = []
+    for item in source_records:
+        if not isinstance(item, dict):
+            continue
+        records.append(
+            {
+                "assetCode": _text(
+                    item.get("assetCode") or item.get("asset_code"), 500
+                ),
+                "assetName": _text(
+                    item.get("assetName") or item.get("asset_name"), 500
+                ),
+                "status": _text(
+                    item.get("status") or item.get("lifecycleStatus"), 50
+                ),
+            }
+        )
+
+    total = source.get("total")
+    if total is None:
+        total = source.get("totalElements")
+    return {
+        "records": records,
+        "total": _count(total),
+        "pageNo": max(1, _count(source.get("pageNo")) or 1),
+        "pageSize": max(1, _count(source.get("pageSize")) or 10),
+    }
+
+
+def fetch_api_gateway_assets(
+    page_no: int,
+    page_size: int,
+    asset_code: str = "",
+    asset_name: str = "",
+    status: str = "",
+) -> dict[str, Any]:
+    query: dict[str, Any] = {"pageNo": page_no, "pageSize": page_size}
+    asset_code = _text(asset_code, 500).strip()
+    asset_name = _text(asset_name, 500).strip()
+    status = _text(status, 50).strip()
+    if status and status not in API_GATEWAY_ASSET_STATUSES:
+        raise InterfaceAPIError("状态筛选值无效。", 400)
+    if asset_code:
+        query["assetCode"] = asset_code
+    if asset_name:
+        query["assetName"] = asset_name
+    if status:
+        query["status"] = status
+    payload = request_api_json("GET", API_GATEWAY_ASSETS_PATH, query=query)
+    return normalise_api_gateway_asset_page(payload)
 
 
 def fetch_scan_tasks(

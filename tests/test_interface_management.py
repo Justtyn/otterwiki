@@ -33,6 +33,21 @@ def test_interface_pages_reject_non_admin(other_client):
     assert other_client.get("/-/interface/api/systems").status_code == 403
     assert other_client.get("/-/interface/api/applications").status_code == 403
     assert other_client.get("/-/interface/api/scan-tasks").status_code == 403
+    assert (
+        other_client.get("/-/interface/api/application-snapshots").status_code
+        == 403
+    )
+    assert (
+        other_client.get("/-/interface/api/module-snapshots").status_code
+        == 403
+    )
+    assert (
+        other_client.get("/-/interface/api/asset-relations").status_code == 403
+    )
+    assert (
+        other_client.get("/-/interface/api/api-gateway-assets").status_code
+        == 403
+    )
 
 
 def test_interface_page_has_all_tabs(admin_client):
@@ -79,6 +94,83 @@ def test_scan_task_page_has_table_filter_pagination_and_drawer(admin_client):
     assert 'id="scan-task-page-jump-button"' not in html
     assert '<span class="page-unit">页</span>' in html
     assert "查看应用快照" not in html  # rendered safely by JavaScript
+
+
+def test_application_snapshot_page_has_filters_table_and_pagination(
+    admin_client,
+):
+    response = admin_client.get(
+        "/-/interface/application-snapshots?appId=app-1&appVersion=1.2.3"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert 'id="application-snapshot-app-filter"' in html
+    assert 'id="application-snapshot-version"' in html
+    assert 'id="application-snapshot-compare"' in html
+    assert 'id="application-snapshot-table-body"' in html
+    assert 'id="application-snapshot-page-size"' in html
+    assert "application-snapshot-management.js" in html
+    assert "table-column-resize.js" in html
+    assert 'initialAppId: "app-1"' in html
+    assert 'initialAppVersion: "1.2.3"' in html
+    assert html.count('<th scope="col"') == 10
+
+
+def test_module_snapshot_page_has_filters_table_and_pagination(admin_client):
+    response = admin_client.get(
+        "/-/interface/module-snapshots?appId=app-1&snapshotId=snap-2"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert 'id="module-snapshot-app-filter"' in html
+    assert 'id="module-snapshot-id"' in html
+    assert 'id="module-snapshot-table-body"' in html
+    assert 'id="module-snapshot-page-size"' in html
+    assert "module-snapshot-management.js" in html
+    assert "table-column-resize.js" in html
+    assert 'initialAppId: "app-1"' in html
+    assert 'initialAppSnapshotId: "snap-2"' in html
+    assert html.count('<th scope="col"') == 7
+
+
+def test_asset_relation_page_has_search_table_and_pagination(admin_client):
+    response = admin_client.get(
+        "/-/interface/asset-relations?assetCode=asset-source-1"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert 'id="asset-relation-code"' in html
+    assert 'id="asset-relation-search"' in html
+    assert 'id="asset-relation-table-body"' in html
+    assert 'id="asset-relation-page-size"' in html
+    assert "asset-relation-management.js" in html
+    assert "table-column-resize.js" in html
+    assert 'initialAssetCode: "asset-source-1"' in html
+    assert html.count('<th scope="col"') == 6
+
+
+def test_api_gateway_page_has_filters_table_and_pagination(admin_client):
+    response = admin_client.get(
+        "/-/interface/api-gateway"
+        "?assetCode=ap0001&assetName=%E6%9F%A5%E8%AF%A2&status=published"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert 'id="api-gateway-asset-code"' in html
+    assert 'id="api-gateway-asset-name"' in html
+    assert 'id="api-gateway-status"' in html
+    assert 'id="api-gateway-table-body"' in html
+    assert 'id="api-gateway-page-size"' in html
+    assert "api-gateway-management.js" in html
+    assert "table-column-resize.js" in html
+    assert 'initialAssetCode: "ap0001"' in html
+    assert 'initialAssetName: "查询"' in html
+    assert 'initialStatus: "published"' in html
+    assert html.count('<th scope="col"') == 3
 
 
 def test_application_management_has_two_subtabs(admin_client):
@@ -462,6 +554,305 @@ def test_application_payload_rejects_invalid_package_source(create_app):
         assert str(error) == "包来源类型无效。"
     else:
         raise AssertionError("invalid package source was accepted")
+
+
+def test_application_snapshot_list_forwards_filters_and_normalises_fields(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "records": [
+                    {
+                        "appId": "app-1",
+                        "appName": "核心应用",
+                        "appVersion": "1.2.3",
+                        "revisionNo": 2,
+                        "uploadPackageName": "core-1.2.3.tar.gz",
+                        "uploadPackageHash": "package-hash",
+                        "assetHash": "asset-hash",
+                        "appSnapshotId": "snap-2",
+                        "prevSnapshotId": "snap-1",
+                        "createTime": "2026-09-02T10:00:00",
+                        "unused": "discard",
+                    }
+                ],
+                "total": 1,
+                "pageNo": 2,
+                "pageSize": 20,
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/application-snapshots"
+        "?appId=app-1&appVersion=1.2.3&pageNo=2&pageSize=20"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/snapshot/applist",
+            {
+                "pageNo": 2,
+                "pageSize": 20,
+                "appId": "app-1",
+                "appVersion": "1.2.3",
+            },
+            None,
+        )
+    ]
+    assert response.json["data"]["records"][0] == {
+        "appId": "app-1",
+        "applicationName": "核心应用",
+        "appVersion": "1.2.3",
+        "revisionNo": "2",
+        "packageName": "core-1.2.3.tar.gz",
+        "packageHash": "package-hash",
+        "assetHash": "asset-hash",
+        "snapshotId": "snap-2",
+        "previousSnapshotId": "snap-1",
+        "createdAt": "2026-09-02T10:00:00",
+    }
+
+
+def test_application_snapshot_delete_uses_documented_path(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {"code": 200, "msg": "success", "data": {}}
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.open(
+        "/-/interface/api/application-snapshots/snap%202",
+        method="DELETE",
+        headers={"X-CSRFToken": _csrf_token(admin_client)},
+    )
+
+    assert response.status_code == 200
+    assert calls == [
+        ("DELETE", "/idp/api/snapshot/delete/snap%202", None, None)
+    ]
+
+
+def test_module_snapshot_list_forwards_filters_and_normalises_fields(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "content": [
+                    {
+                        "appId": "app-1",
+                        "applicationSnapshotId": "snap-2",
+                        "id": "module-snap-1",
+                        "appName": "核心应用",
+                        "artifactId": "core-api",
+                        "groupId": "cn.example",
+                        "packageName": "core-api-1.2.3.jar",
+                        "modulePath": "/deploy/lib/core-api-1.2.3.jar",
+                        "createTime": "2026-09-02T12:00:00",
+                        "unused": "discard",
+                    }
+                ],
+                "totalElements": 1,
+                "pageNo": 3,
+                "pageSize": 20,
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/module-snapshots"
+        "?appId=app-1&appSnapshotId=snap-2&pageNo=3&pageSize=20"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/snapshot/moduleList",
+            {
+                "pageNo": 3,
+                "pageSize": 20,
+                "appId": "app-1",
+                "appSnapshotId": "snap-2",
+            },
+            None,
+        )
+    ]
+    assert response.json["data"]["records"][0] == {
+        "appId": "app-1",
+        "appSnapshotId": "snap-2",
+        "moduleSnapshotId": "module-snap-1",
+        "applicationName": "核心应用",
+        "artifactId": "core-api",
+        "groupId": "cn.example",
+        "jarName": "core-api-1.2.3.jar",
+        "jarPath": "/deploy/lib/core-api-1.2.3.jar",
+        "createdAt": "2026-09-02T12:00:00",
+    }
+
+
+def test_asset_relation_list_forwards_filter_and_normalises_nested_relation(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "list": [
+                    {
+                        "relation": {
+                            "relationType": "TXS_CALL_APS",
+                            "sourceAssetCode": "DirectInnerTran",
+                            "targetAssetCode": "DirectInnerAps",
+                            "sequenceNo": 1,
+                            "matchRules": "service_name",
+                            "relationAttributes": {
+                                "serviceName": "DirectInnerAps"
+                            },
+                            "unused": "discard",
+                        }
+                    }
+                ],
+                "totalElements": 1,
+                "pageNo": 2,
+                "pageSize": 20,
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/asset-relations"
+        "?assetCode=DirectInnerTran&pageNo=2&pageSize=20"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/assets/relations",
+            {
+                "pageNo": 2,
+                "pageSize": 20,
+                "assetCode": "DirectInnerTran",
+            },
+            None,
+        )
+    ]
+    assert response.json["data"]["records"][0] == {
+        "relType": "TXS_CALL_APS",
+        "srcAssetCode": "DirectInnerTran",
+        "targetAssetCode": "DirectInnerAps",
+        "seqNo": "1",
+        "matchRule": "service_name",
+        "relAttrsJson": '{"serviceName":"DirectInnerAps"}',
+    }
+
+
+def test_api_gateway_list_forwards_filters_and_normalises_fields(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "content": [
+                    {
+                        "asset_code": "ap0001",
+                        "asset_name": "交易查询",
+                        "lifecycleStatus": "published",
+                        "unused": "discard",
+                    }
+                ],
+                "totalElements": 139,
+                "pageNo": 2,
+                "pageSize": 20,
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/api-gateway-assets"
+        "?assetCode=ap0001&assetName=%E6%9F%A5%E8%AF%A2"
+        "&status=published&pageNo=2&pageSize=20"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/assets/txs",
+            {
+                "pageNo": 2,
+                "pageSize": 20,
+                "assetCode": "ap0001",
+                "assetName": "查询",
+                "status": "published",
+            },
+            None,
+        )
+    ]
+    assert response.json["data"] == {
+        "records": [
+            {
+                "assetCode": "ap0001",
+                "assetName": "交易查询",
+                "status": "published",
+            }
+        ],
+        "total": 139,
+        "pageNo": 2,
+        "pageSize": 20,
+    }
+
+
+def test_api_gateway_list_rejects_unknown_status(admin_client, monkeypatch):
+    import otterwiki.interface_management as interface_api
+
+    def unexpected_request(*args, **kwargs):
+        raise AssertionError("invalid filters must not reach the external API")
+
+    monkeypatch.setattr(interface_api, "request_api_json", unexpected_request)
+    response = admin_client.get(
+        "/-/interface/api/api-gateway-assets?status=unknown"
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"code": 400, "msg": "状态筛选值无效。"}
 
 
 def test_scan_task_list_forwards_filter_and_normalises_fields(
