@@ -1,6 +1,6 @@
 /* Sidebar width is driven by --sidebar-width so it can be resized by dragging. */
 .page-wrapper {
-    --sidebar-width: 20rem;
+    --sidebar-width: 24rem;
 }
 
 @media (min-width: 1201px) {

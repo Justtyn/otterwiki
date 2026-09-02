@@ -396,7 +396,7 @@ document.querySelector('#content-wrapper').addEventListener('scroll', (event) =>
             return;
         }
 
-        var MIN_REM = 18;
+        var MIN_REM = 24;
         var MAX_REM = 45;
         var MIN_CONTENT_PX = 200;
         var OVERLAY_BREAKPOINT = 768;
