@@ -851,6 +851,9 @@
 
 .api-gateway-table {
     min-width: 90rem;
+    /* Column widths are not draggable on this page; fixed layout splits
+       the three columns equally. */
+    table-layout: fixed;
 }
 
 .api-gateway-table th,
@@ -876,10 +879,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-.api-gateway-table th:nth-child(1) { width: 30rem; }
-.api-gateway-table th:nth-child(2) { width: 40rem; }
-.api-gateway-table th:nth-child(3) { width: 20rem; }
 
 .audit-log-toolbar {
     align-items: center;

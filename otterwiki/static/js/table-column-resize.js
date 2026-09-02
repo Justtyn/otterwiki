@@ -418,6 +418,11 @@
         if (table.dataset.columnsResizable === "true") {
             return;
         }
+        // Tables may opt out of column resizing (e.g. the API gateway list
+        // keeps its columns equally split).
+        if (table.dataset.columnsResizable === "false") {
+            return;
+        }
         var config = buildConfig(table);
         if (!config) {
             return;
