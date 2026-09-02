@@ -228,6 +228,7 @@ def test_transaction_asset_page_has_filters_table_and_pagination(
         assert f'id="{element_id}"' in html
     assert "transaction-asset-management.js" in html
     assert "table-column-resize.js" in html
+    assert 'class="transaction-asset-keyword-control"' in html
     assert (
         'applicationSnapshotListUrl: "/-/interface/api/snapshot/appList"'
         in html

@@ -557,13 +557,20 @@
     width: 100%;
 }
 
-.transaction-asset-keyword-filter .form-control {
-    padding-right: 4.4rem;
+.transaction-asset-keyword-control {
+    position: relative;
 }
 
-.transaction-asset-keyword-filter .interface-inline-search-button {
-    bottom: 0;
-    top: auto;
+.transaction-asset-keyword-control .form-control {
+    padding-right: 4rem;
+}
+
+.transaction-asset-keyword-control .interface-inline-search-button {
+    border-radius: 50%;
+    bottom: .3rem;
+    right: .3rem;
+    top: .3rem;
+    width: 3rem;
 }
 
 .transaction-asset-table-wrap {
