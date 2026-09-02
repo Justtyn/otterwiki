@@ -31,22 +31,22 @@
     {% if active_tab.slug == "workbench" %}
         <div id="dashboard-error" class="alert alert-danger dashboard-error" role="alert" hidden></div>
         <div class="dashboard-summary" aria-label="工作台统计">
-            <article class="summary-card summary-system">
+            <a class="summary-card summary-system" href="{{ url_for('interface_management', tab='applications', section='systems') }}">
                 <div class="summary-icon"><i class="fas fa-desktop" aria-hidden="true"></i></div>
                 <div class="summary-copy"><span>系统数</span><strong data-summary="systemCount">--</strong></div>
-            </article>
-            <article class="summary-card summary-application">
+            </a>
+            <a class="summary-card summary-application" href="{{ url_for('interface_management', tab='applications', section='applications') }}">
                 <div class="summary-icon"><i class="far fa-file-alt" aria-hidden="true"></i></div>
                 <div class="summary-copy"><span>应用数</span><strong data-summary="applicationCount">--</strong></div>
-            </article>
-            <article class="summary-card summary-snapshot">
+            </a>
+            <a class="summary-card summary-snapshot" href="{{ url_for('interface_management', tab='application-snapshots') }}">
                 <div class="summary-icon"><i class="fas fa-camera" aria-hidden="true"></i></div>
                 <div class="summary-copy"><span>应用快照数</span><strong data-summary="snapshotCount">--</strong></div>
-            </article>
-            <article class="summary-card summary-asset">
+            </a>
+            <a class="summary-card summary-asset" href="{{ url_for('interface_management', tab='transaction-assets') }}">
                 <div class="summary-icon"><i class="fas fa-database" aria-hidden="true"></i></div>
                 <div class="summary-copy"><span>交易资产数</span><strong data-summary="assetCount">--</strong></div>
-            </article>
+            </a>
         </div>
 
         <section class="activity-card" aria-labelledby="recent-activity-title">

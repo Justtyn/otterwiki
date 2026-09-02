@@ -127,6 +127,20 @@
 .summary-snapshot .summary-icon { color: #9a4ce0; }
 .summary-asset .summary-icon { color: #d5df00; }
 
+/* Workbench summary cards are links to their respective management tabs. */
+a.summary-card {
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+a.summary-card:hover,
+a.summary-card:focus-visible {
+    border-color: #c9d2dd;
+    box-shadow: 0 8px 22px rgba(25, 39, 75, .12);
+    transform: translateY(-2px);
+}
+
 .activity-card {
     margin-top: 3.2rem;
     max-width: 92rem;
