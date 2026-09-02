@@ -457,6 +457,153 @@
                 </div>
             </div>
         </section>
+    {% elif active_tab.slug == "transaction-assets" %}
+        {% if transaction_asset_id %}
+        <section class="transaction-asset-detail" aria-labelledby="transaction-asset-detail-title">
+            <a class="transaction-asset-back" href="{{ url_for('interface_management', tab='transaction-assets') }}">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i> 返回上一级
+            </a>
+            <div id="transaction-asset-feedback" class="alert system-feedback" role="status" hidden></div>
+            <section class="transaction-asset-detail-card">
+                <h2 id="transaction-asset-detail-title">基本信息</h2>
+                <dl class="transaction-asset-basic-grid">
+                    <div><dt>资产编码</dt><dd id="transaction-detail-asset-code">--</dd></div>
+                    <div><dt>资产名称</dt><dd id="transaction-detail-asset-name">--</dd></div>
+                    <div><dt>资产类型</dt><dd id="transaction-detail-asset-type">--</dd></div>
+                    <div><dt>模块快照ID</dt><dd id="transaction-detail-module-snapshot-id">--</dd></div>
+                    <div><dt>所属应用</dt><dd id="transaction-detail-application-name">--</dd></div>
+                    <div><dt>应用版本号</dt><dd id="transaction-detail-app-version">--</dd></div>
+                    <div><dt>修订号</dt><dd id="transaction-detail-revision-no">--</dd></div>
+                    <div class="transaction-asset-source"><dt>源文件</dt><dd id="transaction-detail-source-file">--</dd></div>
+                </dl>
+            </section>
+            <section class="transaction-asset-detail-card transaction-asset-fields-card" aria-labelledby="transaction-asset-fields-title">
+                <h2 id="transaction-asset-fields-title">接口字段</h2>
+                <div class="transaction-asset-field-tabs" role="tablist" aria-label="接口字段类型">
+                    <button class="transaction-asset-field-tab active" type="button" role="tab" aria-selected="true" data-field-group="inputFields">输入</button>
+                    <button class="transaction-asset-field-tab" type="button" role="tab" aria-selected="false" data-field-group="outputFields">输出</button>
+                    <button class="transaction-asset-field-tab" type="button" role="tab" aria-selected="false" data-field-group="propertyFields">属性</button>
+                </div>
+                <div class="transaction-asset-field-table-wrap">
+                    <table class="system-table transaction-asset-field-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">字段编码</th>
+                                <th scope="col">字段名称</th>
+                                <th scope="col">字段类型</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-asset-field-table-body">
+                            <tr><td colspan="3" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <div class="transaction-asset-detail-actions">
+                <a class="btn btn-primary" href="{{ url_for('interface_management', tab='transaction-assets') }}">确认</a>
+            </div>
+        </section>
+        {% else %}
+        <section class="management-card transaction-asset-card">
+            <div class="management-panel">
+                <div id="transaction-asset-feedback" class="alert system-feedback" role="status" hidden></div>
+                <form id="transaction-asset-filters" class="transaction-asset-filters">
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-system">系统</label>
+                        <select id="transaction-asset-system" class="form-control" name="systemId"><option value="">请选择</option></select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-application">应用名称</label>
+                        <select id="transaction-asset-application" class="form-control" name="appId"><option value="">请选择</option></select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-app-snapshot">应用快照ID</label>
+                        <select id="transaction-asset-app-snapshot" class="form-control" name="appSnapshotId"><option value="">请选择</option></select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-module-snapshot">模块快照ID</label>
+                        <select id="transaction-asset-module-snapshot" class="form-control" name="moduleSnapshotId"><option value="">请选择</option></select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-type">资产类型</label>
+                        <select id="transaction-asset-type" class="form-control" name="assetType">
+                            <option value="">请选择</option>
+                            <option value="TXS">TXS</option>
+                            <option value="APS">APS</option>
+                        </select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-status">状态</label>
+                        <select id="transaction-asset-status" class="form-control" name="status">
+                            <option value="">请选择</option>
+                            <option value="DRAFT">草稿</option>
+                            <option value="IDENTIFIED">已识别</option>
+                            <option value="CONFIRMED">已确认</option>
+                            <option value="PUBLISHED">已发布</option>
+                            <option value="DEPRECATED">已废弃</option>
+                            <option value="OFFLINE">已下线</option>
+                        </select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-exposed">是否对外暴露</label>
+                        <select id="transaction-asset-exposed" class="form-control" name="exposed">
+                            <option value="">请选择</option>
+                            <option value="true">是</option>
+                            <option value="false">否</option>
+                        </select>
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-app-version">应用版本号</label>
+                        <input id="transaction-asset-app-version" class="form-control" name="appVersion" type="search" maxlength="500" placeholder="请输入" autocomplete="off">
+                    </div>
+                    <div class="transaction-asset-filter">
+                        <label for="transaction-asset-revision-no">修订号</label>
+                        <input id="transaction-asset-revision-no" class="form-control" name="revisionNo" type="search" maxlength="100" placeholder="请输入" autocomplete="off">
+                    </div>
+                    <div class="transaction-asset-filter transaction-asset-keyword-filter">
+                        <label for="transaction-asset-keyword">关键字</label>
+                        <input id="transaction-asset-keyword" class="form-control" name="keyword" type="search" maxlength="500" placeholder="请输入" autocomplete="off">
+                        <button id="transaction-asset-search" class="interface-inline-search-button" type="submit" aria-label="搜索交易资产"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    </div>
+                </form>
+                <div class="transaction-asset-table-wrap">
+                    <table class="system-table transaction-asset-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">资产编码</th>
+                                <th scope="col">资产名称</th>
+                                <th scope="col">资产类型</th>
+                                <th scope="col">模块快照ID</th>
+                                <th scope="col">应用版本号</th>
+                                <th scope="col">修订号</th>
+                                <th scope="col">状态</th>
+                                <th scope="col" class="transaction-asset-actions-column">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-asset-table-body">
+                            <tr><td colspan="8" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="交易资产列表分页">
+                    <span>共 <strong id="transaction-asset-total">0</strong> 条</span>
+                    <label class="sr-only" for="transaction-asset-page-size">每页条数</label>
+                    <select id="transaction-asset-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="transaction-asset-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="transaction-asset-current-page" class="current-page">1</span>
+                    <button id="transaction-asset-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="transaction-asset-page-jump">前往</label>
+                    <input id="transaction-asset-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+        </section>
+        {% endif %}
     {% elif active_tab.slug == "asset-relations" %}
         <section class="management-card asset-relation-card">
             <div class="management-panel">
@@ -503,6 +650,154 @@
                 </div>
             </div>
         </section>
+    {% elif active_tab.slug == "audit-issues" %}
+        <section class="management-card audit-log-card">
+            <div class="management-panel">
+                <div id="audit-log-feedback" class="alert system-feedback" role="status" hidden></div>
+                <form id="audit-log-filter-form" class="audit-log-toolbar">
+                    <div class="audit-log-type-filter">
+                        <label class="sr-only" for="audit-log-action-type">审计类型</label>
+                        <select id="audit-log-action-type" class="form-control" name="actionType">
+                            <option value="">请选择类型</option>
+                            <option value="ASSET_CONFIRM">资产确认</option>
+                            <option value="SCAN_TASK_DELETE">扫描任务删除</option>
+                            <option value="APPLICATION_DELETE">应用删除</option>
+                            <option value="SYSTEM_DELETE">系统删除</option>
+                            <option value="SNAPSHOT_DELETE">快照删除</option>
+                        </select>
+                    </div>
+                    <div class="audit-log-operator-filter">
+                        <label class="sr-only" for="audit-log-operator">搜索操作人</label>
+                        <input id="audit-log-operator" class="form-control" name="operator" type="search" maxlength="300" placeholder="搜索操作人" autocomplete="off">
+                        <button id="audit-log-search" class="interface-inline-search-button" type="submit" aria-label="搜索审计问题"><i class="fas fa-search" aria-hidden="true"></i></button>
+                    </div>
+                    <div class="audit-log-date-filter">
+                        <label class="sr-only" for="audit-log-start-time">开始时间</label>
+                        <input id="audit-log-start-time" class="form-control" name="startTime" type="datetime-local" aria-label="开始时间">
+                        <span aria-hidden="true">至</span>
+                        <label class="sr-only" for="audit-log-end-time">结束时间</label>
+                        <input id="audit-log-end-time" class="form-control" name="endTime" type="datetime-local" aria-label="结束时间">
+                    </div>
+                    <button id="audit-log-delete-batch" class="btn btn-primary audit-log-batch-delete" type="button" disabled><i class="fas fa-trash-alt" aria-hidden="true"></i> 批量删除</button>
+                </form>
+                <div class="audit-log-table-wrap">
+                    <table class="system-table audit-log-table">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="audit-log-selection-column"><input id="audit-log-select-all" type="checkbox" aria-label="选择当前页全部审计记录"></th>
+                                <th scope="col">类型</th>
+                                <th scope="col">名称</th>
+                                <th scope="col">操作人</th>
+                                <th scope="col">时间</th>
+                                <th scope="col" class="audit-log-actions-column">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-log-table-body">
+                            <tr><td colspan="6" class="system-table-state"><i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i> 正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="system-pagination" aria-label="审计问题列表分页">
+                    <span>共 <strong id="audit-log-total">0</strong> 条</span>
+                    <label class="sr-only" for="audit-log-page-size">每页条数</label>
+                    <select id="audit-log-page-size" class="form-control">
+                        <option value="10">10条/页</option>
+                        <option value="20">20条/页</option>
+                        <option value="30">30条/页</option>
+                        <option value="40">40条/页</option>
+                    </select>
+                    <button id="audit-log-prev-page" class="btn btn-action" type="button" aria-label="上一页"><i class="fas fa-chevron-left" aria-hidden="true"></i></button>
+                    <span id="audit-log-current-page" class="current-page">1</span>
+                    <button id="audit-log-next-page" class="btn btn-action" type="button" aria-label="下一页"><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+                    <label for="audit-log-page-jump">前往</label>
+                    <input id="audit-log-page-jump" class="form-control" type="number" min="1" value="1" inputmode="numeric">
+                    <span class="page-unit">页</span>
+                </div>
+            </div>
+        </section>
+        <div id="audit-log-confirm-backdrop" class="audit-log-confirm-backdrop" hidden>
+            <section class="audit-log-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="audit-log-confirm-title" aria-describedby="audit-log-confirm-message">
+                <div class="audit-log-confirm-icon" aria-hidden="true"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="audit-log-confirm-copy">
+                    <h2 id="audit-log-confirm-title">确认删除</h2>
+                    <p id="audit-log-confirm-message">删除后无法恢复，是否继续？</p>
+                </div>
+                <div class="audit-log-confirm-actions">
+                    <button id="audit-log-confirm-cancel" class="btn btn-action" type="button">取消</button>
+                    <button id="audit-log-confirm-submit" class="btn btn-danger" type="button">确认删除</button>
+                </div>
+            </section>
+        </div>
+    {% elif active_tab.slug == "version-comparison" %}
+        <section class="version-comparison-page">
+            <div class="version-comparison-filter-card">
+                <h1>版本对比</h1>
+                <div id="version-comparison-feedback" class="alert system-feedback" role="status" hidden></div>
+                <div class="version-comparison-application-row">
+                    <label for="version-comparison-application">应用</label>
+                    <select id="version-comparison-application" class="form-control">
+                        <option value="">请选择</option>
+                    </select>
+                </div>
+                <div class="version-comparison-snapshot-grid">
+                    <div class="version-comparison-snapshot-field">
+                        <label for="version-comparison-left-snapshot" class="required">左侧</label>
+                        <select id="version-comparison-left-snapshot" class="form-control" disabled>
+                            <option value="">请选择</option>
+                        </select>
+                    </div>
+                    <div class="version-comparison-snapshot-field">
+                        <label for="version-comparison-right-snapshot" class="required">右侧</label>
+                        <select id="version-comparison-right-snapshot" class="form-control" disabled>
+                            <option value="">请选择</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="version-comparison-results" class="version-comparison-results" hidden>
+                <div class="version-comparison-summary-grid">
+                    <article class="version-comparison-summary-card">
+                        <span>接口定义变化</span>
+                        <strong id="version-comparison-definition-count">0</strong>
+                    </article>
+                    <article class="version-comparison-summary-card">
+                        <span>接口字段变化</span>
+                        <strong id="version-comparison-field-count">0</strong>
+                    </article>
+                </div>
+                <section class="version-comparison-detail-card">
+                    <div class="version-comparison-detail-header">
+                        <div>
+                            <h2>差异明细</h2>
+                            <p id="version-comparison-versions"></p>
+                        </div>
+                        <span id="version-comparison-change-total" class="version-comparison-change-total">共 0 项</span>
+                    </div>
+                    <div id="version-comparison-change-list" class="version-comparison-change-list"></div>
+                </section>
+            </div>
+        </section>
+        <div id="version-comparison-detail-backdrop" class="version-comparison-detail-backdrop" hidden>
+            <section class="version-comparison-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="version-comparison-detail-title">
+                <header>
+                    <div>
+                        <h2 id="version-comparison-detail-title">差异详情</h2>
+                        <p id="version-comparison-detail-description"></p>
+                    </div>
+                    <button id="version-comparison-detail-close" class="system-drawer-close" type="button" aria-label="关闭"><i class="fas fa-times" aria-hidden="true"></i></button>
+                </header>
+                <div class="version-comparison-detail-columns">
+                    <section class="version-comparison-side before-side">
+                        <h3><i class="fas fa-minus-circle" aria-hidden="true"></i> 修改前</h3>
+                        <dl id="version-comparison-before"></dl>
+                    </section>
+                    <section class="version-comparison-side after-side">
+                        <h3><i class="fas fa-plus-circle" aria-hidden="true"></i> 修改后</h3>
+                        <dl id="version-comparison-after"></dl>
+                    </section>
+                </div>
+            </section>
+        </div>
     {% elif active_tab.slug == "api-gateway" %}
         <section class="management-card api-gateway-card">
             <div class="management-panel">
@@ -613,6 +908,7 @@ window.interfaceScanTasksConfig = {
 <script>
 window.interfaceApplicationSnapshotsConfig = {
     snapshotsUrl: {{ url_for('interface_application_snapshots') | tojson }},
+    deleteSnapshotUrlTemplate: {{ url_for('interface_application_snapshot_delete', snapshot_id='__SNAPSHOT_ID__') | tojson }},
     applicationsUrl: {{ url_for('interface_applications') | tojson }},
     moduleSnapshotsUrl: {{ url_for('interface_management', tab='module-snapshots') | tojson }},
     comparisonUrl: {{ url_for('interface_management', tab='version-comparison') | tojson }},
@@ -633,6 +929,23 @@ window.interfaceModuleSnapshotsConfig = {
 };
 </script>
 <script src="{{ url_for('static', filename='js/module-snapshot-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "transaction-assets" %}
+<script>
+window.interfaceTransactionAssetsConfig = {
+    mode: {{ ('detail' if transaction_asset_id else 'list') | tojson }},
+    assetsUrl: {{ url_for('interface_transaction_assets') | tojson }},
+    assetUrlTemplate: {{ url_for('interface_transaction_asset', asset_id='__ASSET_ID__') | tojson }},
+    detailPageUrlTemplate: {{ url_for('interface_transaction_asset_detail', asset_id='__ASSET_ID__') | tojson }},
+    listPageUrl: {{ url_for('interface_management', tab='transaction-assets') | tojson }},
+    systemsUrl: {{ url_for('interface_systems') | tojson }},
+    applicationsUrl: {{ url_for('interface_applications') | tojson }},
+    applicationSnapshotListUrl: {{ url_for('interface_application_snapshots') | tojson }},
+    moduleSnapshotsUrl: {{ url_for('interface_module_snapshots') | tojson }},
+    assetId: {{ transaction_asset_id | tojson }},
+    initialFilters: {{ transaction_asset_filters | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/transaction-asset-management.js') | debug_unixtime }}"></script>
 {% elif active_tab.slug == "asset-relations" %}
 <script>
 window.interfaceAssetRelationsConfig = {
@@ -641,6 +954,28 @@ window.interfaceAssetRelationsConfig = {
 };
 </script>
 <script src="{{ url_for('static', filename='js/asset-relation-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "audit-issues" %}
+<script>
+window.interfaceAuditLogsConfig = {
+    logsUrl: {{ url_for('interface_audit_logs') | tojson }},
+    logUrlTemplate: {{ url_for('interface_audit_log_delete', log_id='__LOG_ID__') | tojson }},
+    batchDeleteUrl: {{ url_for('interface_audit_logs_delete_batch') | tojson }},
+    initialFilters: {{ audit_log_filters | tojson }},
+    csrfToken: {{ csrf_token() | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/audit-log-management.js') | debug_unixtime }}"></script>
+{% elif active_tab.slug == "version-comparison" %}
+<script>
+window.interfaceVersionComparisonConfig = {
+    applicationsUrl: {{ url_for('interface_applications') | tojson }},
+    snapshotOptionsUrlTemplate: {{ url_for('interface_snapshot_options', app_id='__APP_ID__') | tojson }},
+    snapshotDiffsUrl: {{ url_for('interface_snapshot_diff') | tojson }},
+    initialAppId: {{ version_comparison_app_id | tojson }},
+    initialAppVersion: {{ version_comparison_app_version | tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/version-comparison.js') | debug_unixtime }}"></script>
 {% elif active_tab.slug == "api-gateway" %}
 <script>
 window.interfaceApiGatewayConfig = {

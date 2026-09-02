@@ -35,7 +35,7 @@ def test_interface_pages_reject_non_admin(other_client):
     assert other_client.get("/-/interface/api/applications").status_code == 403
     assert other_client.get("/-/interface/api/scan-tasks").status_code == 403
     assert (
-        other_client.get("/-/interface/api/application-snapshots").status_code
+        other_client.get("/-/interface/api/snapshot/appList").status_code
         == 403
     )
     assert (
@@ -47,6 +47,43 @@ def test_interface_pages_reject_non_admin(other_client):
     )
     assert (
         other_client.get("/-/interface/api/api-gateway-assets").status_code
+        == 403
+    )
+    assert (
+        other_client.get("/-/interface/api/transaction-assets").status_code
+        == 403
+    )
+    assert (
+        other_client.get(
+            "/-/interface/api/transaction-assets/asset-1"
+        ).status_code
+        == 403
+    )
+    assert (
+        other_client.get("/-/interface/transaction-assets/asset-1").status_code
+        == 403
+    )
+    assert (
+        other_client.get(
+            "/-/interface/api/applications/app-1/snapshot-options"
+        ).status_code
+        == 403
+    )
+    assert (
+        other_client.get(
+            "/-/interface/api/snapshot-diffs"
+            "?leftSnapshotId=snap-1&rightSnapshotId=snap-2"
+        ).status_code
+        == 403
+    )
+    token = _csrf_token(other_client)
+    assert (
+        other_client.open(
+            "/-/interface/api/audit-logs",
+            method="POST",
+            json={"pageNo": 1, "pageSize": 10},
+            headers={"X-CSRFToken": token},
+        ).status_code
         == 403
     )
 
@@ -138,6 +175,8 @@ def test_application_snapshot_page_has_filters_table_and_pagination(
     assert 'id="application-snapshot-page-size"' in html
     assert "application-snapshot-management.js" in html
     assert "table-column-resize.js" in html
+    assert 'snapshotsUrl: "/-/interface/api/snapshot/appList"' in html
+    assert "deleteSnapshotUrlTemplate:" in html
     assert 'initialAppId: "app-1"' in html
     assert 'initialAppVersion: "1.2.3"' in html
     assert html.count('<th scope="col"') == 10
@@ -159,6 +198,68 @@ def test_module_snapshot_page_has_filters_table_and_pagination(admin_client):
     assert 'initialAppId: "app-1"' in html
     assert 'initialAppSnapshotId: "snap-2"' in html
     assert html.count('<th scope="col"') == 7
+
+
+def test_transaction_asset_page_has_filters_table_and_pagination(
+    admin_client,
+):
+    response = admin_client.get(
+        "/-/interface/transaction-assets"
+        "?moduleSnapshotId=module-snap-1&assetType=TXS"
+        "&status=CONFIRMED&exposed=true&keyword=payment"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    for element_id in (
+        "transaction-asset-system",
+        "transaction-asset-application",
+        "transaction-asset-app-snapshot",
+        "transaction-asset-module-snapshot",
+        "transaction-asset-type",
+        "transaction-asset-status",
+        "transaction-asset-exposed",
+        "transaction-asset-app-version",
+        "transaction-asset-revision-no",
+        "transaction-asset-keyword",
+        "transaction-asset-table-body",
+        "transaction-asset-page-size",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "transaction-asset-management.js" in html
+    assert "table-column-resize.js" in html
+    assert (
+        'applicationSnapshotListUrl: "/-/interface/api/snapshot/appList"'
+        in html
+    )
+    assert "applicationSnapshotsUrl:" not in html
+    assert '"moduleSnapshotId": "module-snap-1"' in html
+    assert '"assetType": "TXS"' in html
+    assert '"status": "CONFIRMED"' in html
+    assert '"exposed": "true"' in html
+    assert '"keyword": "payment"' in html
+    assert html.count('<th scope="col"') == 8
+
+
+def test_transaction_asset_detail_page_has_basic_info_and_field_tabs(
+    admin_client,
+):
+    response = admin_client.get(
+        "/-/interface/transaction-assets/asset-txs-pay-create-r2"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert 'id="transaction-asset-detail-title"' in html
+    assert 'id="transaction-detail-asset-code"' in html
+    assert 'id="transaction-detail-source-file"' in html
+    assert 'data-field-group="inputFields"' in html
+    assert 'data-field-group="outputFields"' in html
+    assert 'data-field-group="propertyFields"' in html
+    assert 'id="transaction-asset-field-table-body"' in html
+    assert 'mode: "detail"' in html
+    assert 'assetId: "asset-txs-pay-create-r2"' in html
+    assert html.count('<th scope="col"') == 3
 
 
 def test_asset_relation_page_has_search_table_and_pagination(admin_client):
@@ -197,6 +298,66 @@ def test_api_gateway_page_has_filters_table_and_pagination(admin_client):
     assert 'initialAssetName: "查询"' in html
     assert 'initialStatus: "published"' in html
     assert html.count('<th scope="col"') == 3
+
+
+def test_audit_log_page_has_filters_selection_table_and_confirmation(
+    admin_client,
+):
+    response = admin_client.get(
+        "/-/interface/audit-issues"
+        "?actionType=SYSTEM_DELETE&operator=admin"
+        "&startTime=2026-09-01T08:00&endTime=2026-09-02T18:00"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    for element_id in (
+        "audit-log-action-type",
+        "audit-log-operator",
+        "audit-log-start-time",
+        "audit-log-end-time",
+        "audit-log-delete-batch",
+        "audit-log-select-all",
+        "audit-log-table-body",
+        "audit-log-page-size",
+        "audit-log-confirm-backdrop",
+        "audit-log-confirm-submit",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "audit-log-management.js" in html
+    assert "table-column-resize.js" in html
+    assert '"actionType": "SYSTEM_DELETE"' in html
+    assert '"operator": "admin"' in html
+    assert '"startTime": "2026-09-01T08:00"' in html
+    assert '"endTime": "2026-09-02T18:00"' in html
+    assert html.count('<th scope="col"') == 6
+
+
+def test_version_comparison_page_has_linked_selectors_summary_and_detail(
+    admin_client,
+):
+    response = admin_client.get(
+        "/-/interface/version-comparison?appId=app-1&appVersion=1.2.3"
+    )
+
+    assert response.status_code == 200
+    html = response.data.decode()
+    for element_id in (
+        "version-comparison-application",
+        "version-comparison-left-snapshot",
+        "version-comparison-right-snapshot",
+        "version-comparison-definition-count",
+        "version-comparison-field-count",
+        "version-comparison-change-list",
+        "version-comparison-detail-backdrop",
+        "version-comparison-before",
+        "version-comparison-after",
+    ):
+        assert f'id="{element_id}"' in html
+    assert "version-comparison.js" in html
+    assert 'initialAppId: "app-1"' in html
+    assert 'initialAppVersion: "1.2.3"' in html
+    assert "页面结构已就绪" not in html
 
 
 def test_application_management_has_two_subtabs(admin_client):
@@ -238,6 +399,20 @@ def test_dashboard_summary_uses_idp_endpoint(create_app):
     assert (
         interface_api.dashboard_summary_url()
         == "http://localhost:9988/idp/api/dashboard/summary"
+    )
+
+
+def test_application_snapshots_use_exact_idp_endpoint(create_app):
+    import otterwiki.interface_management as interface_api
+
+    create_app.config["APSTACK_API_BASE_URL"] = "http://localhost:9988/"
+
+    assert interface_api.api_url(
+        interface_api.APPLICATION_SNAPSHOTS_PATH,
+        {"pageNo": 1, "pageSize": 10},
+    ) == (
+        "http://localhost:9988/idp/api/snapshot/appList"
+        "?pageNo=1&pageSize=10"
     )
 
 
@@ -617,7 +792,7 @@ def test_application_snapshot_list_forwards_filters_and_normalises_fields(
 
     monkeypatch.setattr(interface_api, "request_api_json", fake_request)
     response = admin_client.get(
-        "/-/interface/api/application-snapshots"
+        "/-/interface/api/snapshot/appList"
         "?appId=app-1&appVersion=1.2.3&pageNo=2&pageSize=20"
     )
 
@@ -626,7 +801,7 @@ def test_application_snapshot_list_forwards_filters_and_normalises_fields(
     assert calls == [
         (
             "GET",
-            "/idp/api/snapshot/applist",
+            "/idp/api/snapshot/appList",
             {
                 "pageNo": 2,
                 "pageSize": 20,
@@ -801,6 +976,184 @@ def test_asset_relation_list_forwards_filter_and_normalises_nested_relation(
         "matchRule": "service_name",
         "relAttrsJson": '{"serviceName":"DirectInnerAps"}',
     }
+
+
+def test_transaction_asset_list_forwards_filters_and_normalises_fields(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "content": [
+                    {
+                        "id": "asset-1",
+                        "asset_code": "paymentCreate",
+                        "asset_name": "支付交易创建",
+                        "assetType": "TXS",
+                        "moduleSnapshotId": "module-snap-1",
+                        "appVersion": "8.7.0.2-RC-prog",
+                        "revisionNo": 2,
+                        "lifecycleStatus": "CONFIRMED",
+                        "unused": "discard",
+                    }
+                ],
+                "totalElements": 1,
+                "pageNo": 3,
+                "pageSize": 20,
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/transaction-assets"
+        "?systemId=sys-1&appId=app-1&appSnapshotId=app-snap-1"
+        "&moduleSnapshotId=module-snap-1&assetType=TXS"
+        "&status=CONFIRMED&exposed=true&appVersion=8.7.0.2"
+        "&revisionNo=2&keyword=payment&pageNo=3&pageSize=20"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/assets",
+            {
+                "pageNo": 3,
+                "pageSize": 20,
+                "systemId": "sys-1",
+                "appId": "app-1",
+                "appSnapshotId": "app-snap-1",
+                "moduleSnapshotId": "module-snap-1",
+                "assetType": "TXS",
+                "status": "CONFIRMED",
+                "exposed": "true",
+                "appVersion": "8.7.0.2",
+                "revisionNo": "2",
+                "keyword": "payment",
+            },
+            None,
+        )
+    ]
+    assert response.json["data"] == {
+        "records": [
+            {
+                "assetId": "asset-1",
+                "assetCode": "paymentCreate",
+                "assetName": "支付交易创建",
+                "assetType": "TXS",
+                "moduleSnapshotId": "module-snap-1",
+                "appVersion": "8.7.0.2-RC-prog",
+                "revisionNo": "2",
+                "status": "CONFIRMED",
+            }
+        ],
+        "total": 1,
+        "pageNo": 3,
+        "pageSize": 20,
+    }
+
+
+def test_transaction_asset_detail_normalises_basic_info_and_fields(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "basicInfo": {
+                    "id": "asset 1",
+                    "assetCode": "paymentCreate",
+                    "assetName": "支付交易创建",
+                    "assetType": "TXS",
+                    "moduleSnapshotId": "module-snap-1",
+                    "appName": "支付应用",
+                    "appVersion": "8.7.0.2-RC-prog",
+                    "revisionNo": 2,
+                    "sourceFilePath": "service/payment.xml",
+                    "unused": "discard",
+                },
+                "inputParams": [
+                    {
+                        "code": "account_no",
+                        "displayName": "账户号",
+                        "dataType": "String",
+                        "unused": "discard",
+                    }
+                ],
+                "outputFields": [
+                    {
+                        "fieldCode": "result_code",
+                        "fieldName": "结果码",
+                        "fieldType": "String",
+                    }
+                ],
+                "attributes": [],
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/transaction-assets/asset%201"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [("GET", "/idp/api/assets/asset%201", None, None)]
+    assert response.json["data"] == {
+        "assetId": "asset 1",
+        "assetCode": "paymentCreate",
+        "assetName": "支付交易创建",
+        "assetType": "TXS",
+        "moduleSnapshotId": "module-snap-1",
+        "applicationName": "支付应用",
+        "appVersion": "8.7.0.2-RC-prog",
+        "revisionNo": "2",
+        "sourceFile": "service/payment.xml",
+        "inputFields": [
+            {
+                "fieldCode": "account_no",
+                "fieldName": "账户号",
+                "fieldType": "String",
+            }
+        ],
+        "outputFields": [
+            {
+                "fieldCode": "result_code",
+                "fieldName": "结果码",
+                "fieldType": "String",
+            }
+        ],
+        "propertyFields": [],
+    }
+
+
+def test_transaction_asset_list_rejects_invalid_enum_filter(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    def unexpected_request(*args, **kwargs):
+        raise AssertionError("invalid filters must not reach the external API")
+
+    monkeypatch.setattr(interface_api, "request_api_json", unexpected_request)
+    response = admin_client.get(
+        "/-/interface/api/transaction-assets?status=UNKNOWN"
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"code": 400, "msg": "资产状态筛选值无效。"}
 
 
 def test_api_gateway_list_forwards_filters_and_normalises_fields(
@@ -1098,6 +1451,361 @@ def test_scan_task_upload_rejects_non_gzip(admin_client):
 
     assert response.status_code == 400
     assert response.json["msg"] == "只能上传 .gz 文件。"
+
+
+def test_audit_log_list_posts_filters_and_normalises_fields(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "content": [
+                    {
+                        "auditLogId": "log-1",
+                        "actionType": "SYSTEM_DELETE",
+                        "targetName": "测试系统",
+                        "operator": "admin",
+                        "createTime": "2026-09-02T14:25:15",
+                        "unused": "discard",
+                    }
+                ],
+                "totalElements": 17,
+                "pageNo": 2,
+                "pageSize": 20,
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.open(
+        "/-/interface/api/audit-logs",
+        method="POST",
+        json={
+            "pageNo": 2,
+            "pageSize": 20,
+            "actionType": "SYSTEM_DELETE",
+            "operator": " admin ",
+            "startTime": "2026-09-01T08:00",
+            "endTime": "2026-09-02T18:00",
+            "ignored": "value",
+        },
+        headers={"X-CSRFToken": _csrf_token(admin_client)},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "POST",
+            "/idp/api/audit/logs",
+            None,
+            {
+                "pageNo": 2,
+                "pageSize": 20,
+                "actionType": "SYSTEM_DELETE",
+                "operator": "admin",
+                "startTime": "2026-09-01T08:00",
+                "endTime": "2026-09-02T18:00",
+            },
+        )
+    ]
+    assert response.json["data"] == {
+        "records": [
+            {
+                "logId": "log-1",
+                "actionType": "SYSTEM_DELETE",
+                "targetName": "测试系统",
+                "operator": "admin",
+                "createdAt": "2026-09-02T14:25:15",
+            }
+        ],
+        "total": 17,
+        "pageNo": 2,
+        "pageSize": 20,
+    }
+
+
+def test_audit_log_delete_and_batch_delete_forward_ids(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {"code": 200, "msg": "success", "data": {}}
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    token = _csrf_token(admin_client)
+    delete_response = admin_client.open(
+        "/-/interface/api/audit-logs/log%201",
+        method="DELETE",
+        headers={"X-CSRFToken": token},
+    )
+    batch_response = admin_client.open(
+        "/-/interface/api/audit-logs/delete-batch",
+        method="POST",
+        json={"logIds": [" log-1 ", "log-2", "log-1", ""]},
+        headers={"X-CSRFToken": token},
+    )
+
+    assert delete_response.status_code == 200
+    assert batch_response.status_code == 200
+    assert calls == [
+        ("DELETE", "/idp/api/audit/logs/log%201", None, None),
+        (
+            "POST",
+            "/idp/api/audit/logs/delete-batch",
+            None,
+            {"logIds": ["log-1", "log-2"]},
+        ),
+    ]
+
+
+def test_audit_log_list_rejects_unknown_action_type(admin_client, monkeypatch):
+    import otterwiki.interface_management as interface_api
+
+    def unexpected_request(*args, **kwargs):
+        raise AssertionError("invalid filters must not reach the external API")
+
+    monkeypatch.setattr(interface_api, "request_api_json", unexpected_request)
+    response = admin_client.open(
+        "/-/interface/api/audit-logs",
+        method="POST",
+        json={"pageNo": 1, "pageSize": 10, "actionType": "UNKNOWN"},
+        headers={"X-CSRFToken": _csrf_token(admin_client)},
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"code": 400, "msg": "审计类型筛选值无效。"}
+
+
+def test_audit_log_batch_delete_requires_ids(admin_client, monkeypatch):
+    import otterwiki.interface_management as interface_api
+
+    def unexpected_request(*args, **kwargs):
+        raise AssertionError("empty selection must not reach the external API")
+
+    monkeypatch.setattr(interface_api, "request_api_json", unexpected_request)
+    response = admin_client.open(
+        "/-/interface/api/audit-logs/delete-batch",
+        method="POST",
+        json={"logIds": []},
+        headers={"X-CSRFToken": _csrf_token(admin_client)},
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"code": 400, "msg": "请选择要删除的审计记录。"}
+
+
+def test_snapshot_options_use_app_id_and_normalise_labels(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": [
+                {
+                    "snapshotId": "snap-2",
+                    "appId": "app 1",
+                    "appName": "核心应用",
+                    "appVersion": "1.2.3",
+                    "revisionNo": 2,
+                    "label": "1.2.3 #2",
+                    "current": True,
+                    "createdAt": "2026-09-02T14:00:00",
+                    "unused": "discard",
+                },
+                {
+                    "appSnapshotId": "snap-1",
+                    "appVersion": "1.2.3",
+                    "revisionNo": 1,
+                },
+            ],
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/applications/app%201/snapshot-options"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/snapshot/app%201/snapshot-options",
+            None,
+            None,
+        )
+    ]
+    assert response.json["data"] == [
+        {
+            "snapshotId": "snap-2",
+            "appId": "app 1",
+            "appName": "核心应用",
+            "appVersion": "1.2.3",
+            "revisionNo": "2",
+            "label": "1.2.3 #2",
+            "current": True,
+            "createdAt": "2026-09-02T14:00:00",
+        },
+        {
+            "snapshotId": "snap-1",
+            "appId": "",
+            "appName": "",
+            "appVersion": "1.2.3",
+            "revisionNo": "1",
+            "label": "1.2.3 #1",
+            "current": False,
+            "createdAt": "",
+        },
+    ]
+
+
+def test_snapshot_diff_forwards_ids_and_normalises_dimension_details(
+    admin_client, monkeypatch
+):
+    import otterwiki.interface_management as interface_api
+
+    calls = []
+
+    def fake_request(method, path, *, query=None, json_body=None):
+        calls.append((method, path, query, json_body))
+        return {
+            "code": 200,
+            "data": {
+                "leftSnapshotId": "snap-1",
+                "rightSnapshotId": "snap-2",
+                "leftVersion": "1.2.2",
+                "rightVersion": "1.2.3",
+                "summary": {
+                    "tradeApiDefChangeCount": 1,
+                    "tradeApiFieldChangeCount": 1,
+                },
+                "changes": [
+                    {
+                        "changeType": "MODIFIED",
+                        "dimension": "TRADE_API_DEF",
+                        "key": "paymentCreate",
+                        "changeDescription": "接口路径发生变化",
+                        "before": {
+                            "apiName": "支付创建",
+                            "apiType": "TXS",
+                            "sourceFilePath": "old/payment.xml",
+                        },
+                        "after": {
+                            "assetName": "支付创建",
+                            "assetType": "TXS",
+                            "xmlPath": "new/payment.xml",
+                        },
+                    },
+                    {
+                        "changeType": "ADDED",
+                        "dimension": "TRADE_API_FIELD",
+                        "key": "paymentCreate.result",
+                        "description": "新增返回字段",
+                        "before": None,
+                        "after": {
+                            "fieldName": "result",
+                            "dataType": "String",
+                            "isRequired": True,
+                            "isMultiple": "false",
+                            "isArray": 0,
+                        },
+                    },
+                ],
+            },
+        }
+
+    monkeypatch.setattr(interface_api, "request_api_json", fake_request)
+    response = admin_client.get(
+        "/-/interface/api/snapshot-diffs"
+        "?leftSnapshotId=snap-1&rightSnapshotId=snap-2"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert calls == [
+        (
+            "GET",
+            "/idp/api/snapshot/diffs",
+            {
+                "leftSnapshotId": "snap-1",
+                "rightSnapshotId": "snap-2",
+            },
+            None,
+        )
+    ]
+    assert response.json["data"] == {
+        "leftSnapshotId": "snap-1",
+        "rightSnapshotId": "snap-2",
+        "leftVersion": "1.2.2",
+        "rightVersion": "1.2.3",
+        "summary": {
+            "tradeApiDefChangeCount": 1,
+            "tradeApiFieldChangeCount": 1,
+        },
+        "changes": [
+            {
+                "changeType": "MODIFIED",
+                "dimension": "TRADE_API_DEF",
+                "key": "paymentCreate",
+                "changeDescription": "接口路径发生变化",
+                "before": {
+                    "interfaceName": "支付创建",
+                    "interfaceType": "TXS",
+                    "xmlPath": "old/payment.xml",
+                },
+                "after": {
+                    "interfaceName": "支付创建",
+                    "interfaceType": "TXS",
+                    "xmlPath": "new/payment.xml",
+                },
+            },
+            {
+                "changeType": "ADDED",
+                "dimension": "TRADE_API_FIELD",
+                "key": "paymentCreate.result",
+                "changeDescription": "新增返回字段",
+                "before": None,
+                "after": {
+                    "fieldName": "result",
+                    "fieldType": "String",
+                    "required": True,
+                    "multiple": False,
+                    "array": False,
+                },
+            },
+        ],
+    }
+
+
+def test_snapshot_diff_rejects_same_snapshot(admin_client, monkeypatch):
+    import otterwiki.interface_management as interface_api
+
+    def unexpected_request(*args, **kwargs):
+        raise AssertionError("invalid comparison must not reach external API")
+
+    monkeypatch.setattr(interface_api, "request_api_json", unexpected_request)
+    response = admin_client.get(
+        "/-/interface/api/snapshot-diffs"
+        "?leftSnapshotId=snap-1&rightSnapshotId=snap-1"
+    )
+
+    assert response.status_code == 400
+    assert response.json == {"code": 400, "msg": "左右快照不能相同。"}
 
 
 def test_normalise_dashboard_summary_discards_unused_fields(create_app):

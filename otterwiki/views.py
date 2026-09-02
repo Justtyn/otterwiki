@@ -412,10 +412,31 @@ def interface_management(tab="workbench"):
     snapshot_app_version = ""
     module_app_id = ""
     module_app_snapshot_id = ""
+    version_comparison_app_id = ""
+    version_comparison_app_version = ""
+    transaction_asset_id = ""
+    transaction_asset_filters = {
+        "systemId": "",
+        "appId": "",
+        "appSnapshotId": "",
+        "moduleSnapshotId": "",
+        "assetType": "",
+        "status": "",
+        "exposed": "",
+        "appVersion": "",
+        "revisionNo": "",
+        "keyword": "",
+    }
     asset_relation_code = ""
     gateway_asset_code = ""
     gateway_asset_name = ""
     gateway_asset_status = ""
+    audit_log_filters = {
+        "actionType": "",
+        "operator": "",
+        "startTime": "",
+        "endTime": "",
+    }
     if tab == "application-snapshots":
         snapshot_app_id = str(request.args.get("appId", "")).strip()[:200]
         snapshot_app_version = str(request.args.get("appVersion", "")).strip()[
@@ -427,6 +448,47 @@ def interface_management(tab="workbench"):
             request.args.get("appSnapshotId")
             or request.args.get("snapshotId", "")
         ).strip()[:200]
+    elif tab == "version-comparison":
+        version_comparison_app_id = str(request.args.get("appId", "")).strip()[
+            :200
+        ]
+        version_comparison_app_version = str(
+            request.args.get("appVersion", "")
+        ).strip()[:500]
+    elif tab == "transaction-assets":
+        transaction_asset_filters.update(
+            {
+                "systemId": str(request.args.get("systemId", "")).strip()[
+                    :200
+                ],
+                "appId": str(request.args.get("appId", "")).strip()[:200],
+                "appSnapshotId": str(
+                    request.args.get("appSnapshotId", "")
+                ).strip()[:200],
+                "moduleSnapshotId": str(
+                    request.args.get("moduleSnapshotId", "")
+                ).strip()[:200],
+                "appVersion": str(request.args.get("appVersion", "")).strip()[
+                    :500
+                ],
+                "revisionNo": str(request.args.get("revisionNo", "")).strip()[
+                    :100
+                ],
+                "keyword": str(request.args.get("keyword", "")).strip()[:500],
+            }
+        )
+        asset_type = str(request.args.get("assetType", "")).strip()[:30]
+        if (
+            asset_type
+            in otterwiki.interface_management.TRANSACTION_ASSET_TYPES
+        ):
+            transaction_asset_filters["assetType"] = asset_type
+        status = str(request.args.get("status", "")).strip()[:50]
+        if status in otterwiki.interface_management.TRANSACTION_ASSET_STATUSES:
+            transaction_asset_filters["status"] = status
+        exposed = str(request.args.get("exposed", "")).strip().lower()[:10]
+        if exposed in ("true", "false"):
+            transaction_asset_filters["exposed"] = exposed
     elif tab == "asset-relations":
         asset_relation_code = str(request.args.get("assetCode", "")).strip()[
             :500
@@ -441,6 +503,21 @@ def interface_management(tab="workbench"):
         status = str(request.args.get("status", "")).strip()[:50]
         if status in otterwiki.interface_management.API_GATEWAY_ASSET_STATUSES:
             gateway_asset_status = status
+    elif tab == "audit-issues":
+        action_type = str(request.args.get("actionType", "")).strip()[:50]
+        if action_type in otterwiki.interface_management.AUDIT_ACTION_TYPES:
+            audit_log_filters["actionType"] = action_type
+        audit_log_filters.update(
+            {
+                "operator": str(request.args.get("operator", "")).strip()[
+                    :300
+                ],
+                "startTime": str(request.args.get("startTime", "")).strip()[
+                    :100
+                ],
+                "endTime": str(request.args.get("endTime", "")).strip()[:100],
+            }
+        )
     return render_template(
         "interface_management.html",
         title=f"接口管理 - {selected.label}",
@@ -451,10 +528,38 @@ def interface_management(tab="workbench"):
         snapshot_app_version=snapshot_app_version,
         module_app_id=module_app_id,
         module_app_snapshot_id=module_app_snapshot_id,
+        version_comparison_app_id=version_comparison_app_id,
+        version_comparison_app_version=version_comparison_app_version,
+        transaction_asset_id=transaction_asset_id,
+        transaction_asset_filters=transaction_asset_filters,
         asset_relation_code=asset_relation_code,
         gateway_asset_code=gateway_asset_code,
         gateway_asset_name=gateway_asset_name,
         gateway_asset_status=gateway_asset_status,
+        audit_log_filters=audit_log_filters,
+    )
+
+
+@app.route("/-/interface/transaction-assets/<path:asset_id>")
+@login_required
+def interface_transaction_asset_detail(asset_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    selected = next(
+        (
+            item
+            for item in otterwiki.interface_management.INTERFACE_TABS
+            if item.slug == "transaction-assets"
+        ),
+        None,
+    )
+    return render_template(
+        "interface_management.html",
+        title="接口管理 - 交易资产详情",
+        interface_tabs=otterwiki.interface_management.INTERFACE_TABS,
+        active_tab=selected,
+        transaction_asset_id=str(asset_id).strip()[:200],
+        transaction_asset_filters={},
     )
 
 
@@ -764,7 +869,47 @@ def interface_application_package_versions(app_id):
         )
 
 
-@app.route("/-/interface/api/application-snapshots", methods=["GET"])
+@app.route(
+    "/-/interface/api/applications/<path:app_id>/snapshot-options",
+    methods=["GET"],
+)
+@login_required
+def interface_snapshot_options(app_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        data = otterwiki.interface_management.fetch_snapshot_options(app_id)
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/snapshot-diffs", methods=["GET"])
+@login_required
+def interface_snapshot_diff():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        data = otterwiki.interface_management.fetch_snapshot_diff(
+            request.args.get("leftSnapshotId", ""),
+            request.args.get("rightSnapshotId", ""),
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/snapshot/appList", methods=["GET"])
 @login_required
 def interface_application_snapshots():
     if not otterwiki.auth.has_permission("ADMIN"):
@@ -863,6 +1008,61 @@ def interface_asset_relations():
         )
 
 
+@app.route("/-/interface/api/transaction-assets", methods=["GET"])
+@login_required
+def interface_transaction_assets():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        page_no = request.args.get("pageNo", 1, type=int) or 1
+        page_size = request.args.get("pageSize", 10, type=int) or 10
+        page_no = min(max(page_no, 1), 100_000)
+        page_size = min(max(page_size, 1), 100)
+        data = otterwiki.interface_management.fetch_transaction_assets(
+            page_no,
+            page_size,
+            request.args.get("systemId", ""),
+            request.args.get("appId", ""),
+            request.args.get("appSnapshotId", ""),
+            request.args.get("moduleSnapshotId", ""),
+            request.args.get("assetType", ""),
+            request.args.get("status", ""),
+            request.args.get("exposed", ""),
+            request.args.get("appVersion", ""),
+            request.args.get("revisionNo", ""),
+            request.args.get("keyword", ""),
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route(
+    "/-/interface/api/transaction-assets/<path:asset_id>", methods=["GET"]
+)
+@login_required
+def interface_transaction_asset(asset_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        data = otterwiki.interface_management.fetch_transaction_asset_detail(
+            asset_id
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
 @app.route("/-/interface/api/api-gateway-assets", methods=["GET"])
 @login_required
 def interface_api_gateway_assets():
@@ -883,6 +1083,77 @@ def interface_api_gateway_assets():
         response = jsonify({"code": 200, "msg": "成功", "data": data})
         response.headers["Cache-Control"] = "no-store"
         return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/audit-logs", methods=["POST"])
+@login_required
+def interface_audit_logs():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "请求数据格式不正确。", 400
+            )
+        try:
+            page_no = int(payload.get("pageNo", 1))
+            page_size = int(payload.get("pageSize", 10))
+        except (TypeError, ValueError):
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "分页参数无效。", 400
+            )
+        data = otterwiki.interface_management.fetch_audit_logs(
+            payload, page_no, page_size
+        )
+        response = jsonify({"code": 200, "msg": "成功", "data": data})
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/audit-logs/delete-batch", methods=["POST"])
+@login_required
+def interface_audit_logs_delete_batch():
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        payload = otterwiki.interface_management.validate_audit_log_ids(
+            request.get_json(silent=True)
+        )
+        return jsonify(
+            otterwiki.interface_management.request_api_json(
+                "POST",
+                f"{otterwiki.interface_management.AUDIT_LOGS_PATH}/delete-batch",
+                json_body=payload,
+            )
+        )
+    except otterwiki.interface_management.InterfaceAPIError as error:
+        return (
+            jsonify({"code": error.status_code, "msg": str(error)}),
+            error.status_code,
+        )
+
+
+@app.route("/-/interface/api/audit-logs/<path:log_id>", methods=["DELETE"])
+@login_required
+def interface_audit_log_delete(log_id):
+    if not otterwiki.auth.has_permission("ADMIN"):
+        abort(403)
+    try:
+        path = otterwiki.interface_management.audit_log_path(log_id)
+        return jsonify(
+            otterwiki.interface_management.request_api_json("DELETE", path)
+        )
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),

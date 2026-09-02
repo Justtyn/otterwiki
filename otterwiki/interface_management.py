@@ -17,11 +17,29 @@ SYSTEMS_PATH = "/idp/api/systems"
 APPLICATIONS_PATH = "/idp/api/applications"
 SCAN_TASKS_PATH = "/idp/api/scan-tasks"
 SNAPSHOTS_PATH = "/idp/api/snapshot"
-APPLICATION_SNAPSHOTS_PATH = f"{SNAPSHOTS_PATH}/applist"
+APPLICATION_SNAPSHOTS_PATH = f"{SNAPSHOTS_PATH}/appList"
 MODULE_SNAPSHOTS_PATH = f"{SNAPSHOTS_PATH}/moduleList"
+SNAPSHOT_DIFFS_PATH = f"{SNAPSHOTS_PATH}/diffs"
 ASSETS_PATH = "/idp/api/assets"
+TRANSACTION_ASSET_TYPES = ("TXS", "APS")
+TRANSACTION_ASSET_STATUSES = (
+    "DRAFT",
+    "IDENTIFIED",
+    "CONFIRMED",
+    "PUBLISHED",
+    "DEPRECATED",
+    "OFFLINE",
+)
 ASSET_RELATIONS_PATH = f"{ASSETS_PATH}/relations"
 API_GATEWAY_ASSETS_PATH = f"{ASSETS_PATH}/txs"
+AUDIT_LOGS_PATH = "/idp/api/audit/logs"
+AUDIT_ACTION_TYPES = (
+    "ASSET_CONFIRM",
+    "SCAN_TASK_DELETE",
+    "APPLICATION_DELETE",
+    "SYSTEM_DELETE",
+    "SNAPSHOT_DELETE",
+)
 API_GATEWAY_ASSET_STATUSES = (
     "published",
     "downline",
@@ -560,6 +578,222 @@ def application_snapshot_delete_path(snapshot_id: Any) -> str:
     return f"{SNAPSHOTS_PATH}/delete/{quote(value, safe='')}"
 
 
+def snapshot_options_path(app_id: Any) -> str:
+    value = _text(app_id, 200).strip()
+    if not value:
+        raise InterfaceAPIError("缺少应用 ID。", 400)
+    return f"{SNAPSHOTS_PATH}/{quote(value, safe='')}/snapshot-options"
+
+
+def normalise_snapshot_options(payload: Any) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, list):
+        raise InterfaceAPIError("快照选项数据格式不正确。")
+
+    options: list[dict[str, Any]] = []
+    for item in source[:1000]:
+        if not isinstance(item, dict):
+            continue
+        snapshot_id = _text(
+            item.get("snapshotId")
+            or item.get("appSnapshotId")
+            or item.get("id"),
+            200,
+        )
+        if not snapshot_id:
+            continue
+        revision_no = item.get("revisionNo")
+        label = _text(item.get("label"), 600)
+        app_version = _text(item.get("appVersion"), 500)
+        if not label:
+            label = app_version
+            if revision_no not in (None, ""):
+                label = f"{label} #{_text(revision_no, 100)}".strip()
+        options.append(
+            {
+                "snapshotId": snapshot_id,
+                "appId": _text(item.get("appId"), 200),
+                "appName": _text(item.get("appName"), 300),
+                "appVersion": app_version,
+                "revisionNo": _text(revision_no, 100),
+                "label": label or snapshot_id,
+                "current": bool(item.get("current")),
+                "createdAt": _text(
+                    item.get("createdAt") or item.get("createTime"), 100
+                ),
+            }
+        )
+    return options
+
+
+def fetch_snapshot_options(app_id: Any) -> list[dict[str, Any]]:
+    return normalise_snapshot_options(
+        request_api_json("GET", snapshot_options_path(app_id))
+    )
+
+
+def _diff_side_source(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {"value": value}
+        if isinstance(parsed, dict):
+            return parsed
+    return {"value": _text(value, 4000)}
+
+
+def _diff_flag(value: Any) -> bool | str:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = _text(value, 30).strip()
+    lowered = text.lower()
+    if lowered in ("true", "yes", "y", "1"):
+        return True
+    if lowered in ("false", "no", "n", "0"):
+        return False
+    return text
+
+
+def _normalise_diff_side(value: Any, dimension: str) -> dict[str, Any] | None:
+    source = _diff_side_source(value)
+    if source is None:
+        return None
+    if dimension == "TRADE_API_DEF":
+        return {
+            "interfaceName": _text(
+                source.get("interfaceName")
+                or source.get("apiName")
+                or source.get("assetName")
+                or source.get("name"),
+                500,
+            ),
+            "interfaceType": _text(
+                source.get("interfaceType")
+                or source.get("apiType")
+                or source.get("assetType")
+                or source.get("type"),
+                200,
+            ),
+            "xmlPath": _text(
+                source.get("xmlPath")
+                or source.get("sourceFile")
+                or source.get("sourceFilePath")
+                or source.get("path"),
+                2000,
+            ),
+        }
+    if dimension == "TRADE_API_FIELD":
+        return {
+            "fieldName": _text(
+                source.get("fieldName")
+                or source.get("name")
+                or source.get("fieldCode"),
+                500,
+            ),
+            "fieldType": _text(
+                source.get("fieldType")
+                or source.get("dataType")
+                or source.get("type"),
+                1000,
+            ),
+            "required": _diff_flag(
+                source.get("required")
+                if source.get("required") is not None
+                else source.get("isRequired")
+            ),
+            "multiple": _diff_flag(
+                source.get("multiple")
+                if source.get("multiple") is not None
+                else source.get("isMultiple")
+            ),
+            "array": _diff_flag(
+                source.get("array")
+                if source.get("array") is not None
+                else source.get("isArray")
+            ),
+        }
+    return {"value": _relation_json_text(source)}
+
+
+def normalise_snapshot_diff(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("版本差异数据格式不正确。")
+    summary = source.get("summary")
+    if not isinstance(summary, dict):
+        summary = {}
+    source_changes = source.get("changes")
+    if not isinstance(source_changes, list):
+        source_changes = []
+
+    changes: list[dict[str, Any]] = []
+    for item in source_changes[:5000]:
+        if not isinstance(item, dict):
+            continue
+        dimension = _text(item.get("dimension"), 100).strip().upper()
+        changes.append(
+            {
+                "changeType": _text(item.get("changeType"), 50),
+                "dimension": dimension,
+                "key": _text(item.get("key"), 1000),
+                "changeDescription": _text(
+                    item.get("changeDescription") or item.get("description"),
+                    2000,
+                ),
+                "before": _normalise_diff_side(item.get("before"), dimension),
+                "after": _normalise_diff_side(item.get("after"), dimension),
+            }
+        )
+
+    return {
+        "leftSnapshotId": _text(source.get("leftSnapshotId"), 200),
+        "rightSnapshotId": _text(source.get("rightSnapshotId"), 200),
+        "leftVersion": _text(source.get("leftVersion"), 500),
+        "rightVersion": _text(source.get("rightVersion"), 500),
+        "summary": {
+            "tradeApiDefChangeCount": _count(
+                summary.get("tradeApiDefChangeCount")
+            ),
+            "tradeApiFieldChangeCount": _count(
+                summary.get("tradeApiFieldChangeCount")
+            ),
+        },
+        "changes": changes,
+    }
+
+
+def fetch_snapshot_diff(
+    left_snapshot_id: Any, right_snapshot_id: Any
+) -> dict[str, Any]:
+    left_value = _text(left_snapshot_id, 200).strip()
+    right_value = _text(right_snapshot_id, 200).strip()
+    if not left_value or not right_value:
+        raise InterfaceAPIError("请选择左右两个快照。", 400)
+    if left_value == right_value:
+        raise InterfaceAPIError("左右快照不能相同。", 400)
+    return normalise_snapshot_diff(
+        request_api_json(
+            "GET",
+            SNAPSHOT_DIFFS_PATH,
+            query={
+                "leftSnapshotId": left_value,
+                "rightSnapshotId": right_value,
+            },
+        )
+    )
+
+
 def normalise_module_snapshot_page(payload: Any) -> dict[str, Any]:
     """Keep only fields displayed by the module snapshot list."""
 
@@ -731,6 +965,234 @@ def fetch_asset_relations(
     return normalise_asset_relation_page(payload)
 
 
+def normalise_transaction_asset_page(payload: Any) -> dict[str, Any]:
+    """Keep only fields displayed by the transaction asset catalogue."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("交易资产列表数据格式不正确。")
+
+    source_records = source.get("records")
+    if not isinstance(source_records, list):
+        source_records = source.get("content")
+    if not isinstance(source_records, list):
+        source_records = source.get("list")
+    if not isinstance(source_records, list):
+        source_records = []
+
+    records: list[dict[str, str]] = []
+    for item in source_records:
+        if not isinstance(item, dict):
+            continue
+        records.append(
+            {
+                "assetId": _text(item.get("assetId") or item.get("id"), 200),
+                "assetCode": _text(
+                    item.get("assetCode") or item.get("asset_code"), 500
+                ),
+                "assetName": _text(
+                    item.get("assetName") or item.get("asset_name"), 500
+                ),
+                "assetType": _text(item.get("assetType"), 30),
+                "moduleSnapshotId": _text(item.get("moduleSnapshotId"), 200),
+                "appVersion": _text(item.get("appVersion"), 500),
+                "revisionNo": _text(item.get("revisionNo"), 100),
+                "status": _text(
+                    item.get("status") or item.get("lifecycleStatus"), 50
+                ),
+            }
+        )
+
+    total = source.get("total")
+    if total is None:
+        total = source.get("totalElements")
+    return {
+        "records": records,
+        "total": _count(total),
+        "pageNo": max(1, _count(source.get("pageNo")) or 1),
+        "pageSize": max(1, _count(source.get("pageSize")) or 10),
+    }
+
+
+def fetch_transaction_assets(
+    page_no: int,
+    page_size: int,
+    system_id: str = "",
+    app_id: str = "",
+    app_snapshot_id: str = "",
+    module_snapshot_id: str = "",
+    asset_type: str = "",
+    status: str = "",
+    exposed: str = "",
+    app_version: str = "",
+    revision_no: str = "",
+    keyword: str = "",
+) -> dict[str, Any]:
+    query: dict[str, Any] = {"pageNo": page_no, "pageSize": page_size}
+    filters = {
+        "systemId": _text(system_id, 200).strip(),
+        "appId": _text(app_id, 200).strip(),
+        "appSnapshotId": _text(app_snapshot_id, 200).strip(),
+        "moduleSnapshotId": _text(module_snapshot_id, 200).strip(),
+        "assetType": _text(asset_type, 30).strip(),
+        "status": _text(status, 50).strip(),
+        "exposed": _text(exposed, 10).strip().lower(),
+        "appVersion": _text(app_version, 500).strip(),
+        "revisionNo": _text(revision_no, 100).strip(),
+        "keyword": _text(keyword, 500).strip(),
+    }
+    if (
+        filters["assetType"]
+        and filters["assetType"] not in TRANSACTION_ASSET_TYPES
+    ):
+        raise InterfaceAPIError("资产类型筛选值无效。", 400)
+    if (
+        filters["status"]
+        and filters["status"] not in TRANSACTION_ASSET_STATUSES
+    ):
+        raise InterfaceAPIError("资产状态筛选值无效。", 400)
+    if filters["exposed"] and filters["exposed"] not in ("true", "false"):
+        raise InterfaceAPIError("对外暴露筛选值无效。", 400)
+    query.update({key: value for key, value in filters.items() if value})
+    payload = request_api_json("GET", ASSETS_PATH, query=query)
+    return normalise_transaction_asset_page(payload)
+
+
+def transaction_asset_path(asset_id: Any) -> str:
+    value = _text(asset_id, 200).strip()
+    if not value:
+        raise InterfaceAPIError("缺少交易资产 ID。", 400)
+    return f"{ASSETS_PATH}/{quote(value, safe='')}"
+
+
+def _normalise_asset_fields(values: Any) -> list[dict[str, str]]:
+    if not isinstance(values, list):
+        return []
+    fields: list[dict[str, str]] = []
+    for item in values:
+        if not isinstance(item, dict):
+            continue
+        fields.append(
+            {
+                "fieldCode": _text(
+                    item.get("fieldCode")
+                    or item.get("code")
+                    or item.get("name"),
+                    500,
+                ),
+                "fieldName": _text(
+                    item.get("fieldName")
+                    or item.get("displayName")
+                    or item.get("description")
+                    or item.get("label"),
+                    500,
+                ),
+                "fieldType": _text(
+                    item.get("fieldType")
+                    or item.get("dataType")
+                    or item.get("type"),
+                    1000,
+                ),
+            }
+        )
+    return fields
+
+
+def _asset_field_group(
+    source: dict[str, Any],
+    basic: dict[str, Any],
+    keys: tuple[str, ...],
+    kinds: tuple[str, ...],
+) -> list[dict[str, str]]:
+    for container in (source, basic):
+        for key in keys:
+            value = container.get(key)
+            if isinstance(value, list):
+                return _normalise_asset_fields(value)
+
+    all_fields = source.get("fields")
+    if not isinstance(all_fields, list):
+        all_fields = basic.get("fields")
+    if not isinstance(all_fields, list):
+        return []
+    accepted = {kind.upper() for kind in kinds}
+    return _normalise_asset_fields(
+        [
+            item
+            for item in all_fields
+            if isinstance(item, dict)
+            and _text(
+                item.get("direction")
+                or item.get("fieldKind")
+                or item.get("category"),
+                50,
+            ).upper()
+            in accepted
+        ]
+    )
+
+
+def normalise_transaction_asset_detail(payload: Any) -> dict[str, Any]:
+    """Normalise a transaction asset and its three interface-field groups."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("交易资产详情数据格式不正确。")
+    nested = source.get("basicInfo") or source.get("asset")
+    basic = nested if isinstance(nested, dict) else source
+
+    return {
+        "assetId": _text(basic.get("assetId") or basic.get("id"), 200),
+        "assetCode": _text(
+            basic.get("assetCode") or basic.get("asset_code"), 500
+        ),
+        "assetName": _text(
+            basic.get("assetName") or basic.get("asset_name"), 500
+        ),
+        "assetType": _text(basic.get("assetType"), 30),
+        "moduleSnapshotId": _text(basic.get("moduleSnapshotId"), 200),
+        "applicationName": _text(
+            basic.get("applicationName") or basic.get("appName"), 500
+        ),
+        "appVersion": _text(basic.get("appVersion"), 500),
+        "revisionNo": _text(basic.get("revisionNo"), 100),
+        "sourceFile": _text(
+            basic.get("sourceFile")
+            or basic.get("sourceFilePath")
+            or basic.get("sourcePath"),
+            2000,
+        ),
+        "inputFields": _asset_field_group(
+            source,
+            basic,
+            ("inputFields", "inputs", "inputParams", "requestFields"),
+            ("INPUT", "IN", "REQUEST"),
+        ),
+        "outputFields": _asset_field_group(
+            source,
+            basic,
+            ("outputFields", "outputs", "outputParams", "responseFields"),
+            ("OUTPUT", "OUT", "RESPONSE"),
+        ),
+        "propertyFields": _asset_field_group(
+            source,
+            basic,
+            ("propertyFields", "properties", "attributes", "attrs"),
+            ("PROPERTY", "ATTRIBUTE", "ATTR"),
+        ),
+    }
+
+
+def fetch_transaction_asset_detail(asset_id: Any) -> dict[str, Any]:
+    return normalise_transaction_asset_detail(
+        request_api_json("GET", transaction_asset_path(asset_id))
+    )
+
+
 def normalise_api_gateway_asset_page(payload: Any) -> dict[str, Any]:
     """Keep only fields displayed by the API gateway asset list."""
 
@@ -798,6 +1260,114 @@ def fetch_api_gateway_assets(
         query["status"] = status
     payload = request_api_json("GET", API_GATEWAY_ASSETS_PATH, query=query)
     return normalise_api_gateway_asset_page(payload)
+
+
+def normalise_audit_log_page(payload: Any) -> dict[str, Any]:
+    """Keep only fields displayed by the audit log list."""
+
+    if not isinstance(payload, dict) or payload.get("code") != 200:
+        raise InterfaceAPIError("外部接口返回了失败状态。")
+    source = payload.get("data")
+    if not isinstance(source, dict):
+        raise InterfaceAPIError("审计问题列表数据格式不正确。")
+
+    source_records = source.get("records")
+    if not isinstance(source_records, list):
+        source_records = source.get("content")
+    if not isinstance(source_records, list):
+        source_records = source.get("list")
+    if not isinstance(source_records, list):
+        source_records = []
+
+    records: list[dict[str, str]] = []
+    for item in source_records:
+        if not isinstance(item, dict):
+            continue
+        records.append(
+            {
+                "logId": _text(
+                    item.get("logId")
+                    or item.get("auditLogId")
+                    or item.get("id"),
+                    200,
+                ),
+                "actionType": _text(item.get("actionType"), 50),
+                "targetName": _text(item.get("targetName"), 500),
+                "operator": _text(item.get("operator"), 300),
+                "createdAt": _text(
+                    item.get("createdAt") or item.get("createTime"), 100
+                ),
+            }
+        )
+
+    total = source.get("total")
+    if total is None:
+        total = source.get("totalElements")
+    return {
+        "records": records,
+        "total": _count(total),
+        "pageNo": max(1, _count(source.get("pageNo")) or 1),
+        "pageSize": max(1, _count(source.get("pageSize")) or 10),
+    }
+
+
+def validate_audit_log_query(
+    payload: Any, page_no: int, page_size: int
+) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise InterfaceAPIError("请求数据格式不正确。", 400)
+
+    action_type = _text(payload.get("actionType"), 50).strip()
+    if action_type and action_type not in AUDIT_ACTION_TYPES:
+        raise InterfaceAPIError("审计类型筛选值无效。", 400)
+
+    query: dict[str, Any] = {
+        "pageNo": min(max(page_no, 1), 100_000),
+        "pageSize": min(max(page_size, 1), 100),
+    }
+    filters = {
+        "actionType": action_type,
+        "operator": _text(payload.get("operator"), 300).strip(),
+        "startTime": _text(payload.get("startTime"), 100).strip(),
+        "endTime": _text(payload.get("endTime"), 100).strip(),
+    }
+    query.update({key: value for key, value in filters.items() if value})
+    return query
+
+
+def fetch_audit_logs(
+    payload: Any, page_no: int, page_size: int
+) -> dict[str, Any]:
+    query = validate_audit_log_query(payload, page_no, page_size)
+    return normalise_audit_log_page(
+        request_api_json("POST", AUDIT_LOGS_PATH, json_body=query)
+    )
+
+
+def audit_log_path(log_id: Any) -> str:
+    value = _text(log_id, 200).strip()
+    if not value:
+        raise InterfaceAPIError("缺少审计日志 ID。", 400)
+    return f"{AUDIT_LOGS_PATH}/{quote(value, safe='')}"
+
+
+def validate_audit_log_ids(payload: Any) -> dict[str, list[str]]:
+    if not isinstance(payload, dict):
+        raise InterfaceAPIError("请求数据格式不正确。", 400)
+    source_ids = payload.get("logIds")
+    if not isinstance(source_ids, list):
+        raise InterfaceAPIError("请选择要删除的审计记录。", 400)
+
+    log_ids: list[str] = []
+    seen: set[str] = set()
+    for raw_value in source_ids[:1000]:
+        value = _text(raw_value, 200).strip()
+        if value and value not in seen:
+            seen.add(value)
+            log_ids.append(value)
+    if not log_ids:
+        raise InterfaceAPIError("请选择要删除的审计记录。", 400)
+    return {"logIds": log_ids}
 
 
 def fetch_scan_tasks(

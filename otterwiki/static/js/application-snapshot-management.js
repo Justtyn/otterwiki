@@ -234,7 +234,8 @@
         if (!window.confirm("确定删除该应用快照吗？")) {
             return;
         }
-        requestJson(config.snapshotsUrl + "/" + encodeURIComponent(record.snapshotId), {method: "DELETE"}).then(function () {
+        var deleteUrl = config.deleteSnapshotUrlTemplate.replace("__SNAPSHOT_ID__", encodeURIComponent(record.snapshotId));
+        requestJson(deleteUrl, {method: "DELETE"}).then(function () {
             showFeedback("应用快照删除成功。", "success");
             var targetPage = state.records.length === 1 && state.pageNo > 1 ? state.pageNo - 1 : state.pageNo;
             loadSnapshots(targetPage, true);
