@@ -40,14 +40,14 @@ def test_sidebar_shortcuts(create_app, test_client):
     create_app.config["SIDEBAR_SHORTCUTS"] = "home pageindex createpage"
     sidebar_shortcuts, dropdown_shortcuts = get_sidebar_shortcuts(test_client)
     assert ('首页', '/') in sidebar_shortcuts
-    assert ('A - Z', '/-/index') in sidebar_shortcuts
+    assert ('A - Z', '/-/index') not in sidebar_shortcuts
     assert ('新建页面', '/-/create') in sidebar_shortcuts
     assert ("变更记录", "/-/changelog") not in sidebar_shortcuts
 
     assert ('Home', '/') not in dropdown_shortcuts
     assert ('A - Z', '/-/index') not in dropdown_shortcuts
     assert ('新建页面', '/-/create') not in dropdown_shortcuts
-    assert ("变更记录", "/-/changelog") in dropdown_shortcuts
+    assert ("变更记录", "/-/changelog") not in dropdown_shortcuts
 
     # change preferences
     create_app.config["SIDEBAR_SHORTCUTS"] = "changelog"
@@ -63,9 +63,9 @@ def test_sidebar_shortcuts_empty(create_app, test_client):
     assert ('新建页面', '/-/create') not in sidebar_shortcuts
     assert ("变更记录", "/-/changelog") not in sidebar_shortcuts
 
-    assert ('A - Z', '/-/index') in dropdown_shortcuts
+    assert ('A - Z', '/-/index') not in dropdown_shortcuts
     assert ('新建页面', '/-/create') in dropdown_shortcuts
-    assert ("变更记录", "/-/changelog") in dropdown_shortcuts
+    assert ("变更记录", "/-/changelog") not in dropdown_shortcuts
 
 
 def get_sidebar_menu(test_client):

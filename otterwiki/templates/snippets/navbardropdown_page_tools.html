@@ -1,10 +1,12 @@
 {#- vim: set et ts=8 sts=4 sw=4 ai: -#}
+{% if has_permission('ADMIN') %}
                     <a href="{{ url_for('attachments', pagepath=pagepath) }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fa fa-paperclip"></i>
                         </span>
                         附件
                     </a>
+{% endif %}
                     <a href="{{ url_for('history', path=pagepath) }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="far fa-file-alt"></i>

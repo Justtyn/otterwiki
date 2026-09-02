@@ -13,7 +13,7 @@
                     首页
                 </a>
 {% endif %}
-{% if has_permission('READ') and "pageindex" in config.SIDEBAR_SHORTCUTS.lower().split() %}
+{% if has_permission('READ') and has_permission('ADMIN') and "pageindex" in config.SIDEBAR_SHORTCUTS.lower().split() %}
                 <a href="{{ url_for("pageindex") }}" class="sidebar-link sidebar-link-with-icon">
                     <span class="sidebar-icon">
                         <i class="fas fa-list"></i>
@@ -21,7 +21,7 @@
                     A - Z
                 </a>
 {% endif %}
-{% if has_permission('READ') and "changelog" in config.SIDEBAR_SHORTCUTS.lower().split() %}
+{% if has_permission('READ') and has_permission('ADMIN') and "changelog" in config.SIDEBAR_SHORTCUTS.lower().split() %}
                 <a href="{{ url_for("changelog") }}" class="sidebar-link sidebar-link-with-icon">
                     <span class="sidebar-icon">
                         <i class="fas fa-history"></i>
@@ -54,7 +54,7 @@
                     新建页面
                     </a>
 {% endif %}
-{% if has_permission('READ') and not "pageindex" in config.SIDEBAR_SHORTCUTS.lower().split() %}
+{% if has_permission('READ') and has_permission('ADMIN') and not "pageindex" in config.SIDEBAR_SHORTCUTS.lower().split() %}
                     <a href="{{ url_for("pageindex") }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-list"></i>
@@ -62,7 +62,7 @@
                     A - Z
                     </a>
 {% endif %}
-{% if has_permission('READ') and not "changelog" in config.SIDEBAR_SHORTCUTS.lower().split() %}
+{% if has_permission('READ') and has_permission('ADMIN') and not "changelog" in config.SIDEBAR_SHORTCUTS.lower().split() %}
                     <a href="{{ url_for("changelog") }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-history"></i>
@@ -70,12 +70,14 @@
                     变更记录
                     </a>
 {% endif %}
+{% if has_permission('ADMIN') %}
                     <a href="{{ url_for("help") }}" class="dropdown-item-with-icon">
                         <span class="dropdown-icon">
                             <i class="fas fa-question-circle"></i>
                         </span>
                     使用帮助
                     </a>
+{% endif %}
 {{ super() }}
 {% endblock %}
 {##}
