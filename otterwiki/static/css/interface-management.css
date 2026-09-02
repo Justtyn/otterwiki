@@ -342,10 +342,11 @@ a.summary-card:focus-visible {
 .scan-task-table td:last-child {
     background: #fff;
     box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
-    min-width: 20rem;
+    min-width: 30rem;
+    max-width: none;
     position: sticky;
     right: 0;
-    width: 20rem;
+    width: 30rem;
     z-index: 2;
 }
 
