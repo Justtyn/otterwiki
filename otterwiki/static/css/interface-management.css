@@ -68,10 +68,6 @@
     padding: 3.2rem;
 }
 
-.dashboard-error {
-    margin: 0 0 2rem;
-}
-
 .dashboard-summary {
     display: grid;
     gap: 2.4rem;
@@ -234,8 +230,39 @@ a.summary-card:focus-visible {
     padding: 1.6rem 2.8rem 3rem;
 }
 
-.system-feedback {
-    margin: 0 0 1.6rem;
+.system-feedback,
+.dashboard-error {
+    margin: 0;
+    max-width: 38rem;
+    min-width: 24rem;
+    padding: 1rem 3.4rem 1rem 2rem;
+    position: fixed;
+    right: 1.6rem;
+    top: calc(var(--navbar-height, 5rem) + 1.2rem);
+    z-index: 1200;
+    box-shadow: 0 8px 24px rgba(25, 39, 75, .16);
+}
+
+.system-feedback[hidden],
+.dashboard-error[hidden] {
+    display: none;
+}
+
+.system-feedback:not([hidden]),
+.dashboard-error:not([hidden]) {
+    animation: interface-toast-in .3s ease;
+}
+
+.system-feedback.is-hiding,
+.dashboard-error.is-hiding {
+    opacity: 0;
+    transform: translateX(2rem);
+    transition: opacity .35s ease, transform .35s ease;
+}
+
+@keyframes interface-toast-in {
+    from { opacity: 0; transform: translateX(2rem); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 .management-toolbar {

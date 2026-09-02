@@ -870,6 +870,7 @@
 
 {% block js %}
 {{ super() }}
+<script src="{{ url_for('static', filename='js/interface-feedback.js') | debug_unixtime }}"></script>
 {% if active_tab.slug == "workbench" %}
 <script>
 window.interfaceDashboardConfig = {
