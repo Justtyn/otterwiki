@@ -172,11 +172,12 @@ def test_pageindex(test_client):
     # check capitalizing (from # Random page)
     a = _link_by_text(soup, "Random page")
     assert a is not None
-    assert a.get("href") == "/Random page"
+    # 页面链接中的空格由 url_for 编码为 %20。
+    assert a.get("href") == "/Random%20page"
     # Test nested page
     a = _link_by_text(soup, "Nested page")
     assert a is not None
-    assert a.get("href") == "/Sub Directory/Nested page"
+    assert a.get("href") == "/Sub%20Directory/Nested%20page"
     # and nested header
     a = _link_by_text(soup, "Nested header")
     assert a is not None

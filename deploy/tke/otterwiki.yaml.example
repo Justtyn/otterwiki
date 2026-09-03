@@ -1,0 +1,146 @@
+# 复制为 otterwiki.local.yaml 后再填写真实配置；该本地文件已在 Git 忽略范围内。
+# 命名空间根据参考截图推定，导入前确认；所有资源必须在同一命名空间。
+# 必填：SECRET_KEY、APStack 地址、StorageClass、业务镜像标签、已有仓库凭据名。
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otterwiki-settings
+  namespace: newcore-dev-ns
+type: Opaque
+stringData:
+  settings.cfg: |
+    DEBUG = False
+    # 替换为随机密钥；已有部署沿用原密钥，不要在每次发布时重新生成。
+    SECRET_KEY = 'CHANGE ME'
+    SITE_NAME = '内部文档平台'
+    REPOSITORY = '/app-data/repository'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////app-data/db.sqlite'
+    APSTACK_API_BASE_URL = 'http://REPLACE_WITH_APSTACK_HOST:9988'
+    APSTACK_API_TIMEOUT = 10
+    # 沿用项目配置模板的读写规则；其他现有配置可一并迁入。
+    READ_ACCESS = 'ANONYMOUS'
+    WRITE_ACCESS = 'REGISTERED'
+    ATTACHMENT_ACCESS = 'REGISTERED'
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: otterwiki-data
+  namespace: newcore-dev-ns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # 替换为集群真实存储类名称；建议选支持 Git/SQLite 的块存储文件系统卷。
+  storageClassName: replace-with-storage-class
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otterwiki
+  namespace: newcore-dev-ns
+  labels:
+    app: otterwiki
+    app.cpaas.io/name: otterwiki.newcore-dev-ns
+spec:
+  replicas: 1
+  # Git 内容仓库和 SQLite 使用单实例；更新时先退出旧实例。
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app: otterwiki
+  template:
+    metadata:
+      labels:
+        app: otterwiki
+        app.cpaas.io/name: otterwiki.newcore-dev-ns
+        project.cpaas.io/name: newcore-dev
+    spec:
+      # 使用离线材料对应的 amd64 节点；不绑定参考应用的具体节点。
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      # 先在本命名空间创建仓库凭据，或改为已存在的凭据名称。
+      # 如果平台已通过节点或 ServiceAccount 提供凭据，可移除本字段。
+      imagePullSecrets:
+        - name: harbor-pull-secret
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: otterwiki
+          # 填最终业务镜像的标签，不能使用 otterwiki-runtime 基础镜像。
+          image: 10.71.96.165:31104/edtp/otterwiki:REPLACE_WITH_BUSINESS_TAG
+          imagePullPolicy: Always
+          # 保留镜像自带的 entrypoint 和 CMD；启动时会初始化目录并切换应用用户。
+          env:
+            - name: OTTERWIKI_SETTINGS
+              value: /config/settings.cfg
+            - name: OTTERWIKI_REPOSITORY
+              value: /app-data/repository
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # 起始配置，按节点容量与实际导入文档的内存需求调整。
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          readinessProbe:
+            httpGet:
+              path: /-/healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /-/healthz
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: settings
+              mountPath: /config
+              readOnly: true
+            - name: data
+              mountPath: /app-data
+      volumes:
+        - name: settings
+          secret:
+            secretName: otterwiki-settings
+            # 应用以 www-data 运行，需要能读取 root 挂载的配置文件。
+            defaultMode: 0444
+            items:
+              - key: settings.cfg
+                path: settings.cfg
+        - name: data
+          persistentVolumeClaim:
+            claimName: otterwiki-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otterwiki
+  namespace: newcore-dev-ns
+  labels:
+    app: otterwiki
+    app.cpaas.io/name: otterwiki.newcore-dev-ns
+spec:
+  type: ClusterIP
+  selector:
+    app: otterwiki
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

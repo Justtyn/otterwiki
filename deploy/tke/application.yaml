@@ -1,0 +1,17 @@
+# 可选：仅用于参考截图中已提供 Application CRD 的平台应用分组。
+# 原生 Kubernetes 若未安装此 CRD，无需导入本文件。
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: otterwiki
+  namespace: newcore-dev-ns
+spec:
+  componentKinds:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+  descriptor: {}
+  selector:
+    matchLabels:
+      app.cpaas.io/name: otterwiki.newcore-dev-ns

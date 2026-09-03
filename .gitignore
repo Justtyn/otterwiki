@@ -1,6 +1,13 @@
 venv/
 env*
 build/
+target/
+deploy/tke/*.local.yaml
+offline-bundle/
+offline-bundle-bullseye/
+.offline-prep.*/
+otterwiki-offline.tar.gz
+otterwiki-offline-bullseye.tar.gz
 *.pyc
 *.egg-info/
 dist/

@@ -1,102 +1,56 @@
-#
-# compile stage
-#
-FROM debian:12.14-slim AS compile-stage
-# platform for namespacing the pip cache: emulated 32-bit arm platforms all
-# report armv7l, wheels built for armel/armhf would poison each others cache
-ARG TARGETPLATFORM
-# install python environment
-RUN --mount=target=/var/cache/apt,type=cache,sharing=locked \
-    rm /etc/apt/apt.conf.d/docker-clean && \
-    apt-get update -y && \
-    apt-get upgrade -y && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3.11 python3.11-venv \
-    libjpeg-dev zlib1g-dev build-essential python3-dev libxml2-dev libxslt-dev
-# prepare environment
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-# upgrade pip and install requirements not in otterwiki
-RUN --mount=type=cache,target=/root/.cache,id=pip-$TARGETPLATFORM \
-    pip install -U pip wheel
-# copy src files
-COPY pyproject.toml MANIFEST.in README.md LICENSE /src/
+# 基础镜像使用已导入内网的完整 OtterWiki 运行镜像（Python 3.11）。
+# 由 build.sh 传入；不默认访问公网，不在这里安装 Debian 或其他系统包。
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE} AS build-stage
+USER root
+ENV PIP_CONFIG_FILE=/dev/null \
+    PIP_NO_INDEX=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 保留原项目 Nginx/uWSGI 的启动结构，提前检查基础镜像是否合适。
+RUN /opt/venv/bin/python -c 'import sys; assert sys.version_info[:2] == (3, 11)' && \
+    git --version && \
+    test -x /entrypoint.sh && test -x /usr/bin/supervisord && \
+    test -x /usr/bin/uwsgi_python3 && \
+    test -f /app/uwsgi.ini
+
+# 所有 Python 打包和依赖安装均在容器内完成。
+COPY target/wheels /tmp/otterwiki-wheels
+RUN /opt/venv/bin/python -m pip install --no-cache-dir --no-index \
+    --find-links=/tmp/otterwiki-wheels --upgrade pip setuptools wheel
 WORKDIR /src
-
-# install requirements
-RUN --mount=type=cache,target=/root/.cache,id=pip-$TARGETPLATFORM \
-    python -c 'import tomllib; print("\n".join(tomllib.load(open("./pyproject.toml", "rb"))["project"]["dependencies"]));' > requirements.txt && \
-    pip install -r requirements.txt
-
-# copy otterwiki source
+COPY pyproject.toml MANIFEST.in README.md LICENSE /src/
 COPY otterwiki /src/otterwiki
+COPY scripts /src/scripts
+RUN /opt/venv/bin/python -m pip wheel --no-index \
+    --find-links=/tmp/otterwiki-wheels --no-deps --no-build-isolation \
+    --wheel-dir /tmp/app-wheel . && \
+    /opt/venv/bin/python -m pip install --no-cache-dir --no-index \
+    --find-links=/tmp/otterwiki-wheels --force-reinstall \
+    /tmp/app-wheel/otterwiki-*.whl && \
+    /opt/venv/bin/python -m pip check && \
+    cd /tmp && \
+    /opt/venv/bin/python -c 'from PIL import _imaging; from lxml import etree; import regex, yaml, sqlalchemy; from scripts.migrate_apstack_docs import Migration'
 
-# install the otterwiki
-RUN pip install .
-#
-# test stage
-#
-FROM compile-stage AS test-stage
-ARG TARGETPLATFORM
-# install git (not needed for compiling)
-RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
-    apt-get update -y && apt-get install -y --no-install-recommends git
-# copy the tests
-COPY tests /src/tests
-# install the dev environment
-RUN --mount=type=cache,target=/root/.cache,id=pip-$TARGETPLATFORM \
-    pip install '.[dev]'
-RUN --mount=type=cache,target=/root/.cache,id=pip-$TARGETPLATFORM \
-    tox
-# configure tox as default command when the test-stage is executed
-CMD ["tox"]
-#
-# production stage
-#
-FROM debian:12.14-slim
-LABEL maintainer="Ralph Thesen <mail@redimp.de>"
-LABEL org.opencontainers.image.source="https://github.com/redimp/otterwiki"
-# arg for marking dev images
+# 使用相同基础镜像，保证 Python 和系统库一致；最终镜像不带离线包目录。
+FROM ${BASE_IMAGE} AS production-stage
+USER root
 ARG GIT_TAG
 ENV GIT_TAG=$GIT_TAG
-ENV PUID=33
-ENV PGID=33
-# environment variables (I'm not sure if anyone ever would modify this)
-ENV FLASK_APP=otterwiki.server
-ENV OTTERWIKI_SETTINGS=/app-data/settings.cfg
-ENV OTTERWIKI_REPOSITORY=/app-data/repository
-# install supervisord and python
-RUN --mount=target=/var/cache/apt,type=cache,sharing=locked \
-    apt-get -y update && \
-    apt-get upgrade -y && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    nginx supervisor git openssh-client \
-    python3.11 \
-    uwsgi uwsgi-plugin-python3 curl \
-    && ln -sf /dev/stdout /var/log/nginx/access.log \
-    && ln -sf /dev/stderr /var/log/nginx/error.log \
-    && rm -rf /var/lib/apt/lists/*
-# copy virtual environment
-COPY --from=compile-stage /opt/venv /opt/venv
-# Make sure we use the virtualenv:
-ENV PATH="/opt/venv/bin:$PATH"
-# create directories
-RUN mkdir -p /app-data /app/otterwiki
-VOLUME /app-data
-RUN chown -R www-data:www-data /app-data
-# copy static files for nginx
+WORKDIR /app
+# 先移除基础镜像的旧文件，避免 COPY 覆盖后残留旧依赖的元数据或旧静态资源。
+RUN rm -rf /opt/venv /app/otterwiki/static
+COPY --from=build-stage /opt/venv /opt/venv
+# Nginx 直接提供静态文件，使用本次源码中的版本。
 COPY otterwiki/static /app/otterwiki/static
-# copy supervisord configs (nginx is configured in the entrypoint.sh)
+# 沿用本仓库的入口与服务配置，兼容旧 Docker 的 COPY 语法。
 COPY docker/uwsgi.ini /app/uwsgi.ini
-COPY docker/supervisord.conf /etc/supervisor/conf.d/
-COPY --chmod=0755 docker/stop-supervisor.sh /etc/supervisor/
-# Copy the entrypoint that will generate Nginx additional configs
-COPY --chmod=0755 ./docker/entrypoint.sh /entrypoint.sh
-# configure a healthcheck
-HEALTHCHECK --interval=5m --timeout=3s --retries=3  --start-period=30s --start-interval=5s \
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/stop-supervisor.sh /etc/supervisor/stop-supervisor.sh
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod 755 /entrypoint.sh /etc/supervisor/stop-supervisor.sh
+EXPOSE 80 8080
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 --start-period=30s \
     CMD curl -A "docker-healthcheck" -f http://localhost:8080/-/healthz || exit 1
-# configure the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
-# and the default command: supervisor which takes care of nginx and uWSGI
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
-
-# vim:set et ts=8 sts=4 sw=4 ai fenc=utf-8:

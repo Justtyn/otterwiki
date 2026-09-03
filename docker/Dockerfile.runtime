@@ -1,0 +1,46 @@
+# 仅在联网准备机制作运行基础镜像；内网流水线使用根目录 Dockerfile。
+# Bullseye 的系统库用于兼容旧 Docker；Python 版本仍为 3.11。
+ARG PYTHON_IMAGE=python:3.11-slim-bullseye
+FROM ${PYTHON_IMAGE} AS python-base
+# 联网准备阶段使用 HTTPS，并对偶发网关错误进行有限重试。
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list && \
+    printf 'Acquire::Retries "3";\n' > /etc/apt/apt.conf.d/80retries
+FROM python-base AS uwsgi-build
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential libpcre3-dev && \
+    rm -rf /var/lib/apt/lists/*
+ENV UWSGI_BUILD_PROCESSES=2
+RUN python -m pip wheel --no-cache-dir --no-deps --wheel-dir /wheels uwsgi==2.0.31
+
+FROM python-base
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        nginx supervisor git openssh-client curl libpcre3 && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log
+COPY --from=uwsgi-build /wheels /tmp/uwsgi-wheels
+# 使用同一个 Python 3.11 编译的 uWSGI，避免发行版自带插件对应 Python 3.9。
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/python -m pip install --no-index \
+        --find-links=/tmp/uwsgi-wheels uwsgi==2.0.31 && \
+    rm -rf /tmp/uwsgi-wheels && \
+    printf '#!/bin/sh\nexec /opt/venv/bin/uwsgi "$@"\n' > /usr/bin/uwsgi_python3 && \
+    chmod 755 /usr/bin/uwsgi_python3 && \
+    /usr/bin/uwsgi_python3 --version
+ENV PATH="/opt/venv/bin:$PATH" \
+    PUID=33 PGID=33 \
+    FLASK_APP=otterwiki.server \
+    OTTERWIKI_SETTINGS=/app-data/settings.cfg \
+    OTTERWIKI_REPOSITORY=/app-data/repository
+RUN mkdir -p /app-data /app/otterwiki && chown -R www-data:www-data /app-data
+WORKDIR /app
+COPY docker/uwsgi.ini /app/uwsgi.ini
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/stop-supervisor.sh /etc/supervisor/stop-supervisor.sh
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod 755 /entrypoint.sh /etc/supervisor/stop-supervisor.sh
+VOLUME /app-data
+EXPOSE 80 8080
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
