@@ -35,10 +35,11 @@ def get_sidebar_shortcuts(test_client):
     return sidebar_shortcuts, dropdown_shortcuts
 
 
-def test_sidebar_shortcuts(create_app, test_client):
+def test_sidebar_shortcuts(create_app, other_client):
     # test the default settings
+    # A - Z 侧栏链接仅对 ADMIN 渲染，此处以非管理员视角验证
     create_app.config["SIDEBAR_SHORTCUTS"] = "home pageindex createpage"
-    sidebar_shortcuts, dropdown_shortcuts = get_sidebar_shortcuts(test_client)
+    sidebar_shortcuts, dropdown_shortcuts = get_sidebar_shortcuts(other_client)
     assert ('首页', '/') in sidebar_shortcuts
     assert ('A - Z', '/-/index') not in sidebar_shortcuts
     assert ('新建页面', '/-/create') in sidebar_shortcuts
@@ -54,9 +55,9 @@ def test_sidebar_shortcuts(create_app, test_client):
     assert ("变更记录", "/-/changelog") not in sidebar_shortcuts
 
 
-def test_sidebar_shortcuts_empty(create_app, test_client):
+def test_sidebar_shortcuts_empty(create_app, other_client):
     create_app.config["SIDEBAR_SHORTCUTS"] = ""
-    sidebar_shortcuts, dropdown_shortcuts = get_sidebar_shortcuts(test_client)
+    sidebar_shortcuts, dropdown_shortcuts = get_sidebar_shortcuts(other_client)
 
     assert ('Home', '/') not in sidebar_shortcuts
     assert ('A - Z', '/-/index') not in sidebar_shortcuts

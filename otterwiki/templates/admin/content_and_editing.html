@@ -47,6 +47,30 @@
     </div>
 {##}
     <div class="form-group">
+        <label for="document_font_size">文档字号（px）</label>
+        <div class="form-inline">
+            <input name="document_font_size" type="number" min="12" max="24" step="1"
+                class="form-control w-100" id="document_font_size"
+                value="{{ document_font_size }}">
+            <button class="btn ml-10" type="submit" name="document_font_size_reset" value="1"
+                onclick="return confirm('确定恢复默认文档字号吗？')">恢复默认</button>
+        </div>
+        <div class="form-text">
+            全局设置所有空间的文档显示字号，允许 12 到 24 的整数。
+            只影响文档正文的排版层级（正文、列表、表格、代码和标题按比例缩放），
+            导航、按钮、管理界面和编辑器输入字号保持不变。
+            保存后从下一次页面请求开始生效，无需重建镜像。
+        </div>
+        <div class="mt-10" style="border: 1px solid var(--secondary-color-2); border-radius: .4rem; padding: 1.2rem;">
+            <div class="form-text-plain mb-5">预览：</div>
+            <div id="document_font_size_preview" style="font-size: {{ document_font_size }}px; line-height: 1.6;">
+                文档正文预览：高效的协作让知识流动起来。
+                <span style="font-size: 0.875em;">代码与表格等元素按相对比例缩放。</span>
+            </div>
+        </div>
+    </div>
+{##}
+    <div class="form-group">
         <label for="sidebar_menutree_mode">WikiLink 样式</label>
         <select class="form-control w-md-600" id="wikilink_style" name="wikilink_style">
 {% for mode in [("", "[[Title | PageName]] - like Markdown links [Title](/PageName)"),("LINKTITLE","[[PageName | Title]] - compatibility mode"),] %}
@@ -59,6 +83,21 @@
     </div>
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
+<script>
+// 文档字号预览：跟随输入即时更新样例字号
+document.addEventListener('DOMContentLoaded', function() {
+    var input = document.getElementById('document_font_size');
+    var preview = document.getElementById('document_font_size_preview');
+    if (input && preview) {
+        input.addEventListener('input', function() {
+            var size = parseInt(input.value, 10);
+            if (!isNaN(size) && size >= 12 && size <= 24) {
+                preview.style.fontSize = size + 'px';
+            }
+        });
+    }
+});
+</script>
 {##}
   <div class="mt-10">
     <input class="btn btn-primary" name="update_preferences" type="submit" value="保存设置">

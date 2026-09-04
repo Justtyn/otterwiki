@@ -153,15 +153,15 @@ body.portal-theme.dark-mode {
     .portal-theme #column-main.col-xl-9 { flex: 1 1 0; max-width: calc(100% - 23.2rem); }
     .portal-theme #column-extra.col-xl-3 { flex: 0 0 23.2rem; max-width: 23.2rem; }
 }
-.portal-theme .page { font-size: 1.5rem; line-height: 1.85; color: var(--portal-text); overflow-wrap: anywhere; }
+.portal-theme .page { font-size: var(--otterwiki-document-font-size, 1.5rem); line-height: 1.85; color: var(--portal-text); overflow-wrap: anywhere; }
 .portal-theme .page > :first-child { margin-top: 0; }
 .portal-theme .page :is(h1, h2, h3, h4, h5, h6) { color: var(--portal-heading); font-weight: 600; line-height: 1.45; scroll-margin-top: 2.4rem; }
-.portal-theme .page h1 { font-size: 3.2rem; margin-bottom: 2rem; letter-spacing: -.02em; font-weight: 650; }
-.portal-theme .page h2 { font-size: 2.3rem; margin-top: 3.8rem; margin-bottom: 1.6rem; padding-bottom: .9rem; border-bottom: 1px solid var(--portal-line); }
-.portal-theme .page h3 { font-size: 1.85rem; margin-top: 2.8rem; margin-bottom: 1.2rem; }
-.portal-theme .page h4 { font-size: 1.6rem; margin-top: 2.2rem; }
-.portal-theme .page :is(h5, h6) { font-size: 1.45rem; }
-.portal-theme .page :is(p, li) { font-size: 1.5rem; line-height: 1.85; }
+.portal-theme .page h1 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 2.1333); margin-bottom: 2rem; letter-spacing: -.02em; font-weight: 650; }
+.portal-theme .page h2 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.5333); margin-top: 3.8rem; margin-bottom: 1.6rem; padding-bottom: .9rem; border-bottom: 1px solid var(--portal-line); }
+.portal-theme .page h3 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.2333); margin-top: 2.8rem; margin-bottom: 1.2rem; }
+.portal-theme .page h4 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.0667); margin-top: 2.2rem; }
+.portal-theme .page :is(h5, h6) { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 0.9667); }
+.portal-theme .page :is(p, li) { font-size: var(--otterwiki-document-font-size, 1.5rem); line-height: 1.85; }
 .portal-theme .page p { margin-block: 1.4rem; }
 .portal-theme .page li { margin-bottom: .45rem; }
 .portal-theme .page :is(ul, ol) { padding-left: 1.8rem; }
@@ -171,11 +171,11 @@ body.portal-theme.dark-mode {
 .portal-theme .page hr { border-color: var(--portal-line); margin-block: 3rem; }
 .portal-theme .page > blockquote { background: var(--portal-soft); border-left: 3px solid var(--portal-blue); border-radius: 0 .6rem .6rem 0; padding: .8rem 1.8rem; color: var(--portal-muted); }
 .portal-theme .page .quote-alert { background: var(--portal-soft); border-radius: .6rem; padding: 1.2rem 1.8rem; }
-.portal-theme .page :is(code, .code) { background: var(--portal-code); border: 1px solid var(--portal-line); border-radius: .4rem; font-size: 1.3rem; padding: .15em .4em; white-space: break-spaces; }
+.portal-theme .page :is(code, .code) { background: var(--portal-code); border: 1px solid var(--portal-line); border-radius: .4rem; font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 0.8667); padding: .15em .4em; white-space: break-spaces; }
 .portal-theme .page pre:not(.mermaid) { background: var(--portal-code); border: 1px solid var(--portal-line); border-radius: .8rem; padding: 1.6rem 1.8rem; margin: 1.8rem 0; line-height: 1.7; }
 .portal-theme .page pre code { border: 0; padding: 0; margin: 0; background: transparent; white-space: pre; }
 .portal-theme .page .highlight { border-radius: .8rem; }
-.portal-theme .page table:not(.highlighttable) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin-block: 2rem; background: transparent; font-size: 1.35rem; }
+.portal-theme .page table:not(.highlighttable) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin-block: 2rem; background: transparent; font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 0.9); }
 .portal-theme .page table:not(.highlighttable) > :is(thead, tbody) > tr > :is(th, td) { padding: 1rem 1.4rem; border: 0; border-bottom: 1px solid var(--portal-line); text-align: left; }
 .portal-theme .page table:not(.highlighttable) > thead > tr > th { background: var(--portal-soft); color: var(--portal-heading); font-weight: 600; border-top: 1px solid var(--portal-line); }
 .portal-theme .page table:not(.highlighttable) > tbody > tr:hover { background: var(--portal-soft); }
@@ -246,8 +246,8 @@ body.portal-theme.dark-mode {
     .portal-theme .navbar-brand span { max-width: 16rem; font-size: 1.4rem; }
     .portal-theme .page-wrapper { --sidebar-width: min(28rem, 85vw); }
     .portal-theme #column-main > .content { padding: 2.4rem 1.8rem 4rem; }
-    .portal-theme .page h1 { font-size: 2.6rem; }
-    .portal-theme .page h2 { font-size: 2rem; }
+    .portal-theme .page h1 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.733333); }
+    .portal-theme .page h2 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.333333); }
     .portal-theme .card { padding: 2rem; margin-inline: 0; }
     .portal-theme .interface-main { padding: 1.6rem; }
 }

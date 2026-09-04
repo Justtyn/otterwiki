@@ -12,6 +12,7 @@ from otterwiki.plugins import hookimpl, plugin_manager, EmbeddingArgs
 from bs4 import BeautifulSoup
 from otterwiki.util import sha256sum
 import mistune
+from otterwiki.render_context import ContextAttribute
 
 """
 The default Embeddings are implemented as Plugins via pluggy despite of
@@ -51,6 +52,9 @@ def _safe_attr_url(url):
 
 
 class DatatableEmbedding:
+    page = ContextAttribute()
+    datatables = ContextAttribute(dict)
+
     @hookimpl
     def info(self):
         return (
@@ -428,6 +432,8 @@ try {{
 
 
 class ImageFrameEmbedding:
+    page = ContextAttribute()
+
     @hookimpl
     def info(self):
         return (
@@ -957,6 +963,10 @@ table.infobox td {
 
 
 class AttachmentListEmbedding:
+    page = ContextAttribute()
+    attachments = ContextAttribute(list)
+    preview = ContextAttribute(bool)
+
     @hookimpl
     def info(self):
         return (
@@ -1124,6 +1134,8 @@ With format you can decide what is displayed in the table: `minimal` shows only 
 
 
 class PageIndexEmbedding:
+    page = ContextAttribute()
+
     @hookimpl
     def info(self):
         return (

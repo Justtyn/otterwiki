@@ -34,9 +34,14 @@ def ttl_lru_cache(ttl: int = 60, maxsize: int = 128):
             # as it's only used to trigger cache miss after some time
             return func(*args, **kwargs)
 
-        return lambda *args, **kwargs: inner(
-            time.time() // ttl, *args, **kwargs
-        )
+        def ttl_wrapper(*args, **kwargs):
+            return inner(time.time() // ttl, *args, **kwargs)
+
+        # 暴露底层缓存操作：外部（测试、运维脚本）可在文件内容
+        # 变化后主动失效缓存，而不必等待 TTL 过期
+        ttl_wrapper.cache_clear = inner.cache_clear
+        ttl_wrapper.cache_info = inner.cache_info
+        return ttl_wrapper
 
     return wrapper
 
@@ -77,6 +82,17 @@ def clean_slashes(value):
 
     value = "/".join(_path)
     return value
+
+
+def normalize_document_font_size(value, default=None):
+    '''校验文档字号：返回 12-24 范围内的整数，非法返回 default（可为 None）。'''
+    try:
+        size = int(str(value).strip())
+    except (TypeError, ValueError):
+        size = None
+    if size is None or not 12 <= size <= 24:
+        return default
+    return size
 
 
 def sanitize_pagename(value, allow_unicode=True, handle_md=False):

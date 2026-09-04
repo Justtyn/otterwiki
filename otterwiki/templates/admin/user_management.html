@@ -17,6 +17,7 @@
         <th>写入</th>
         <th>上传</th>
         <th>管理员</th>
+        <th>所属组</th>
       </tr>
     </thead>
     <tbody>
@@ -69,6 +70,10 @@
                 user.is_admin }} {% if not auth_supported_features['editing'] %}disabled{% endif %}>
             <label for="checkbox-e-{{user.id}}"></label>
           </div>
+        </td>
+        <td>
+            {%- set groups = user_groups.get(user.id, []) if user_groups else [] -%}
+            {{ groups|join("、") if groups else "—" }}
         </td>
       </tr>
 {% endfor %}

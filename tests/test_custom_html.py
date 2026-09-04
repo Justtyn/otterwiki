@@ -43,6 +43,12 @@ def test_custom_html(test_client, create_app):
     with open(body_file, 'w', encoding='utf-8') as f:
         f.write(body_content)
 
+    # load_custom_html 带 TTL 缓存：fixture 登录渲染首页时可能已缓存
+    # “文件不存在”的结果，写入文件后必须先失效缓存
+    from otterwiki.helper import load_custom_html
+
+    load_custom_html.cache_clear()
+
     try:
         response = test_client.get('/')
         html = response.data.decode('utf-8')
@@ -56,3 +62,4 @@ def test_custom_html(test_client, create_app):
         for file_path in [head_file, body_file]:
             if os.path.exists(file_path):
                 os.remove(file_path)
+        load_custom_html.cache_clear()

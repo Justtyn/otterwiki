@@ -90,6 +90,10 @@ class SimpleAuth:
         return user
 
     def delete_user(self, user: User):
+        from otterwiki.models import UserGroup
+
+        # 成员关系与用户一起删除，防止 SQLite 复用 ID 后继承旧授权。
+        UserGroup.query.filter_by(user_id=user.id).delete()
         db.session.delete(user)
         db.session.commit()
 

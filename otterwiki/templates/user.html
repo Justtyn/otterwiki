@@ -70,6 +70,27 @@
   {% endfor %}
       </div> {# row #}
     </div> {# container-fluid #}
+    <h3 class="card-title">所属组</h3>
+    <div class="container-fluid">
+      <div class="row">
+{% if all_groups %}
+{% for group in all_groups %}
+        <div class="col-sm-4 pr-5">
+          <div class="form-group">
+            <div class="custom-checkbox">
+              <input type="checkbox" id="group-{{ group.id }}" name="groups" value="{{ group.id }}" {{"checked=\"checked\"" if group.id in member_ids }}>
+              <label for="group-{{ group.id }}">{{ group.name }}</label>
+            </div>
+          </div>
+        </div>
+{% endfor %}
+{% else %}
+        <div class="col-sm-12">
+          <p class="form-text">暂无用户组。可在“组管理”中创建并维护成员。</p>
+        </div>
+{% endif %}
+      </div> {# row #}
+    </div> {# container-fluid #}
       {# #}
       <input class="btn btn-primary" type="submit" value="{% if user.id %}Update{% else %}Add{% endif %}">
       <a href="{{ url_for("admin_user_management") }}" class="btn" role="button">取消</a>

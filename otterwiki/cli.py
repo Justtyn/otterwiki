@@ -24,6 +24,16 @@ from otterwiki.helper import send_mail, serialize
 
 user_cli = AppGroup("user", help="User management commands.")
 
+db_cli = AppGroup("db", help="数据库维护命令。")
+
+
+@db_cli.command("upgrade")
+def db_upgrade():
+    """执行版本化数据库迁移（可重复执行，重复运行只处理未应用的版本）。"""
+    from otterwiki import migrations
+
+    migrations.run_migrations()
+
 
 def _get_user(email):
     from otterwiki.auth import SimpleAuth
@@ -473,8 +483,9 @@ def user_delete(email, confirm):
             click.echo("Deletion cancelled.")
             return
 
-    db.session.delete(user)
-    db.session.commit()
+    from otterwiki.auth import delete_user
+
+    delete_user(user)
     click.echo(f"User '{user.name}' <{user.email}> deleted successfully.")
 
 
@@ -583,3 +594,4 @@ def user_list(output_json):
 
 
 app.cli.add_command(user_cli)
+app.cli.add_command(db_cli)

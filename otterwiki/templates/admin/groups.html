@@ -1,0 +1,54 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "settings.html" %}
+{% block content %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">组管理</h2>
+<p class="form-text">
+    用户可以加入多个组，空间授权取并集。本期用户组只控制空间阅读权限；编辑与上传仍遵循现有全局权限。
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>组名称</th>
+            <th>成员数</th>
+            <th>可访问空间数</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+{% for group in groups %}
+        <tr>
+            <td>{{ group.name }}</td>
+            <td>{{ member_counts.get(group.id, 0) }}</td>
+            <td>{{ space_counts.get(group.id, 0) }}</td>
+            <td>
+                <a class="btn btn-sm" href="{{ url_for("admin_group_edit", group_id=group.id) }}">管理</a>
+            </td>
+        </tr>
+{% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">创建组</h2>
+<form action="{{ url_for("admin_groups") }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+        <label for="name" class="required">组名称</label>
+        <input name="name" type="text" class="form-control" id="name" value="" placeholder="例如：产品组">
+    </div>
+    <div class="form-group">
+        <label for="description">组描述</label>
+        <input name="description" type="text" class="form-control" id="description" value="">
+    </div>
+    <div class="mt-10">
+        <input class="btn btn-primary" type="submit" value="创建组">
+    </div>
+</form>
+</div>
+</div>
+{% endblock %}

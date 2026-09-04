@@ -829,6 +829,10 @@ class mistunePluginWikiLink:
             plugin = self
 
             def render_html_wikilink(_renderer, text, link):
+                # 多空间：非默认空间中为 WikiLink 补充当前空间前缀
+                from otterwiki.spaces import space_prefixed_url
+
+                link = space_prefixed_url(link)
                 wikilink_html = '<a href="' + link + '">' + text + '</a>'
                 processed_html = chain_hooks(
                     "renderer_process_wikilink",

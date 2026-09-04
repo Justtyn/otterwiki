@@ -9,6 +9,13 @@ from urllib.parse import urlparse
 
 def test_create_app_with_user(app_with_user):
     test_client = app_with_user.test_client()
+    # 多空间：匿名访问统一进入登录流程，先登录再断言页面渲染
+    result = test_client.post(
+        "/-/login",
+        data={"email": "mail@example.org", "password": "password1234"},
+        follow_redirects=True,
+    )
+    assert "登录成功。" in result.data.decode()
     result = test_client.get("/")
     assert "<!DOCTYPE html>" in result.data.decode()
     assert "<title>" in result.data.decode()
@@ -163,8 +170,8 @@ def test_logout(app_with_user, test_client):
     assert "你已成功退出登录。" in html
 
 
-def test_login_required(test_client):
-    html = test_client.get(
+def test_login_required(anon_client):
+    html = anon_client.get(
         "/-/settings",
         follow_redirects=True,
     ).data.decode()
@@ -199,48 +206,43 @@ def app_with_permissions(app_with_user, test_client):
     ).data.decode()
     html = test_client.get("/Home").data.decode()
     assert "There is no place like Home." in html
-    # update permissions
-    app_with_user.config["READ_ACCESS"] = "REGISTERED"
-    # and fetch again
-    html = test_client.get("/Home").data.decode()
-    assert "There is no place like Home." not in html
 
     with app_with_user.test_request_context() as ctx:
         yield app_with_user
 
 
-def test_page_view_permissions(app_with_permissions, test_client):
+def test_page_view_permissions(
+    app_with_permissions, test_client, anon_client, other_client
+):
     fun = "view"
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
+    # 登录后的默认组成员可读
     rv = test_client.get(url_for(fun, path="Home"))
     assert "There is no place like Home." in rv.data.decode()
-    app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
-    rv = test_client.get(url_for(fun, path="Home"), follow_redirects=True)
+    assert rv.status_code == 200
+    # 多空间门禁：匿名访问统一进入登录流程
+    rv = anon_client.get(url_for(fun, path="Home"))
+    assert rv.status_code == 302
+    assert "/-/login" in rv.location
+    # READ_ACCESS=ADMIN：已登录但非管理员被视图层拒绝（无 READ 权限提示）
+    app_with_permissions.config["READ_ACCESS"] = "ADMIN"
+    rv = other_client.get(url_for(fun, path="Home"), follow_redirects=True)
     assert "There is no place like Home." not in rv.data.decode()
-    # check for the toast
-    assert "lack the permissions to access" in rv.data.decode()
-    # check for the login form
-    assert url_for("login") in rv.data.decode()
-    assert 'name="password"' in rv.data.decode()
-    assert rv.status_code == 200
-    login(test_client)
-    rv = test_client.get(url_for(fun, path="Home"))
-    assert "There is no place like Home." in rv.data.decode()
-    assert rv.status_code == 200
+    assert "You are logged in but lack READ permissions." in rv.data.decode()
 
 
-def test_page_view_login_next_redirect(app_with_permissions, test_client):
+def test_page_view_login_next_redirect(app_with_permissions, anon_client):
     # READ_ACCESS=REGISTERED: anonymous request to a page must redirect to
     # login with a ?next= pointing back to that page, and logging in must
     # forward the user back there.
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
-    rv = test_client.get(url_for("view", path="Home"))
+    rv = anon_client.get(url_for("view", path="Home"))
     assert rv.status_code == 302
     assert "/-/login" in rv.location
     assert "next=" in rv.location
     assert "Home" in rv.location
     # login with the next parameter as the login form would submit it
-    rv = test_client.post(
+    rv = anon_client.post(
         "/-/login",
         data={
             "email": "mail@example.org",
@@ -251,8 +253,8 @@ def test_page_view_login_next_redirect(app_with_permissions, test_client):
     assert rv.status_code == 302
     assert rv.location.endswith("/Home")
     # rejects external next as open-redirect protection
-    rv = test_client.get("/-/logout", follow_redirects=True)
-    rv = test_client.post(
+    rv = anon_client.get("/-/logout", follow_redirects=True)
+    rv = anon_client.post(
         "/-/login",
         data={
             "email": "mail@example.org",
@@ -267,14 +269,16 @@ def test_page_view_login_next_redirect(app_with_permissions, test_client):
     assert "evil.example.com" not in rv.location
 
 
-def test_page_blame_permissions(app_with_permissions, test_client):
+def test_page_blame_permissions(
+    app_with_permissions, test_client, anon_client
+):
     fun = "blame"
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     rv = test_client.get(url_for(fun, path="Home"))
     assert rv.status_code == 200
     assert "There is no place like Home." in rv.data.decode()
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
-    rv = test_client.get(url_for(fun, path="Home"))
+    rv = anon_client.get(url_for(fun, path="Home"))
     assert rv.status_code == 302
     assert "/-/login" in rv.location
     login(test_client)
@@ -282,14 +286,16 @@ def test_page_blame_permissions(app_with_permissions, test_client):
     assert "There is no place like Home." in rv.data.decode()
 
 
-def test_page_history_permissions(app_with_permissions, test_client):
+def test_page_history_permissions(
+    app_with_permissions, test_client, anon_client
+):
     fun = "history"
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     rv = test_client.get(url_for(fun, path="Home"))
     assert rv.status_code == 200
     assert "initial test commit" in rv.data.decode()
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
-    rv = test_client.get(url_for(fun, path="Home"))
+    rv = anon_client.get(url_for(fun, path="Home"))
     assert rv.status_code == 302
     assert "/-/login" in rv.location
     login(test_client)
@@ -298,14 +304,16 @@ def test_page_history_permissions(app_with_permissions, test_client):
     assert "initial test commit" in rv.data.decode()
 
 
-def test_page_index_permissions(app_with_permissions, test_client):
+def test_page_index_permissions(
+    app_with_permissions, test_client, anon_client
+):
     fun = "pageindex"
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     rv = test_client.get(url_for(fun))
     assert rv.status_code == 200
     assert "页面索引" in rv.data.decode()
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
-    rv = test_client.get(url_for(fun))
+    rv = anon_client.get(url_for(fun))
     assert rv.status_code == 302
     assert "/-/login" in rv.location
     login(test_client)
@@ -314,14 +322,16 @@ def test_page_index_permissions(app_with_permissions, test_client):
     assert "页面索引" in rv.data.decode()
 
 
-def test_page_changelog_permissions(app_with_permissions, test_client):
+def test_page_changelog_permissions(
+    app_with_permissions, test_client, anon_client
+):
     fun = "changelog"
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     rv = test_client.get(url_for(fun, path="Home"))
     assert rv.status_code == 200
     assert "initial test commit" in rv.data.decode()
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
-    rv = test_client.get(url_for(fun, path="Home"))
+    rv = anon_client.get(url_for(fun, path="Home"))
     assert rv.status_code == 302
     assert "/-/login" in rv.location
     login(test_client)
@@ -330,7 +340,7 @@ def test_page_changelog_permissions(app_with_permissions, test_client):
     assert "initial test commit" in rv.data.decode()
 
 
-def test_page_edit_permissions(app_with_permissions, test_client):
+def test_page_edit_permissions(app_with_permissions, test_client, anon_client):
     # update permissions
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     app_with_permissions.config["WRITE_ACCESS"] = "ANONYMOUS"
@@ -345,12 +355,10 @@ def test_page_edit_permissions(app_with_permissions, test_client):
     # update permissions
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
     app_with_permissions.config["WRITE_ACCESS"] = "REGISTERED"
-    # try edit
-    rv = test_client.get(url_for("edit", path=pagename))
-    html = rv.data.decode()
-    # check that there is an editor in the html
-    assert rv.status_code == 403
-    assert "<textarea" not in html
+    # 多空间门禁：匿名请求进入登录流程（302），不再渲染编辑器
+    rv = anon_client.get(url_for("edit", path=pagename))
+    assert rv.status_code == 302
+    assert "/-/login" in rv.location
     # login
     login(test_client)
     # try edit
@@ -360,7 +368,7 @@ def test_page_edit_permissions(app_with_permissions, test_client):
     assert "<textarea" in html
 
 
-def test_page_save_permissions(app_with_permissions, test_client):
+def test_page_save_permissions(app_with_permissions, test_client, anon_client):
     # update permissions
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     app_with_permissions.config["WRITE_ACCESS"] = "ANONYMOUS"
@@ -381,22 +389,24 @@ def test_page_save_permissions(app_with_permissions, test_client):
     # change permissions
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
     app_with_permissions.config["WRITE_ACCESS"] = "REGISTERED"
-    # try to edit anonymous (and fail)
-    rv = test_client.post(
+    # 多空间门禁：匿名保存请求进入登录流程（302）
+    rv = anon_client.post(
         url_for("save", path=pagename),
         data={
             "content": content,
             "commit": "Home: initial test commit.",
         },
-        follow_redirects=True,
+        follow_redirects=False,
     )
-    assert rv.status_code == 403
+    assert rv.status_code == 302
     # try to create (and fail)
-    rv = test_client.post("/-/create", data={"pagename": "example"})
-    assert rv.status_code == 403
+    rv = anon_client.post("/-/create", data={"pagename": "example"})
+    assert rv.status_code == 302
 
 
-def test_page_revert_permissions(app_with_permissions, test_client):
+def test_page_revert_permissions(
+    app_with_permissions, test_client, anon_client
+):
     # update permissions
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     app_with_permissions.config["WRITE_ACCESS"] = "ANONYMOUS"
@@ -443,16 +453,13 @@ def test_page_revert_permissions(app_with_permissions, test_client):
     app_with_permissions.config["READ_ACCESS"] = "REGISTERED"
     app_with_permissions.config["WRITE_ACCESS"] = "REGISTERED"
 
-    # try to revert non existing commit
-    rv = test_client.get("/-/revert/{}".format(0000000))
-    assert rv.status_code == 403
-
-    # try revert form
-    rv = test_client.get("/-/revert/{}".format(latest_revision))
-    assert rv.status_code == 403
-    # try to revert latest commit
-    rv = test_client.post("/-/revert/{}".format(latest_revision))
-    assert rv.status_code == 403
+    # 多空间门禁：匿名回滚请求进入登录流程（302）
+    rv = anon_client.get("/-/revert/{}".format(0000000))
+    assert rv.status_code == 302
+    rv = anon_client.get("/-/revert/{}".format(latest_revision))
+    assert rv.status_code == 302
+    rv = anon_client.post("/-/revert/{}".format(latest_revision))
+    assert rv.status_code == 302
 
     # change permissions again
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
@@ -475,7 +482,7 @@ def test_page_revert_permissions(app_with_permissions, test_client):
     assert old_content in html
 
 
-def test_permissions_per_user(app_with_permissions, test_client):
+def test_permissions_per_user(app_with_permissions, test_client, anon_client):
     fun = "view"
     app_with_permissions.config["READ_ACCESS"] = "ANONYMOUS"
     rv = test_client.get(url_for(fun, path="Home"))
@@ -483,10 +490,10 @@ def test_permissions_per_user(app_with_permissions, test_client):
     app_with_permissions.config["READ_ACCESS"] = "ADMIN"
     app_with_permissions.config["WRITE_ACCESS"] = "ADMIN"
     app_with_permissions.config["ATTACHMENT_ACCESS"] = "ADMIN"
-    rv = test_client.get(url_for(fun, path="Home"), follow_redirects=True)
+    # 多空间门禁：匿名请求进入登录流程
+    rv = anon_client.get(url_for(fun, path="Home"), follow_redirects=True)
     assert "There is no place like Home." not in rv.data.decode()
-    # check for the toast
-    assert "lack the permissions to access" in rv.data.decode()
+    assert "/-/login" in rv.request.url
 
     rv = test_client.post(
         "/-/login",
@@ -693,10 +700,13 @@ def test_register_and_login(app_with_user, test_client, req_ctx):
             "email": email,
             "password": password,
         },
-        follow_redirects=True,
+        follow_redirects=False,
     )
-    html = rv.data.decode()
-    assert "登录成功。" in html
+    # 新账号未加入任何空间授权组：登录成功后跳转首页（302），
+    # 随后的首页访问被空间门禁拦截（404）
+    assert rv.status_code == 302
+    rv = test_client.get("/", follow_redirects=False)
+    assert rv.status_code == 404
 
 
 def test_register_and_confirm(app_with_user, test_client, req_ctx):
@@ -753,10 +763,12 @@ def test_register_and_confirm(app_with_user, test_client, req_ctx):
                 "email": email,
                 "password": password,
             },
-            follow_redirects=True,
+            follow_redirects=False,
         )
-        html = rv.data.decode()
-        assert "登录成功。" in html
+        # 登录成功后跳转（302）；新账号未加入空间授权组，首页为 404
+        assert rv.status_code == 302
+        rv = test_client.get("/", follow_redirects=False)
+        assert rv.status_code == 404
 
 
 def test_register_errors(app_with_user, test_client, req_ctx):

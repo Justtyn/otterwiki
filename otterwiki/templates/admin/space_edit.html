@@ -1,0 +1,74 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "settings.html" %}
+{% block content %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">编辑空间：{{ space.name }}</h2>
+<form action="{{ url_for("admin_space_edit", space_id=space.id) }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+        <label for="name" class="required">空间名称</label>
+        <input name="name" type="text" class="form-control" id="name" value="{{ space.name }}">
+    </div>
+    <div class="form-group">
+        <label>地址标识</label>
+        <input type="text" class="form-control" value="{{ space.slug }}" disabled>
+        <div class="form-text">地址标识创建后固定，不可修改。</div>
+    </div>
+    <div class="form-group">
+        <label for="description">空间简介</label>
+        <input name="description" type="text" class="form-control" id="description" value="{{ space.description or "" }}">
+    </div>
+    <div class="form-group">
+        <label for="home_page">空间首页</label>
+        <input name="home_page" type="text" class="form-control" id="home_page" value="{{ space.home_page or "" }}" placeholder="留空使用 Home">
+        <div class="form-text">
+            访问本空间根地址（<code>/-/s/{{ space.slug }}/</code>）时显示的页面路径，例如 <code>Home</code> 或 <code>Docs/Index</code>。
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="required">可阅读的授权组</label>
+{% for group in all_groups %}
+        <div class="custom-checkbox">
+            <input type="checkbox" id="group-{{ group.id }}" name="groups" value="{{ group.id }}" {{"checked=\"checked\"" if group.id in authorized_group_ids }}>
+            <label for="group-{{ group.id }}">{{ group.name }}</label>
+        </div>
+{% endfor %}
+        <div class="form-text">
+            勾选的组内成员可以阅读本空间（多个组的权限取并集）。
+            未勾选任何组时，除管理员外所有用户都无法访问本空间。
+            授权或撤销从下一次请求开始生效。
+        </div>
+    </div>
+    <div class="mt-10">
+        <input class="btn btn-primary" type="submit" value="保存设置">
+    </div>
+</form>
+</div>
+</div>
+
+{% if not space.is_default %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">归档与恢复</h2>
+{% if space.is_archived %}
+<p class="form-text">
+    本空间已归档：普通用户访问时统一返回 404，管理员仍可访问与管理。恢复后立即重新开放。
+</p>
+<form action="{{ url_for("admin_space_restore", space_id=space.id) }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input class="btn btn-primary" type="submit" value="恢复空间">
+</form>
+{% else %}
+<p class="form-text">
+    归档后普通用户访问本空间统一返回 404。本期不提供空间删除，文档与历史会完整保留。
+</p>
+<form action="{{ url_for("admin_space_archive", space_id=space.id) }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input class="btn btn-danger" type="submit" value="归档空间">
+</form>
+{% endif %}
+</div>
+</div>
+{% endif %}
+{% endblock %}

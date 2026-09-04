@@ -51,13 +51,17 @@ otterwiki/
 ├── structured_navigation.py  # 规则驱动的产品文档导航（.portal.yml/.model.yaml/.sidebar.json）
 ├── navigation_editor.py      # 管理员可视化导航编辑器
 ├── document_import.py        # 管理员触发的 APStack 文档导入/重置（调用 scripts 迁移器）
+├── spaces.py                 # 多空间：WSGI 前缀中间件、访问门禁、空间仓库定位、上下文注入
+├── migrations.py             # 版本化数据库迁移（flask db upgrade，可重复执行）
+├── templates/admin/{spaces,space_edit,groups,group_edit}.html  # 空间/组管理界面
 ├── templates/interface_management.html
 ├── static/js/{interface,system,application,scan-task}-management.js
 ├── static/css/interface-management.css
 scripts/migrate_apstack_docs.py  # APStack MkDocs 树 → OtterWiki 内容仓库的迁移器（CLI）
 docs/structured-navigation.md    # 结构化导航规则说明（中文）
+docs/multi-space-upgrade.md      # 多空间部署/升级 runbook（中文）
 docs/windows*-migration.md       # Windows 环境迁移指南（中文）
-tests/                       # pytest 测试（test_interface_management.py 等为定制功能测试）
+tests/                       # pytest 测试（test_spaces.py / test_space_migration.py / test_document_font_size.py 等为定制功能测试）
 frontend/src/                # CodeMirror 6 编辑器源码 → otterwiki/static/js/cm6-bundle.min.js
 app-data/                    # 本地运行时数据（勿动）
 settings.cfg[.skeleton]      # 本地配置（skeleton 是模板，勿动前者）
@@ -68,6 +72,7 @@ settings.cfg[.skeleton]      # 本地配置（skeleton 是模板，勿动前者�
 - **模块级单例**：`from otterwiki.server import app, db, storage` 在 import 时完成初始化。测试共享同一组单例，**任何测试修改 `app.config` 都会泄漏到后续测试**——`tests/conftest.py` 的 `create_app` fixture 已做 config 快照恢复，新增测试必须使用该 fixture 而不是自行改配置。
 - **内容即 git**：页面读写全部走 `gitstorage.GitStorage`；页面名会 sanitize（去掉 `?$.#\` 与尾部斜杠），默认全部小写存储，页名大小写由首个标题决定（`RETAIN_PAGE_NAME_CASE` 可改变行为）。
 - **渲染安全**：`renderer.py` 对输出 HTML 做 allowlist 消毒（`clean_html`），新增 HTML 属性/标签支持时必须同步维护 allowlist，否则会被过滤或产生安全漏洞。
+- **渲染隔离**：每次 Markdown 解析创建独立渲染器；内置嵌入插件的页面、附件及表格状态由 `render_context.py` 按请求隔离。CLI/后台批处理应在每份文档的页面上下文钩子、渲染及资源收集外包裹 `render_context()`。
 - **插件钩子**：`renderer_markdown_preprocess`、`renderer_html_postprocess` 等钩子由 `chain_hooks` 调用；新增钩子需在 `OtterWikiPluginSpec` 中定义 hookspec。
 - **中文 JSON**：`server.py` 中 `app.json.ensure_ascii = False` 是本分支为中文 flash 消息添加的，不要改回默认值。
 
@@ -92,6 +97,15 @@ settings.cfg[.skeleton]      # 本地配置（skeleton 是模板，勿动前者�
 
 ### 6.4 导航编辑器（`navigation_editor.py`）
 - 路由 `/-/admin/navigation`，读写结构化导航配置；约束：ID 须匹配 `^[\w:./-]{1,500}$`，上限 20 个标签页、5000 个节点。
+
+### 6.5 多空间与用户组（spaces.py + migrations.py + gitstorage.SpaceStorageProxy）
+- 空间 = 独立 git 仓库（SPACES_ROOT/空间ID/repository，默认 REPOSITORY 同级 spaces 目录）；默认空间沿用原仓库，URL 不变。
+- 新空间 URL /-/s/<slug>/...：SpacePrefixMiddleware 重写 PATH_INFO 并设置 SCRIPT_NAME，url_for 自动补前缀；仅重写数据库中已存在的 slug。
+- 权限门禁 space_access_gate：阅读 = 登录 + 全局读取条件 + 组成员并集授权；管理员绕过；未授权/归档统一 404；任何内容加载前强制执行。
+- 页面级读写仍走全局 storage 单例（SpaceStorageProxy 按 g.space 委派）；后台/CLI 任务用 spaces.current_storage() 并显式传 storage（如 document_import）。
+- 迁移 flask --app otterwiki.server db upgrade：幂等；重复运行不重新添加被移除的组成员；runbook 见 docs/multi-space-upgrade.md。
+- 每个迁移版本的结构、数据和版本记录原子提交，SQLite 显式开启事务；v3 清理孤立权限关系，不重新播种。旧表列变更只由迁移执行，不能依赖 Web 启动补齐。
+- PROXY_HEADER 代理认证与多空间权限不兼容：启动检测到即告警，不提供静默绕过。
 
 ## 7. 开发与测试命令
 

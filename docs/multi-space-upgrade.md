@@ -1,0 +1,195 @@
+# 多空间部署与升级指南
+
+适用于内网 Docker/TKE。构建机不需要 Python；所有迁移命令使用新应用镜像内的
+`/opt/venv/bin/python`。本文只提供操作示例，不会自动操作集群。
+
+## 数据与权限
+
+默认空间沿用 `REPOSITORY`，新空间位于 `SPACES_ROOT/<空间ID>/repository`。
+必须一起持久化、备份 SQLite 数据库、默认仓库、新空间仓库和所需附件。
+示例假定它们分别位于 `/app-data/db.sqlite`、`/app-data/repository` 和
+`/app-data/spaces`，配置位于 Secret 挂载的 `/config/settings.cfg`。
+如实际配置不同，请同步修改备份路径和 Job 挂载。不要只持久化 `spaces`。
+
+- 页面需要内置账号登录、全局阅读资格和用户组授权；多组授权取并集。
+- 全局管理员可以访问归档空间。普通用户在网页和 Git HTTP 均不能访问归档空间。
+- v1 为升级前具备阅读资格的本地用户建立默认组；v2 补齐历史草稿空间。
+- v3 清理孤立成员及授权关系，并兼容早期草稿结构；不会重新授予已撤销的权限。
+- 已经被复用的用户 ID 无法仅凭现有关系判断原归属。如果旧版本曾删除用户并
+  创建新账号，请在管理界面核对这些新账号的所属组。
+- 不支持 `PROXY_HEADER` 代理登录。升级前应使用内置管理员账号验证登录。
+
+## 1. 记录环境并停止业务写入
+
+下面的命令在装有 kubectl 且能访问集群的终端执行，不是在应用容器内执行。
+先核对命名空间、Deployment、实际 Pod、Secret、PVC 和应用镜像标签：
+
+```bash
+export WIKI_NS=newcore-dev-ns
+export WIKI_DEPLOY=otterwiki
+export WIKI_BACKUP="$PWD/otterwiki-backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$WIKI_BACKUP"
+kubectl -n "$WIKI_NS" get deploy "$WIKI_DEPLOY" -o yaml > "$WIKI_BACKUP/deployment.yaml"
+kubectl -n "$WIKI_NS" get pods -l app=otterwiki -o wide
+# 将下面的值替换成上一步实际显示的 Pod 名称
+export WIKI_POD=替换为当前Pod名称
+```
+
+通过平台维护入口暂停访问，暂停外部 Git 同步/推送及导入任务，确认没有写入。
+**此时保持当前 Pod 存活，尤其是 emptyDir 部署：先缩容到 0 或重建 Pod，
+会直接删除临时卷，之后无法再备份。** 同时暂停会自动恢复副本数的发布流水线/HPA。
+
+## 2. 在当前 Pod 删除前备份并验证
+
+以下示例要求镜像有 tar，备份终端有 Bash、tar、sha256sum。SQLite 使用在线备份
+接口生成完整数据库文件，避免只复制主文件而遗漏 WAL。配置中的数据库若不是
+`/app-data/db.sqlite`，须替换命令中的路径。
+
+```bash
+kubectl -n "$WIKI_NS" exec "$WIKI_POD" -- /opt/venv/bin/python -c '
+import sqlite3
+src = sqlite3.connect("file:/app-data/db.sqlite?mode=ro", uri=True)
+dst = sqlite3.connect("/tmp/otterwiki-backup.sqlite")
+src.backup(dst)
+assert dst.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+dst.close()
+src.close()
+'
+# exec 不加 -t，避免二进制归档被终端处理。
+kubectl -n "$WIKI_NS" exec "$WIKI_POD" -- tar -C /app-data -czf - . > "$WIKI_BACKUP/app-data.tar.gz"
+kubectl -n "$WIKI_NS" cp "$WIKI_POD:/tmp/otterwiki-backup.sqlite" "$WIKI_BACKUP/db.sqlite"
+tar -tzf "$WIKI_BACKUP/app-data.tar.gz" > "$WIKI_BACKUP/files.txt"
+sha256sum "$WIKI_BACKUP/app-data.tar.gz" "$WIKI_BACKUP/db.sqlite" > "$WIKI_BACKUP/SHA256SUMS"
+(cd "$WIKI_BACKUP" && sha256sum -c SHA256SUMS)
+```
+
+每条命令都必须成功；确认归档含默认仓库的 `.git`、文档、附件以及已有新空间。
+将备份复制到另一处可靠存储。保存对应配置 Secret 的受控备份和旧镜像引用，
+不要将密钥内容写入 Git 或流水线日志。
+
+### 当前使用 emptyDir
+
+1. 完成并验证上述备份后，才可缩容：
+   `kubectl -n "$WIKI_NS" scale deploy "$WIKI_DEPLOY" --replicas=0`。
+2. 在同一命名空间创建持久卷声明，并确认已 `Bound`。StorageClass 必须使用集群
+   实际可用的类型，不要直接套用其他环境的名称。
+3. 用下面的迁移 Job 模板建立一个**恢复 Pod**：去掉 Job 外层，仅保留 Pod
+   `metadata`、`spec.template.spec`，命名为 `otterwiki-restore`，将 command 改为
+   `["/bin/sh", "-c", "sleep 86400"]`，保留相同 PVC、Secret 和 imagePullSecrets。
+   新 PVC 必须为空；该 Pod 只用于恢复，不启动 Wiki 服务。
+4. 将备份恢复到该 Pod：
+
+```bash
+kubectl -n "$WIKI_NS" cp "$WIKI_BACKUP/app-data.tar.gz" otterwiki-restore:/tmp/app-data.tar.gz
+kubectl -n "$WIKI_NS" cp "$WIKI_BACKUP/db.sqlite" otterwiki-restore:/tmp/db.sqlite
+kubectl -n "$WIKI_NS" exec otterwiki-restore -- /bin/sh -ec '
+  test -z "$(ls -A /app-data)"
+  tar -xzf /tmp/app-data.tar.gz -C /app-data
+  cp /tmp/db.sqlite /app-data/db.sqlite
+  rm -f /app-data/db.sqlite-wal /app-data/db.sqlite-shm
+  chown -R www-data:www-data /app-data
+'
+```
+
+5. 用 SQLite `PRAGMA integrity_check`、`git -C /app-data/repository fsck --full`
+   验证恢复数据；已有新空间仓库也逐个执行 git fsck。确认文档数量与备份相符。
+6. 更新 Deployment，把整个 `/app-data` 的 emptyDir 改为该 PVC，保持副本数为 0。
+   删除恢复 Pod，待其释放卷后再运行迁移 Job。
+
+### 当前已使用持久卷
+
+备份验证完成后缩容到 0，等待旧 Pod 退出。迁移 Job 使用原 PVC。
+若数据库、默认仓库、新空间分别挂载不同卷，Job 必须复制所有对应挂载。
+不要同时运行恢复 Pod、应用 Pod 和迁移 Job，以免产生写入竞争或 RWO 挂载冲突。
+
+## 3. 使用独立 Job 迁移
+
+下面是标准 Kubernetes Job 示例。保存为 `otterwiki-migrate.yaml`，替换镜像、
+PVC、配置 Secret 和镜像凭据 Secret 为当前环境真实值。使用已经推送到内网
+Harbor 的应用镜像，不使用 runtime 基础镜像；固定不可变标签或 digest。
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: otterwiki-migrate-v3
+  namespace: newcore-dev-ns
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: otterwiki-migration
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: 替换为镜像仓库凭据Secret
+      containers:
+        - name: migrate
+          image: 10.71.96.165:31104/edtp/otterwiki:替换为本次应用镜像标签
+          imagePullPolicy: IfNotPresent
+          command: ["/opt/venv/bin/python", "-m", "flask"]
+          args: ["--app", "otterwiki.server", "db", "upgrade"]
+          env:
+            - name: OTTERWIKI_SETTINGS
+              value: /config/settings.cfg
+          volumeMounts:
+            - name: data
+              mountPath: /app-data
+            - name: settings
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: 替换为实际数据PVC
+        - name: settings
+          secret:
+            secretName: 替换为实际配置Secret
+            items:
+              - key: settings.cfg
+                path: settings.cfg
+```
+
+Job 应使用与应用匹配的卷访问身份。本项目镜像的 Web 进程以 `www-data` 运行；
+恢复后确认目录可由该用户读写。若集群要求非 root，复制应用实际的 securityContext，
+并确认其用户可读取配置与写入 SQLite/仓库。已有统一镜像凭据时可沿用平台配置。
+
+```bash
+kubectl -n "$WIKI_NS" apply -f otterwiki-migrate.yaml
+kubectl -n "$WIKI_NS" wait --for=condition=complete job/otterwiki-migrate-v3 --timeout=300s
+kubectl -n "$WIKI_NS" logs job/otterwiki-migrate-v3
+```
+
+只有 Job 成功且日志显示“数据库迁移完成”才继续。失败时保持应用停止，先查看日志。
+每个版本的结构、数据和版本记录在一个事务中提交；当前版本失败会回滚，之前已经
+成功的版本仍保留。排查后删除失败 Job 再重新创建；重复执行不会恢复已撤销的成员。
+Web 启动不再自动补旧表列，不能用重启应用代替迁移。
+
+## 4. 启动与验收
+
+保持维护入口关闭，将 Deployment 更新为与迁移 Job 相同的应用镜像、配置和 PVC，
+再恢复原副本数（当前部署为 1，采用 Recreate）。
+
+```bash
+kubectl -n "$WIKI_NS" scale deploy "$WIKI_DEPLOY" --replicas=1
+kubectl -n "$WIKI_NS" rollout status deploy/"$WIKI_DEPLOY" --timeout=300s
+```
+
+先检查原文档、附件和历史记录，再验证管理员及普通用户的组权限、默认空间首页、
+归档访问和 12/15/24px 字号。确认重建 Pod 后数据仍保留，再开放业务入口。
+
+## 5. 回滚
+
+保持业务入口关闭并停止应用。先额外保存升级后产生的数据（尤其是新空间），
+再使用恢复 Pod 将升级前的**整套**数据库与仓库备份恢复到一个空的新 PVC，
+不要在仍有文件的旧卷上直接覆盖，也不要仅删除 spaces 目录。
+验证后将 Deployment 的数据卷指向恢复 PVC，恢复旧镜像与匹配配置并启动。
+旧卷保留供排查；若需要保留升级后编辑内容，先单独导出，不要直接覆盖备份。
+
+## 管理入口
+
+空间与组在“设置 → 空间管理/组管理”维护；用户页可编辑所属组。
+删除用户会同时清理组关系；新注册用户需要管理员分配组。
+“内容与编辑设置”可调整全局文档字号（12–24px，默认 15px），恢复默认时回退
+配置文件/环境变量中的默认值。字号不会改变导航、管理界面或编辑器输入大小。

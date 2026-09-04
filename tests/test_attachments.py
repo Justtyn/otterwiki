@@ -6,6 +6,50 @@ import base64
 from flask import url_for
 
 
+def _login_client(app):
+    """多空间权限：匿名无法访问内容。确保存在默认管理员（管理员绕过空间
+    组授权）并返回已登录客户端。自包含实现：全量回归时 docs/ 下另有
+    conftest.py，跨目录 import conftest 会产生模块名冲突。"""
+    import re as _re
+    from datetime import datetime
+
+    from otterwiki.auth import SimpleAuth, generate_password_hash
+    from otterwiki.server import db
+    from otterwiki.spaces import ensure_default_space
+
+    with app.app_context():
+        ensure_default_space()
+        admin = SimpleAuth.User.query.filter_by(
+            email="mail@example.org"
+        ).first()
+        if admin is None:
+            admin = SimpleAuth.User(
+                name="Test User",
+                email="mail@example.org",
+                password_hash=generate_password_hash(
+                    "password1234", method="scrypt"
+                ),
+                first_seen=datetime.now(),
+                last_seen=datetime.now(),
+                is_admin=True,
+            )
+            db.session.add(admin)
+            db.session.commit()
+    client = app.test_client()
+    login_html = client.get("/-/login").data.decode()
+    m = _re.search(r'name="csrf_token"[^>]*value="([^"]+)"', login_html)
+    assert m is not None, "登录页缺少 csrf_token"
+    client.post(
+        "/-/login",
+        data={
+            "email": "mail@example.org",
+            "password": "password1234",
+            "csrf_token": m.group(1),
+        },
+    )
+    return client
+
+
 @pytest.fixture
 def app_with_attachments(create_app):
     # create test page
@@ -59,7 +103,8 @@ def app_with_attachments(create_app):
 
 @pytest.fixture
 def test_client(app_with_attachments):
-    client = app_with_attachments.test_client()
+    # 多空间权限：匿名无法访问内容，登录默认管理员
+    client = _login_client(app_with_attachments)
     client._app = app_with_attachments
     yield client
 

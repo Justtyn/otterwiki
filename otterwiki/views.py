@@ -55,6 +55,15 @@ from flask_wtf.csrf import CSRFError
 #
 @app.route("/")
 def index():
+    space = getattr(g, "space", None)
+    if space is not None and space.home_page:
+        if space.is_default and space.home_page.startswith("/-/"):
+            return redirect(space.home_page)
+        return view(path=space.home_page)
+    if space is not None and not space.is_default:
+        # 空间首页：使用空间自己配置的首页（未配置时使用 Home）
+        return view(path="Home")
+
     home_page = app.config.get("HOME_PAGE", "")
 
     if not home_page:
@@ -390,6 +399,71 @@ def admin():
         return otterwiki.preferences.admin_form()
     else:
         return otterwiki.preferences.handle_preferences(request.form)
+
+
+@app.route("/-/s", defaults={"rest": ""})
+@app.route("/-/s/", defaults={"rest": ""})
+@app.route("/-/s/<path:rest>")
+def space_fallback(rest):
+    """未知空间或不可重写的空间路径：匿名进入登录流程，其余返回 404。
+
+    已知空间的请求由 WSGI 中间件重写（SCRIPT_NAME），不会到达这里。
+    """
+    from otterwiki.spaces import login_redirect
+
+    if not current_user.is_authenticated:
+        return login_redirect()
+    abort(404)
+
+
+@app.route("/-/admin/spaces", methods=["POST", "GET"])
+@login_required
+def admin_spaces():
+    if request.method == "GET":
+        return otterwiki.preferences.space_list_form()
+    return otterwiki.preferences.handle_space_create(request.form)
+
+
+@app.route("/-/admin/spaces/<int:space_id>", methods=["POST", "GET"])
+@login_required
+def admin_space_edit(space_id):
+    if request.method == "GET":
+        return otterwiki.preferences.space_edit_form(space_id)
+    return otterwiki.preferences.handle_space_edit(space_id, request.form)
+
+
+@app.route("/-/admin/spaces/<int:space_id>/archive", methods=["POST"])
+@login_required
+def admin_space_archive(space_id):
+    return otterwiki.preferences.handle_space_archive(space_id, request.form)
+
+
+@app.route("/-/admin/spaces/<int:space_id>/restore", methods=["POST"])
+@login_required
+def admin_space_restore(space_id):
+    return otterwiki.preferences.handle_space_restore(space_id, request.form)
+
+
+@app.route("/-/admin/groups", methods=["POST", "GET"])
+@login_required
+def admin_groups():
+    if request.method == "GET":
+        return otterwiki.preferences.group_list_form()
+    return otterwiki.preferences.handle_group_create(request.form)
+
+
+@app.route("/-/admin/groups/<int:group_id>", methods=["POST", "GET"])
+@login_required
+def admin_group_edit(group_id):
+    if request.method == "GET":
+        return otterwiki.preferences.group_edit_form(group_id)
+    return otterwiki.preferences.handle_group_edit(group_id, request.form)
+
+
+@app.route("/-/admin/groups/<int:group_id>/delete", methods=["POST"])
+@login_required
+def admin_group_delete(group_id):
+    return otterwiki.preferences.handle_group_delete(group_id, request.form)
 
 
 @app.route("/-/interface")

@@ -351,6 +351,11 @@ class OtterwikiMdRenderer(mistune.HTMLRenderer):
         if title:
             title = mistune.escape(title)
         src = mistune.escape_url(self.safe_url(url))
+        # 多空间：非默认空间中为站内附件图片补充当前空间前缀
+        # （spaces 在 server 初始化后期才可用，这里延迟导入）
+        from otterwiki.spaces import space_prefixed_url
+
+        src = space_prefixed_url(src)
 
         if not empty(title):
             image_html = (
@@ -381,6 +386,10 @@ class OtterwikiMdRenderer(mistune.HTMLRenderer):
 
         # escape url
         link = mistune.escape_url(self.safe_url(url))
+        # 多空间：非默认空间中为站内链接补充当前空间前缀（延迟导入）
+        from otterwiki.spaces import space_prefixed_url
+
+        link = space_prefixed_url(link)
 
         open_in_new_tab = self.env.get("config", {}).get(
             "OPEN_LINKS_IN_NEW_TAB", False
@@ -664,7 +673,7 @@ class OtterwikiRenderer:
                 plugin_fold,
                 plugin_math,
                 plugin_alerts,
-                plugin_wikilink,
+                type(plugin_wikilink)(),
                 plugin_frontmatter,
                 plugin_frontmatter_title,
                 plugin_abbr,
@@ -686,6 +695,17 @@ class OtterwikiRenderer:
         table_in_list(self.mistune)
 
     def markdown(self, text, cursor=None, **kwargs):
+        # 每次解析使用独立实例，目录、解析器环境和资源标记不能跨请求共享。
+        from otterwiki.render_context import clear_render_state
+
+        worker = OtterwikiRenderer(config=dict(self.env["config"]))
+        try:
+            return worker._markdown(text, cursor=cursor, **kwargs)
+        except Exception:
+            clear_render_state()
+            raise
+
+    def _markdown(self, text, cursor=None, **kwargs):
         self.md_renderer.reset_toc()
         self.requires_mermaid = False
         self.requires_mathjax = False
@@ -736,10 +756,11 @@ class OtterwikiRenderer:
         # store extra kwargs in environment
         for k, v in kwargs.items():
             self.env[k.upper()] = v
-        html = self.mistune(text)
-        # clean extra kwargs from environment
-        for k, v in kwargs.items():
-            del self.env[k.upper()]
+        try:
+            html = self.mistune(text)
+        finally:
+            for k in kwargs:
+                self.env.pop(k.upper(), None)
         # generate the toc
         toc = self.md_renderer.toc_tree.copy()
         if cursor is not None and line > 0:

@@ -38,6 +38,59 @@ except NameError:
 _REVISION_RE = re.compile(r"\A(?:HEAD|[0-9a-fA-F]{4,64})\Z")
 
 
+class SpaceStorageProxy(object):
+    """请求级空间存储代理（统一存储解析入口）。
+
+    所有对 ``otterwiki.server.storage`` 的访问都经由本代理转发：
+    非默认空间的请求上下文中转发给该空间的 GitStorage 实例，其余情况
+    （默认空间、无请求上下文的后台任务与命令行）转发给默认仓库。
+    切换空间一律通过请求上下文完成，禁止修改全局仓库路径。
+    """
+
+    def __init__(self, default_storage):
+        object.__setattr__(self, "_default_storage", default_storage)
+        object.__setattr__(self, "_space_cache", {})
+
+    def resolve_storage(self):
+        try:
+            from flask import g, has_request_context
+
+            if has_request_context():
+                space = getattr(g, "space", None)
+                if space is not None and not getattr(
+                    space, "is_default", True
+                ):
+                    instance = self._space_cache.get(space.id)
+                    if instance is None:
+                        from otterwiki.spaces import get_space_storage
+
+                        instance = get_space_storage(space)
+                        self._space_cache[space.id] = instance
+                    return instance
+        except RuntimeError:
+            # 无应用/请求上下文时回退默认仓库
+            pass
+        return self._default_storage
+
+    def reset_space_cache(self):
+        self._space_cache.clear()
+
+    def __getattr__(self, name):
+        return getattr(self.resolve_storage(), name)
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+        else:
+            # 例如测试夹具与文档导入会直接改写具体仓库实例的 path/repo
+            setattr(self.resolve_storage(), name, value)
+
+    def __repr__(self):
+        return "<SpaceStorageProxy default={!r}>".format(
+            getattr(self._default_storage, "path", None)
+        )
+
+
 class GitStorage(object):
     def __init__(self, path, initialize=False):
         # make path absolute

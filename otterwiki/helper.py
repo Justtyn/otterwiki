@@ -232,14 +232,21 @@ def get_pagename_for_title(
     return pagename
 
 
+def _pagecrumbs_session_key():
+    """面包屑会话键：按空间隔离，避免跨空间串目录。"""
+    from otterwiki.spaces import current_space_key
+
+    return "pagecrumbs:{}".format(current_space_key())
+
+
 def get_pagename_prefixes(filter=[]):
     pagename_prefixes = []
 
     def _on_disk(path):
         return path if app.config["RETAIN_PAGE_NAME_CASE"] else path.lower()
 
-    if "pagecrumbs" in session:
-        for crumb in session["pagecrumbs"][::-1]:
+    if _pagecrumbs_session_key() in session:
+        for crumb in session[_pagecrumbs_session_key()][::-1]:
             if len(crumb) == 0 or crumb.lower() == "home":
                 continue
             crumb_parent = join_path(split_path(crumb)[:-1])
@@ -297,21 +304,23 @@ def get_breadcrumbs(pagepath):
 
 def upsert_pagecrumbs(pagepath):
     """
-    adds the given pagepath to the page specific crumbs "pagecrumbs" stored in the session
+    adds the given pagepath to the page specific crumbs stored in the
+    session (scoped to the current space)
     """
+    crumbs_key = _pagecrumbs_session_key()
     if pagepath is None or pagepath == "/":
         return
-    if "pagecrumbs" not in session:
-        session["pagecrumbs"] = []
+    if crumbs_key not in session:
+        session[crumbs_key] = []
     else:
-        session["pagecrumbs"] = list(
+        session[crumbs_key] = list(
             filter(
-                lambda x: x.lower() != pagepath.lower(), session["pagecrumbs"]
+                lambda x: x.lower() != pagepath.lower(), session[crumbs_key]
             )
         )
 
     # add the pagepath to the tail of the list of pagecrumbs
-    session["pagecrumbs"] = session["pagecrumbs"][-7:] + [pagepath]
+    session[crumbs_key] = session[crumbs_key][-7:] + [pagepath]
     # flask.session: modifications on mutable structures are not picked up automatically
     session.modified = True
 
@@ -347,6 +356,13 @@ def patchset2urlmap(patchset, rev_b, rev_a=None):
     return url_map
 
 
+def _ftoc_cache_key(filename):
+    """ftoc 缓存键：包含当前空间，避免不同空间的同名文件互相覆盖。"""
+    from otterwiki.spaces import current_space_key
+
+    return sha256sum("{}:ftoc://{}".format(current_space_key(), filename))
+
+
 def update_ftoc_cache(filename, ftoc, mtime=None):
     if mtime is None:
         try:
@@ -356,7 +372,7 @@ def update_ftoc_cache(filename, ftoc, mtime=None):
                 f"{e} while running update_ftoc_cache({filename})"
             )
             return
-    hash = sha256sum(f"ftoc://{filename}")
+    hash = _ftoc_cache_key(filename)
     value = json.dumps({"filename": filename, "ftoc": ftoc})
     # check if key exists in Cache
     c = Cache.query.filter(Cache.key == hash).first()
@@ -373,7 +389,7 @@ def update_ftoc_cache(filename, ftoc, mtime=None):
 def get_ftoc(filename, mtime=None):
     if mtime is None:
         mtime = storage.mtime(filename)
-    hash = sha256sum(f"ftoc://{filename}")
+    hash = _ftoc_cache_key(filename)
     # check if hash is in the Cache
     result = Cache.query.filter(
         db.and_(Cache.key == hash, Cache.datetime >= mtime)

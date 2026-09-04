@@ -1,19 +1,32 @@
 /* page tweaks */
+/* 文档字号：由全局设置 DOCUMENT_FONT_SIZE 控制（CSS 变量在 layout 的 body 上注入）。
+   正文、列表、表格、代码与标题按相对比例缩放，保留排版层级；
+   变量只被 .page 作用域消费，导航、按钮、管理界面和编辑器字号不受影响。 */
+.page {
+    font-size: var(--otterwiki-document-font-size, 1.6rem);
+}
+
 .page h1, .page h2, .page h3,
 .page h4, .page h5, .page h6 {
     font-weight: 400;
 }
 
-.page h1 { font-size: 3.6rem; }
-.page h2 { font-size: 3.2rem; }
-.page h3 { font-size: 2.8rem; }
-.page h4 { font-size: 2.4rem; }
-.page h5 { font-size: 2.0rem; }
-.page h6 { font-size: 1.6rem; }
+.page h1 { font-size: calc(var(--otterwiki-document-font-size, 1.6rem) * 2.25); }
+.page h2 { font-size: calc(var(--otterwiki-document-font-size, 1.6rem) * 2); }
+.page h3 { font-size: calc(var(--otterwiki-document-font-size, 1.6rem) * 1.75); }
+.page h4 { font-size: calc(var(--otterwiki-document-font-size, 1.6rem) * 1.5); }
+.page h5 { font-size: calc(var(--otterwiki-document-font-size, 1.6rem) * 1.25); }
+.page h6 { font-size: var(--otterwiki-document-font-size, 1.6rem); }
 
 .page p,
 .page li {
-    font-size: 1.6rem;
+    font-size: var(--otterwiki-document-font-size, 1.6rem);
+}
+
+/* 文档中的等宽文本随文档字号缩放（代码块 pre 继承 .page 字号） */
+.page .code,
+.page table > tbody > tr > td.code {
+    font-size: calc(var(--otterwiki-document-font-size, 1.6rem) * 0.75);
 }
 
 .page li {

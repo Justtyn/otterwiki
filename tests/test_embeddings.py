@@ -3,6 +3,52 @@
 
 import os
 import pytest
+
+
+def _login_client(app):
+    """多空间权限：匿名无法访问内容。确保存在默认管理员（管理员绕过空间
+    组授权）并返回已登录客户端。自包含实现：全量回归时 docs/ 下另有
+    conftest.py，跨目录 import conftest 会产生模块名冲突。"""
+    import re as _re
+    from datetime import datetime
+
+    from otterwiki.auth import SimpleAuth, generate_password_hash
+    from otterwiki.server import db
+    from otterwiki.spaces import ensure_default_space
+
+    with app.app_context():
+        ensure_default_space()
+        admin = SimpleAuth.User.query.filter_by(
+            email="mail@example.org"
+        ).first()
+        if admin is None:
+            admin = SimpleAuth.User(
+                name="Test User",
+                email="mail@example.org",
+                password_hash=generate_password_hash(
+                    "password1234", method="scrypt"
+                ),
+                first_seen=datetime.now(),
+                last_seen=datetime.now(),
+                is_admin=True,
+            )
+            db.session.add(admin)
+            db.session.commit()
+    client = app.test_client()
+    login_html = client.get("/-/login").data.decode()
+    m = _re.search(r'name="csrf_token"[^>]*value="([^"]+)"', login_html)
+    assert m is not None, "登录页缺少 csrf_token"
+    client.post(
+        "/-/login",
+        data={
+            "email": "mail@example.org",
+            "password": "password1234",
+            "csrf_token": m.group(1),
+        },
+    )
+    return client
+
+
 from otterwiki.renderer import render
 from bs4 import BeautifulSoup
 
@@ -291,7 +337,7 @@ def test_imageframe_src_attachment(create_app):
         message="add image",
         mode="wb",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Imgframepage/view")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data.decode(), "html.parser")
@@ -331,7 +377,7 @@ def test_imageframe_src_attachment_alt(create_app):
         message="add image",
         mode="wb",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Imgframealt/view")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data.decode(), "html.parser")
@@ -369,7 +415,7 @@ def test_imageframe_src_absolute_path(create_app):
         author=author,
         message="add embedder page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Embedder/view")
     assert response.status_code == 200
     soup = BeautifulSoup(response.data.decode(), "html.parser")
@@ -416,7 +462,7 @@ def test_imageframe_src_missing_attachment(create_app):
         author=author,
         message="add page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Imgframemissing/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -684,7 +730,7 @@ def test_datatable_csv_basic(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -715,7 +761,7 @@ def test_datatable_csv_custom_delimiter(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_sep/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -743,7 +789,7 @@ def test_datatable_csv_column_selection_by_index(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_cols/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -773,7 +819,7 @@ def test_datatable_csv_column_selection_by_index0(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_cols0/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -803,7 +849,7 @@ def test_datatable_csv_column_selection_by_name(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_colname/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -831,7 +877,7 @@ def test_datatable_csv_header_override(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_hdr/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -872,7 +918,7 @@ def test_datatable_csv_header_override_no_xss(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_xss/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -903,7 +949,7 @@ def test_datatable_csv_no_header(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_nohdr/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -925,7 +971,7 @@ def test_datatable_csv_missing_file(create_app):
         author=author,
         message="csv page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_miss/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -950,7 +996,7 @@ def test_datatable_csv_quotechar_default(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_qc1/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -982,7 +1028,7 @@ def test_datatable_csv_quotechar_custom(create_app):
         author=author,
         message="add csv",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvpage_qc2/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1018,7 +1064,7 @@ def test_datatable_csv_absolute_src(create_app):
         author=author,
         message="csv abs page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Csvabspage/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1060,7 +1106,7 @@ def test_datatable_csv_path_traversal_relative_blocked(create_app):
             author=author,
             message="add csv",
         )
-        client = create_app.test_client()
+        client = _login_client(create_app)
         response = client.get("/Csvtrav/view")
         assert response.status_code == 200
         html = response.data.decode()
@@ -1084,7 +1130,7 @@ def test_datatable_csv_path_traversal_absolute_blocked(create_app):
             author=author,
             message="traversal abs page",
         )
-        client = create_app.test_client()
+        client = _login_client(create_app)
         response = client.get("/Csvtravabs/view")
         assert response.status_code == 200
         html = response.data.decode()
@@ -1119,7 +1165,7 @@ def test_attachmentlist(create_app):
         author=author,
         message="add report",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1145,7 +1191,7 @@ def test_attachmentlist_caption(create_app):
         author=author,
         message="add data",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage2/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1179,7 +1225,7 @@ def test_attachmentlist_filter(create_app):
         message="add image",
         mode="wb",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage3/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1195,7 +1241,7 @@ def test_attachmentlist_empty(create_app):
         author=author,
         message="test page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage4/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1218,7 +1264,7 @@ def test_attachmentlist_format_minimal(create_app):
         author=author,
         message="add readme",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage5/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1246,7 +1292,7 @@ def test_attachmentlist_format_details(create_app):
         author=author,
         message="add data",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage6/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1712,7 +1758,7 @@ def test_attachmentlist_no_icons(create_app):
         author=author,
         message="add file",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Testpage7/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1753,7 +1799,7 @@ def test_pageindex_embedding(create_app):
         author=author,
         message="add sibling",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Indexpage/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1792,7 +1838,7 @@ def test_pageindex_embedding_src_filter(create_app):
         author=author,
         message="add dog",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Filterpage/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1825,7 +1871,7 @@ def test_pageindex_embedding_src_star(create_app):
         author=author,
         message="add beta",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Starindex/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1857,7 +1903,7 @@ def test_pageindex_embedding_style_list(create_app):
         author=author,
         message="add beta",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Listindex/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1891,7 +1937,7 @@ def test_pageindex_embedding_style_list_with_toc(create_app):
         author=author,
         message="add page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Listtocindex/view")
     assert response.status_code == 200
     html = response.data.decode()
@@ -1923,7 +1969,7 @@ def test_pageindex_embedding_toc(create_app):
         author=author,
         message="add toc page",
     )
-    client = create_app.test_client()
+    client = _login_client(create_app)
     response = client.get("/Tocindex/view")
     assert response.status_code == 200
     html = response.data.decode()

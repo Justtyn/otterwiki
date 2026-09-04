@@ -1,0 +1,55 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "settings.html" %}
+{% block content %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">编辑组：{{ group.name }}</h2>
+<form action="{{ url_for("admin_group_edit", group_id=group.id) }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+        <label for="name" class="required">组名称</label>
+        <input name="name" type="text" class="form-control" id="name" value="{{ group.name }}">
+    </div>
+    <div class="form-group">
+        <label for="description">组描述</label>
+        <input name="description" type="text" class="form-control" id="description" value="{{ group.description or "" }}">
+    </div>
+    <div class="form-group">
+        <label>组成员</label>
+{% for u in all_users %}
+        <div class="custom-checkbox">
+            <input type="checkbox" id="member-{{ u.id }}" name="members" value="{{ u.id }}" {{"checked=\"checked\"" if u.id in member_ids }}>
+            <label for="member-{{ u.id }}">{{ u.name }} &lt;{{ u.email }}&gt;</label>
+        </div>
+{% endfor %}
+        <div class="form-text">新注册用户不会自动加入任何组。</div>
+    </div>
+    <div class="form-group">
+        <label>可阅读的空间</label>
+{% for space in all_spaces %}
+        <div class="custom-checkbox">
+            <input type="checkbox" id="space-{{ space.id }}" name="spaces" value="{{ space.id }}" {{"checked=\"checked\"" if space.id in granted_space_ids }}>
+            <label for="space-{{ space.id }}">{{ space.name }}{% if space.is_archived %}（已归档）{% endif %}</label>
+        </div>
+{% endfor %}
+    </div>
+    <div class="mt-10">
+        <input class="btn btn-primary" type="submit" value="保存设置">
+    </div>
+</form>
+</div>
+</div>
+
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">删除组</h2>
+<p class="form-text">
+    删除组仅移除成员关系及空间授权，不删除任何文档。
+</p>
+<form action="{{ url_for("admin_group_delete", group_id=group.id) }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input class="btn btn-danger" type="submit" value="删除组">
+</form>
+</div>
+</div>
+{% endblock %}

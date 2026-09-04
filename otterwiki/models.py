@@ -4,7 +4,17 @@
 from otterwiki.server import db
 from datetime import datetime, UTC
 
-__all__ = ['Preferences', 'Drafts', 'User', 'Cache']
+__all__ = [
+    'Preferences',
+    'Drafts',
+    'User',
+    'Cache',
+    'Space',
+    'Group',
+    'UserGroup',
+    'GroupSpaceAuth',
+    'SchemaVersion',
+]
 
 
 class TimeStamp(db.types.TypeDecorator):
@@ -43,9 +53,77 @@ class Drafts(db.Model):
     cursor_line = db.Column(db.Integer)
     cursor_ch = db.Column(db.Integer)
     datetime = db.Column(TimeStamp())
+    # 草稿所属空间；NULL 表示升级前的历史草稿（迁移时回填为默认空间）
+    space_id = db.Column(db.Integer, nullable=True)
 
     def __str__(self):
         return f"<Draft id={self.id} pagepath={self.pagepath} author={self.author_email} datetime={self.datetime}>"
+
+
+# 空间地址标识的合法性约束：小写字母/数字开头，仅含小写字母、数字与连字符。
+# default 为默认空间保留字。
+SPACE_SLUG_RE_STR = r"^[a-z0-9][a-z0-9-]{0,63}$"
+
+
+class Space(db.Model):
+    __tablename__ = "space"
+    id = db.Column(db.Integer, primary_key=True)
+    # 地址标识：创建后固定，不可修改
+    slug = db.Column(db.String(64), index=True, unique=True, nullable=False)
+    name = db.Column(db.String(256), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    # 空间首页的页面路径；空值表示使用 Home
+    home_page = db.Column(db.String(2048), nullable=True)
+    is_archived = db.Column(db.Boolean(), default=False)
+    is_default = db.Column(db.Boolean(), default=False)
+    created_at = db.Column(TimeStamp(), default=lambda: datetime.now(UTC))
+    updated_at = db.Column(
+        TimeStamp(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+    def __str__(self):
+        return f"<Space id={self.id} slug={self.slug} name={self.name}>"
+
+
+class Group(db.Model):
+    __tablename__ = "group"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(256), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(TimeStamp(), default=lambda: datetime.now(UTC))
+
+    def __str__(self):
+        return f"<Group id={self.id} name={self.name}>"
+
+
+# 用户与用户组的关系
+class UserGroup(db.Model):
+    __tablename__ = "user_group"
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+    group_id = db.Column(
+        db.Integer, db.ForeignKey("group.id"), primary_key=True
+    )
+
+
+# 用户组与空间的阅读授权关系
+class GroupSpaceAuth(db.Model):
+    __tablename__ = "group_space_auth"
+    group_id = db.Column(
+        db.Integer, db.ForeignKey("group.id"), primary_key=True
+    )
+    space_id = db.Column(
+        db.Integer, db.ForeignKey("space.id"), primary_key=True
+    )
+
+
+class SchemaVersion(db.Model):
+    """记录已执行的数据库迁移版本，保证迁移可重复执行且不会重复播种。"""
+
+    __tablename__ = "schema_version"
+    version = db.Column(db.Integer, primary_key=True)
+    applied_at = db.Column(TimeStamp(), default=lambda: datetime.now(UTC))
 
 
 class User(db.Model):

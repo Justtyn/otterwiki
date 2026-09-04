@@ -1,0 +1,65 @@
+{# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
+{% extends "settings.html" %}
+{% block content %}
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">空间管理</h2>
+<p class="form-text">
+    每个空间拥有独立的首页、目录、文档、附件与历史记录。管理员通过用户组为空间分配阅读权限。
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>名称</th>
+            <th>地址标识</th>
+            <th>首页</th>
+            <th>授权组</th>
+            <th>状态</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+{% for space in spaces %}
+        <tr>
+            <td>{{ space.name }}{% if space.is_default %} <span class="tag tag-secondary">默认空间</span>{% endif %}</td>
+            <td><code>{{ space.slug }}</code></td>
+            <td>{{ space.home_page or "Home" }}</td>
+            <td>{{ group_counts.get(space.id, 0) }}</td>
+            <td>{% if space.is_archived %}<span class="tag tag-danger">已归档</span>{% else %}<span class="tag tag-success">正常</span>{% endif %}</td>
+            <td><a class="btn btn-sm" href="{{ url_for("admin_space_edit", space_id=space.id) }}">管理</a></td>
+        </tr>
+{% endfor %}
+    </tbody>
+</table>
+</div>
+</div>
+
+<div class="card m-auto m-lg-20">
+<div class="mw-full">
+<h2 class="card-title">创建空间</h2>
+<form action="{{ url_for("admin_spaces") }}" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group">
+        <label for="name" class="required">空间名称</label>
+        <input name="name" type="text" class="form-control" id="name" value="" placeholder="例如：产品文档">
+        <div class="form-text">创建后可以修改。</div>
+    </div>
+    <div class="form-group">
+        <label for="slug" class="required">地址标识</label>
+        <input name="slug" type="text" class="form-control" id="slug" value="" placeholder="例如：product-docs" pattern="[a-z0-9][a-z0-9-]{0,63}">
+        <div class="form-text">
+            用于访问地址 <code>/-/s/地址标识/...</code>。仅允许小写字母、数字和连字符，
+            不能使用保留标识 <code>default</code>，<strong>创建后不可修改</strong>。
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="description">空间简介</label>
+        <input name="description" type="text" class="form-control" id="description" value="">
+    </div>
+    <div class="mt-10">
+        <input class="btn btn-primary" type="submit" value="创建空间">
+    </div>
+</form>
+</div>
+</div>
+{% endblock %}

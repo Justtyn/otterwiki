@@ -98,6 +98,10 @@ app.config.update(
     APSTACK_IMPORT_MAX_FILES=50_000,
     APSTACK_API_BASE_URL="http://localhost:9988",
     APSTACK_API_TIMEOUT=10,
+    # 多空间：新空间仓库根目录；默认取 REPOSITORY 同级的 spaces 目录
+    SPACES_ROOT=None,
+    # 全局文档字号（px），允许 12-24 的整数
+    DOCUMENT_FONT_SIZE=15,
 )
 app.config.from_envvar("OTTERWIKI_SETTINGS", silent=True)
 
@@ -123,6 +127,24 @@ for key in app.config:
         else:
             app.config[key] = os.environ[key]
         config_from_environment[key] = app.config[key]
+
+# validate DOCUMENT_FONT_SIZE from settings file / environment
+_document_font_size = None
+try:
+    _document_font_size = int(
+        str(app.config.get("DOCUMENT_FONT_SIZE", "")).strip()
+    )
+except (TypeError, ValueError):
+    _document_font_size = None
+if _document_font_size is None or not 12 <= _document_font_size <= 24:
+    app.logger.warning(
+        'server: Ignored invalid DOCUMENT_FONT_SIZE={!r}. '
+        'Must be an integer between 12 and 24. Falling back to 15.'.format(
+            app.config.get("DOCUMENT_FONT_SIZE")
+        )
+    )
+    _document_font_size = 15
+app.config["DOCUMENT_FONT_SIZE"] = _document_font_size
 
 # configure logging
 app.logger.setLevel(app.config["LOG_LEVEL"])
@@ -154,9 +176,14 @@ elif not os.path.exists(app.config["REPOSITORY"]):
     )
 else:
     try:
-        storage = otterwiki.gitstorage.GitStorage(app.config["REPOSITORY"])
+        default_storage = otterwiki.gitstorage.GitStorage(
+            app.config["REPOSITORY"]
+        )
     except otterwiki.gitstorage.StorageError as e:
         fatal_error(e)
+    # 多空间：统一存储解析入口。storage 是按请求空间转发的代理对象，
+    # 切换空间通过请求上下文完成，禁止修改全局仓库路径。
+    storage = otterwiki.gitstorage.SpaceStorageProxy(default_storage)
 
 
 # make sure SERVER_NAME is None if empty (to make url_for work)
@@ -210,6 +237,10 @@ def update_app_config():
     global mail
     with app.app_context():
         for item in Preferences.query:
+            if item.name.upper() == "DOCUMENT_FONT_SIZE":
+                # 文档字号按请求从数据库读取（保证多进程一致），
+                # app.config 中仅保留配置文件/环境变量的默认值
+                continue
             if item.name.upper() in [
                 "MAIL_USE_TLS",
                 "MAIL_USE_SSL",
@@ -256,6 +287,9 @@ def update_app_config():
 
 with app.app_context():
     db.create_all()
+
+    # 已有表的结构变更仅由 flask db upgrade 执行，不能在加载应用时
+    # 提前提交；否则迁移失败时无法回滚，也会让多个工作进程竞争 ALTER。
 update_app_config()
 
 
@@ -396,6 +430,10 @@ app.jinja_env.globals.update(
     plugin_sidebar_right_inject=plugin_sidebar_right_inject,
 )
 
+# 多空间运行时：WSGI 前缀中间件、请求级空间门禁、模板全局。
+# 必须在 models 建表之后、views 之前导入。
+import otterwiki.spaces  # pyright: ignore
+
 # initialize git via http
 import otterwiki.remote
 
@@ -405,7 +443,7 @@ githttpserver = otterwiki.remote.GitHttpServer(path=app.config["REPOSITORY"])
 import otterwiki.repomgmt
 
 otterwiki.repomgmt.initialize_repo_management(
-    storage  # pyright: ignore never unbound
+    default_storage  # 远程同步仅绑定默认空间仓库
 )
 
 # contains application routes,

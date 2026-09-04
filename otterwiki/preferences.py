@@ -17,6 +17,7 @@ from flask_login import (
     current_user,
 )
 from otterwiki.server import app, db, update_app_config, Preferences
+from otterwiki.models import Group, GroupSpaceAuth, Space, UserGroup
 from otterwiki.sidebar import SidebarPageIndex, SidebarMenu
 from otterwiki.helper import (
     toast,
@@ -28,6 +29,7 @@ from otterwiki.util import (
     is_valid_email,
     compute_webhook_hash,
     compute_webhook_hash_legacy,
+    normalize_document_font_size,
 )
 from flask_login import current_user
 from otterwiki.auth import (
@@ -275,6 +277,14 @@ def handle_app_preferences(form):
 def handle_content_and_editing(form):
     if not has_permission("ADMIN"):
         abort(403)
+    # 恢复默认字号：删除保存值，回退配置文件/环境变量的默认值
+    if form.get("document_font_size_reset"):
+        entry = Preferences.query.filter_by(name="DOCUMENT_FONT_SIZE").first()
+        if entry is not None:
+            db.session.delete(entry)
+            db.session.commit()
+        toast("已恢复默认文档字号。")
+        return redirect(url_for("admin_content_and_editing"))
     for name in [
         "commit_message",
         "default_commit_message",
@@ -286,6 +296,12 @@ def handle_content_and_editing(form):
         "treat_underscore_as_space_for_titles",
     ]:
         _update_preference(checkbox.upper(), form.get(checkbox, "False"))
+    # 全局文档字号：非法值拒绝保存
+    font_size = normalize_document_font_size(form.get("document_font_size"))
+    if font_size is None:
+        toast("文档字号必须是 12 到 24 之间的整数（单位 px）。", "error")
+        return redirect(url_for("admin_content_and_editing"))
+    _update_preference("DOCUMENT_FONT_SIZE", str(font_size))
     # commit changes to the database
     db.session.commit()
     update_app_config()
@@ -737,11 +753,21 @@ def user_management_form():
         abort(403)
     # query user
     user_list = get_all_user()
+    # 用户 -> 所属组名映射（用于列表中直接展示）
+    rows = (
+        db.session.query(UserGroup.user_id, Group.name)
+        .join(Group, Group.id == UserGroup.group_id)
+        .all()
+    )
+    user_groups = {}
+    for user_id, group_name in rows:
+        user_groups.setdefault(user_id, []).append(group_name)
     # render form
     return render_template(
         "admin/user_management.html",
         title="用户管理",
         user_list=user_list,
+        user_groups=user_groups,
     )
 
 
@@ -751,11 +777,25 @@ def user_edit_form(uid):
     user = get_user(uid)
     if uid is not None and (user is None or user.id is None):
         return abort(404)
+    # 所属组维护上下文
+    all_groups = Group.query.order_by(Group.name).all()
+    member_ids = (
+        {
+            row[0]
+            for row in db.session.query(UserGroup.group_id)
+            .filter_by(user_id=user.id)
+            .all()
+        }
+        if user is not None and user.id is not None
+        else set()
+    )
     # render form
     return render_template(
         "user.html",
         title="用户",
         user=user,
+        all_groups=all_groups,
+        member_ids=member_ids,
     )
 
 
@@ -805,12 +845,16 @@ def handle_user_add(form):
             "user.html",
             title="用户",
             user=user,
+            all_groups=Group.query.order_by(Group.name).all(),
+            member_ids=set(),
         )
     # no error: store in database
     user.first_seen = datetime.now()  # pyright: ignore
     user.last_seen = datetime.now()  # pyright: ignore
     try:
         user = update_user(user)
+        _update_user_groups(user, form)
+        db.session.commit()
         # send_approvement_mail(user)
         app.logger.info(f"{user.name} <{user.email}> added")
         toast(f"{user.name} <{user.email}> added")
@@ -894,6 +938,9 @@ def handle_user_edit(uid, form):
         )
     try:
         update_user(user)
+        msgs.extend(_update_user_groups(user, form))
+        if len(msgs):
+            db.session.commit()
         if user.is_approved and not user_was_already_approved:
             send_approvement_mail(user)
     except Exception as e:
@@ -903,3 +950,404 @@ def handle_user_edit(uid, form):
             'danger',
         )
     return redirect(url_for("user", uid=user.id))
+
+
+#
+# 全局文档字号
+#
+
+
+def get_document_font_size():
+    """文档字号：后台保存值优先，其次配置文件/环境变量的默认值。
+
+    逐请求读取数据库（主键查询），保证多进程部署中各工作进程取值一致，
+    保存后从下一次页面请求开始生效，无需重启或重建镜像。
+    """
+    entry = Preferences.query.filter_by(name="DOCUMENT_FONT_SIZE").first()
+    if entry is not None:
+        size = normalize_document_font_size(entry.value)
+        if size is not None:
+            return size
+        app.logger.warning(
+            "preferences: 忽略非法的文档字号保存值 {!r}，使用配置默认值。".format(
+                entry.value
+            )
+        )
+    return normalize_document_font_size(
+        app.config.get("DOCUMENT_FONT_SIZE"), default=15
+    )
+
+
+#
+# 空间管理
+#
+
+
+_SPACE_INITIAL_CONTENT = (
+    "# 欢迎\n\n"
+    "欢迎来到新的空间。点击右上角的编辑按钮开始编写文档，"
+    "页面以 Markdown 形式保存在本空间独立的 git 仓库中。\n"
+)
+
+
+def _space_or_404(space_id):
+    space = Space.query.filter_by(id=space_id).first()
+    if space is None:
+        abort(404)
+    return space
+
+
+def _group_or_404(group_id):
+    group = Group.query.filter_by(id=group_id).first()
+    if group is None:
+        abort(404)
+    return group
+
+
+def _space_group_ids(space):
+    return [
+        row[0]
+        for row in db.session.query(GroupSpaceAuth.group_id)
+        .filter_by(space_id=space.id)
+        .all()
+    ]
+
+
+def _group_space_ids(group):
+    return [
+        row[0]
+        for row in db.session.query(GroupSpaceAuth.space_id)
+        .filter_by(group_id=group.id)
+        .all()
+    ]
+
+
+def _space_initial_page_filename():
+    if app.config.get("RETAIN_PAGE_NAME_CASE"):
+        return "Home.md"
+    return "home.md"
+
+
+def space_list_form():
+    if not has_permission("ADMIN"):
+        abort(403)
+    spaces = Space.query.order_by(Space.is_default.desc(), Space.name).all()
+    group_counts = {}
+    for space in spaces:
+        group_counts[space.id] = len(_space_group_ids(space))
+    return render_template(
+        "admin/spaces.html",
+        title="空间管理",
+        spaces=spaces,
+        group_counts=group_counts,
+    )
+
+
+def handle_space_create(form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    from otterwiki.spaces import (
+        get_space_storage,
+        is_valid_space_slug,
+        get_space_by_slug,
+    )
+
+    name = (form.get("name") or "").strip()
+    slug = (form.get("slug") or "").strip().lower()
+    description = (form.get("description") or "").strip()
+
+    def _error(message):
+        toast(message, "error")
+        return space_list_form()
+
+    if not name:
+        return _error("请输入空间名称。")
+    if not is_valid_space_slug(slug):
+        return _error(
+            "空间地址标识无效：仅允许小写字母、数字和连字符，"
+            "且不能使用保留标识 default。"
+        )
+    if get_space_by_slug(slug) is not None:
+        return _error("该空间地址标识已被使用。")
+
+    from datetime import UTC, datetime as _datetime
+
+    now = _datetime.now(UTC)
+    space = Space(
+        slug=slug,
+        name=name,
+        description=description or None,
+        home_page=None,
+        is_archived=False,
+        is_default=False,
+        created_at=now,
+        updated_at=now,
+    )
+    db.session.add(space)
+    db.session.commit()
+
+    # 初始化独立 git 仓库并写入首页
+    try:
+        storage = get_space_storage(space)
+        filename = _space_initial_page_filename()
+        storage.store(
+            filename=filename,
+            content=_SPACE_INITIAL_CONTENT,
+            author=("OtterWiki", "noreply@otterwiki"),
+            message=f"初始化空间 {name}",
+        )
+    except Exception as e:
+        app.logger.exception(f"spaces: 初始化空间仓库失败: {e}")
+        toast(f"空间已创建，但初始化仓库失败：{e}", "error")
+        return redirect(url_for("admin_space_edit", space_id=space.id))
+
+    toast(f"空间 {name} 已创建。")
+    return redirect(url_for("admin_space_edit", space_id=space.id))
+
+
+def space_edit_form(space_id):
+    if not has_permission("ADMIN"):
+        abort(403)
+    space = _space_or_404(space_id)
+    all_groups = Group.query.order_by(Group.name).all()
+    authorized_group_ids = _space_group_ids(space)
+    return render_template(
+        "admin/space_edit.html",
+        title="编辑空间",
+        space=space,
+        all_groups=all_groups,
+        authorized_group_ids=authorized_group_ids,
+    )
+
+
+def handle_space_edit(space_id, form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    space = _space_or_404(space_id)
+    name = (form.get("name") or "").strip()
+    if not name:
+        toast("空间名称不能为空。", "error")
+        return space_edit_form(space_id)
+    space.name = name
+    space.description = (form.get("description") or "").strip() or None
+    home_page = (form.get("home_page") or "").strip()
+    space.home_page = home_page or None
+
+    # 授权组（多选）
+    selected_group_ids = {
+        int(gid) for gid in form.getlist("groups") if str(gid).isdigit()
+    }
+    current_ids = set(_space_group_ids(space))
+    valid_ids = {g.id for g in Group.query.all()}
+    selected_group_ids &= valid_ids
+    for gid in current_ids - selected_group_ids:
+        row = GroupSpaceAuth.query.filter_by(
+            group_id=gid, space_id=space.id
+        ).first()
+        if row is not None:
+            db.session.delete(row)
+    for gid in selected_group_ids - current_ids:
+        db.session.add(GroupSpaceAuth(group_id=gid, space_id=space.id))
+
+    db.session.commit()
+    toast(f"空间 {space.name} 已更新。")
+    return redirect(url_for("admin_space_edit", space_id=space.id))
+
+
+def handle_space_archive(space_id, form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    space = _space_or_404(space_id)
+    space.is_archived = True
+    db.session.commit()
+    toast(f"空间 {space.name} 已归档。普通用户将无法访问。")
+    return redirect(url_for("admin_space_edit", space_id=space.id))
+
+
+def handle_space_restore(space_id, form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    space = _space_or_404(space_id)
+    space.is_archived = False
+    db.session.commit()
+    toast(f"空间 {space.name} 已恢复。")
+    return redirect(url_for("admin_space_edit", space_id=space.id))
+
+
+#
+# 组管理
+#
+
+
+def group_list_form():
+    if not has_permission("ADMIN"):
+        abort(403)
+    groups = Group.query.order_by(Group.name).all()
+    member_counts = {}
+    space_counts = {}
+    for group in groups:
+        member_counts[group.id] = len(
+            UserGroup.query.filter_by(group_id=group.id).all()
+        )
+        space_counts[group.id] = len(_group_space_ids(group))
+    return render_template(
+        "admin/groups.html",
+        title="组管理",
+        groups=groups,
+        member_counts=member_counts,
+        space_counts=space_counts,
+    )
+
+
+def handle_group_create(form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    name = (form.get("name") or "").strip()
+    description = (form.get("description") or "").strip()
+    if not name:
+        toast("请输入组名称。", "error")
+        return group_list_form()
+    if Group.query.filter_by(name=name).first() is not None:
+        toast("已存在同名用户组。", "error")
+        return group_list_form()
+    from datetime import UTC, datetime as _datetime
+
+    group = Group(
+        name=name,
+        description=description or None,
+        created_at=_datetime.now(UTC),
+    )
+    db.session.add(group)
+    db.session.commit()
+    toast(f"用户组 {name} 已创建。")
+    return redirect(url_for("admin_group_edit", group_id=group.id))
+
+
+def group_edit_form(group_id):
+    if not has_permission("ADMIN"):
+        abort(403)
+    group = _group_or_404(group_id)
+    all_users = get_all_user()
+    all_spaces = Space.query.order_by(
+        Space.is_default.desc(), Space.name
+    ).all()
+    member_ids = {
+        row[0]
+        for row in db.session.query(UserGroup.user_id)
+        .filter_by(group_id=group.id)
+        .all()
+    }
+    granted_space_ids = _group_space_ids(group)
+    return render_template(
+        "admin/group_edit.html",
+        title="编辑组",
+        group=group,
+        all_users=all_users,
+        all_spaces=all_spaces,
+        member_ids=member_ids,
+        granted_space_ids=granted_space_ids,
+    )
+
+
+def handle_group_edit(group_id, form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    group = _group_or_404(group_id)
+    name = (form.get("name") or "").strip()
+    if not name:
+        toast("组名称不能为空。", "error")
+        return group_edit_form(group_id)
+    existing = Group.query.filter_by(name=name).first()
+    if existing is not None and existing.id != group.id:
+        toast("已存在同名用户组。", "error")
+        return group_edit_form(group_id)
+    group.name = name
+    group.description = (form.get("description") or "").strip() or None
+
+    # 成员维护
+    selected_user_ids = {
+        int(uid) for uid in form.getlist("members") if str(uid).isdigit()
+    }
+    valid_user_ids = {u.id for u in get_all_user()}
+    selected_user_ids &= valid_user_ids
+    current_ids = {
+        row[0]
+        for row in db.session.query(UserGroup.user_id)
+        .filter_by(group_id=group.id)
+        .all()
+    }
+    for uid in current_ids - selected_user_ids:
+        row = UserGroup.query.filter_by(user_id=uid, group_id=group.id).first()
+        if row is not None:
+            db.session.delete(row)
+    for uid in selected_user_ids - current_ids:
+        db.session.add(UserGroup(user_id=uid, group_id=group.id))
+
+    # 空间授权
+    selected_space_ids = {
+        int(sid) for sid in form.getlist("spaces") if str(sid).isdigit()
+    }
+    valid_space_ids = {s.id for s in Space.query.all()}
+    selected_space_ids &= valid_space_ids
+    current_space_ids = set(_group_space_ids(group))
+    for sid in current_space_ids - selected_space_ids:
+        row = GroupSpaceAuth.query.filter_by(
+            group_id=group.id, space_id=sid
+        ).first()
+        if row is not None:
+            db.session.delete(row)
+    for sid in selected_space_ids - current_space_ids:
+        db.session.add(GroupSpaceAuth(group_id=group.id, space_id=sid))
+
+    db.session.commit()
+    toast(f"用户组 {group.name} 已更新。")
+    return redirect(url_for("admin_group_edit", group_id=group.id))
+
+
+def handle_group_delete(group_id, form):
+    if not has_permission("ADMIN"):
+        abort(403)
+    group = _group_or_404(group_id)
+    # 删除组仅移除成员关系及授权，不删除文档
+    UserGroup.query.filter_by(group_id=group.id).delete()
+    GroupSpaceAuth.query.filter_by(group_id=group.id).delete()
+    db.session.delete(group)
+    db.session.commit()
+    toast(f"用户组 {group.name} 已删除，成员关系与空间授权一并移除。")
+    return redirect(url_for("admin_groups"))
+
+
+#
+# 用户所属组维护
+#
+
+
+def _update_user_groups(user, form):
+    """按表单勾选维护用户的所属组，返回发生变化的提示列表。"""
+    selected_ids = {
+        int(gid) for gid in form.getlist("groups") if str(gid).isdigit()
+    }
+    valid_ids = {g.id for g in Group.query.all()}
+    selected_ids &= valid_ids
+    current_ids = {
+        row[0]
+        for row in db.session.query(UserGroup.group_id)
+        .filter_by(user_id=user.id)
+        .all()
+    }
+    msgs = []
+    names = {
+        g.id: g.name
+        for g in Group.query.filter(
+            Group.id.in_(current_ids | selected_ids)
+        ).all()
+    }
+    for gid in current_ids - selected_ids:
+        row = UserGroup.query.filter_by(user_id=user.id, group_id=gid).first()
+        if row is not None:
+            db.session.delete(row)
+        msgs.append("removed from group " + names.get(gid, str(gid)))
+    for gid in selected_ids - current_ids:
+        db.session.add(UserGroup(user_id=user.id, group_id=gid))
+        msgs.append("added to group " + names.get(gid, str(gid)))
+    return msgs

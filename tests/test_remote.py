@@ -38,86 +38,102 @@ def test_git_info_refs_404(create_app, test_client):
     assert rv.status_code == 404
 
 
-def test_git_info_refs(create_app_with_git, test_client_with_git):
+def test_git_info_refs(
+    create_app_with_git, app_with_user, test_client_with_git
+):
     create_app_with_git.config["READ_ACCESS"] = "ANONYMOUS"
     create_app_with_git.config["WRITE_ACCESS"] = "ANONYMOUS"
+    credentials = b64encode(b"mail@example.org:password1234").decode("utf-8")
+    # 多空间权限：匿名 Git HTTP 请求被拒绝（401 质询）
+    rv = test_client_with_git.get("/.git/info/refs?service=git-upload-pack")
+    assert rv.status_code == 401
     rv = test_client_with_git.get(
         "/.git/info/refs?service=git-upload-pack",
-        follow_redirects=True,
+        headers={"Authorization": f"Basic {credentials}"},
     )
     assert rv.status_code == 200
     rv = test_client_with_git.get(
         "/.git/info/refs?service=git-receive-pack",
-        follow_redirects=True,
+        headers={"Authorization": f"Basic {credentials}"},
     )
     assert rv.status_code == 200
 
     rv = test_client_with_git.get(
         "/.git/info/refs?service=git-random-service",
-        follow_redirects=True,
+        headers={"Authorization": f"Basic {credentials}"},
     )
     assert rv.status_code == 400
 
 
-def test_git_info_refs_permissions(create_app_with_git, test_client_with_git):
+def test_git_info_refs_permissions(
+    create_app_with_git, app_with_user, test_client_with_git
+):
     create_app_with_git.config["READ_ACCESS"] = "ANONYMOUS"
     create_app_with_git.config["WRITE_ACCESS"] = "ANONYMOUS"
+    credentials = b64encode(b"mail@example.org:password1234").decode("utf-8")
+    auth = {"Authorization": f"Basic {credentials}"}
+    # 匿名请求：始终 401 质询
+    rv = test_client_with_git.get("/.git/info/refs?service=git-upload-pack")
+    assert rv.status_code == 401
+    # 管理员绕过全局读取条件，读写皆可
     rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-upload-pack",
-        follow_redirects=True,
+        "/.git/info/refs?service=git-upload-pack", headers=auth
     )
     assert rv.status_code == 200
     rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-receive-pack",
-        follow_redirects=True,
+        "/.git/info/refs?service=git-receive-pack", headers=auth
     )
     assert rv.status_code == 200
+
     create_app_with_git.config["WRITE_ACCESS"] = "ADMIN"
 
     rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-upload-pack",
-        follow_redirects=True,
+        "/.git/info/refs?service=git-upload-pack", headers=auth
     )
     assert rv.status_code == 200
     rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-receive-pack",
-        follow_redirects=True,
+        "/.git/info/refs?service=git-receive-pack", headers=auth
     )
+    assert rv.status_code == 200
+    rv = test_client_with_git.get("/.git/info/refs?service=git-receive-pack")
     assert rv.status_code == 401
 
     create_app_with_git.config["READ_ACCESS"] = "ADMIN"
 
     rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-upload-pack",
-        follow_redirects=True,
+        "/.git/info/refs?service=git-upload-pack", headers=auth
     )
+    assert rv.status_code == 200
+    rv = test_client_with_git.get("/.git/info/refs?service=git-upload-pack")
     assert rv.status_code == 401
-    rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-receive-pack",
-        follow_redirects=True,
-    )
+    rv = test_client_with_git.get("/.git/info/refs?service=git-receive-pack")
     assert rv.status_code == 401
 
 
-def test_git_pack(create_app_with_git, test_client_with_git):
+def test_git_pack(create_app_with_git, app_with_user, test_client_with_git):
     create_app_with_git.config["READ_ACCESS"] = "ANONYMOUS"
     create_app_with_git.config["WRITE_ACCESS"] = "ANONYMOUS"
     create_app_with_git.config["ATTACHMENT_ACCESS"] = "ANONYMOUS"
-    rv = test_client_with_git.get(
-        "/.git/info/refs?service=git-upload-pack",
-        follow_redirects=True,
-    )
-    rv = test_client_with_git.post(
-        "/.git/git-upload-pack",
-    )
-    # We expect 500 here, since we are not providing the correct data=b'00a8want ... multi_ack_detailed no-done side-band-64k thin-pack ofs-delta deepen-since deepen-not ...'
-    assert rv.status_code == 500
+    credentials = b64encode(b"mail@example.org:password1234").decode("utf-8")
+    auth = {"Authorization": f"Basic {credentials}"}
+    # 匿名 pack 请求：401 质询
+    rv = test_client_with_git.post("/.git/git-upload-pack")
+    assert rv.status_code == 401
 
     rv = test_client_with_git.post("/.git/git-receive-pack")
+    assert rv.status_code == 401
+
+    # 管理员：500，因为未提供正确的
+    # data=b'00a8want ... multi_ack_detailed no-done side-band-64k
+    # thin-pack ofs-delta deepen-since deepen-not ...'
+    rv = test_client_with_git.post("/.git/git-upload-pack", headers=auth)
+    assert rv.status_code == 500
+
+    rv = test_client_with_git.post("/.git/git-receive-pack", headers=auth)
     assert rv.status_code == 500
 
     create_app_with_git.config["ATTACHMENT_ACCESS"] = "ADMIN"
-    rv = test_client_with_git.post("/.git/git-upload-pack")
+    rv = test_client_with_git.post("/.git/git-upload-pack", headers=auth)
     assert rv.status_code == 500
 
     rv = test_client_with_git.post("/.git/git-receive-pack")
@@ -187,6 +203,15 @@ def test_git_pack_auth_user(app_with_user):
         is_admin=False,  # pyright: ignore
     )
     db.session.add(user)
+    db.session.commit()
+
+    # 多空间权限：把该用户加入默认阅读组（allow_read 生效的前提是
+    # 所属组获得空间授权）
+    from otterwiki.models import Group, UserGroup
+
+    group = Group.query.filter_by(name="默认阅读组").first()
+    assert group is not None
+    db.session.add(UserGroup(user_id=user.id, group_id=group.id))
     db.session.commit()
 
     test_client = app_with_user.test_client()

@@ -33,8 +33,26 @@ class GitHttpServer:
         if not app.config["GIT_WEB_SERVER"]:
             abort(404, "Feature GITHTTPSERVER not enabled.")
 
+    @staticmethod
+    def _has_space_read(user):
+        """多空间：Git HTTP 仅服务默认仓库，访问者必须拥有默认空间的阅读授权。
+
+        匿名访问（含匿名 basic auth 之外的裸读取）因此无法绕过文档权限。
+        """
+        from otterwiki.spaces import get_default_space, space_read_allowed
+
+        space = get_default_space()
+        return space_read_allowed(space, user)
+
     def check_permission(self, permission):
-        if not has_permission(permission, current_user):
+        def _allowed(user):
+            if user is None:
+                return False
+            return has_permission(permission, user) and self._has_space_read(
+                user
+            )
+
+        if not _allowed(current_user):
             auth = request.authorization
             if auth is None:
                 abort(
@@ -46,7 +64,7 @@ class GitHttpServer:
                     ),
                 )
             user = check_credentials(auth.username, auth.password)
-            if not user or not has_permission(permission, user):
+            if not _allowed(user):
                 abort(403)
 
     def advertise_refs(self, service: str):

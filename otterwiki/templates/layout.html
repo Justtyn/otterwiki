@@ -103,6 +103,7 @@
   class="{{ portal_theme_class|trim }} with-custom-webkit-scrollbars with-custom-css-scrollbars" data-set-preferred-mode-onload="true"
   {%- endif %}
   data-page-index-retain-user-expanded-nodes="{{config.SIDEBAR_MENUTREE_FOCUS == 'TOP'}}"
+  style="--otterwiki-document-font-size: {{ document_font_size }}px;"
   {% block body_attrs %}{% endblock %}
 >
 
@@ -130,6 +131,36 @@
 {%- endif %}
                 <span class="d-none d-sm-flex text-truncate">{{ config.SITE_NAME }}</span>
             </a>
+{#- 空间切换：只展示当前用户可访问的未归档空间 -#}
+{#- 默认空间固定在站点根路径 / 下；在空间页面中 url_for 会带上当前空间的
+    SCRIPT_NAME 前缀，因此必须用字面量 "/" 才能回到主空间 -#}
+{%- if accessible_spaces and accessible_spaces|length > 1 %}
+            <div class="navbar-content ml-10">
+                <div class="dropdown with-arrow">
+                    <button class="btn" data-toggle="dropdown" type="button" id="space-switcher-btn">
+                        <i class="fas fa-cubes mr-5"></i>
+                        <span class="d-none d-sm-inline">{{ current_space.name if current_space else config.SITE_NAME }}</span>
+                        <i class="fa fa-angle-down ml-5" aria-hidden="true"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="space-switcher-btn">
+                        <div class="dropdown-header">切换空间</div>
+    {%- for space in accessible_spaces %}
+                        <a href="{{ ("/-/s/" ~ space.slug ~ "/") if not space.is_default else "/" }}" class="dropdown-item{% if current_space and current_space.id == space.id %} bg-secondary-lm{% endif %}">
+                            {{ space.name }}
+                            {%- if space.is_default %} <span class="text-muted ml-5">（默认空间）</span>{% endif -%}
+                            {%- if current_space and current_space.id == space.id %} <i class="fas fa-check ml-5"></i>{% endif %}
+                        </a>
+    {%- endfor %}
+                    </div>
+                </div>
+            </div>
+{%- elif accessible_spaces %}
+            <div class="navbar-content ml-10">
+                <a class="btn" href="{{ ("/-/s/" ~ accessible_spaces[0].slug ~ "/") if not accessible_spaces[0].is_default else "/" }}">
+                    <i class="fas fa-cube mr-5"></i>{{ accessible_spaces[0].name }}
+                </a>
+            </div>
+{%- endif %}
 {%- block navbar_editor %}
 {%- endblock %}
             <div class="navbar-content ml-auto">

@@ -17,6 +17,7 @@ from otterwiki.gitstorage import StorageError, StorageNotFound
 from otterwiki.server import app, db, storage
 from otterwiki.models import Drafts
 from otterwiki.auth import has_permission, get_author
+from otterwiki.spaces import current_space_id
 
 from otterwiki.helper import (
     toast,
@@ -33,11 +34,13 @@ def housekeeping_form():
     author_email = get_author()[1]
     drafts = []
     if not empty(author_email):
-        db_drafts = (
-            Drafts.query.filter_by(author_email=author_email)
-            .order_by(Drafts.pagepath)
-            .all()
-        )
+        # 维护工具按当前空间处理草稿：多空间后草稿分散在各自空间，
+        # 页面路径解析（storage.log）也针对当前空间仓库，过滤避免串空间
+        space_id = current_space_id()
+        query = Drafts.query.filter_by(author_email=author_email)
+        if space_id is not None:
+            query = query.filter(Drafts.space_id == space_id)
+        db_drafts = query.order_by(Drafts.pagepath).all()
         for draft in db_drafts:
             try:
                 entries = storage.log(get_filename(draft.pagepath))
@@ -71,10 +74,12 @@ def handle_housekeeping_drafts(form):
     if drafts_to_delete:
         deleted = 0
         author_email = get_author()[1]
+        space_id = current_space_id()
         for id in drafts_to_delete:
-            draft = Drafts.query.filter_by(
-                id=id, author_email=author_email
-            ).first()
+            query = Drafts.query.filter_by(id=id, author_email=author_email)
+            if space_id is not None:
+                query = query.filter(Drafts.space_id == space_id)
+            draft = query.first()
             if draft:
                 db.session.delete(draft)
                 deleted += 1

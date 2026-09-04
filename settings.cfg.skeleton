@@ -7,6 +7,17 @@ SITE_NAME         = 'Otterwiki'
 # Configure the path to the repository:
 REPOSITORY        = '/path/to/the/repository/root'
 
+# 多空间：独立空间仓库的根目录。
+# 每个空间拥有独立的 git 仓库（<SPACES_ROOT>/<空间ID>/repository），
+# 默认为 REPOSITORY 的同级目录 spaces。升级后通过 'flask db upgrade' 完成迁移，
+# 详见 docs/multi-space-upgrade.md。
+# SPACES_ROOT      = '/path/to/the/spaces/root'
+
+# 全局文档字号（px，整数，12 到 24，默认 15）。
+# 只影响文档正文的排版层级，导航、按钮、管理界面和编辑器字号不变。
+# 后台“内容与编辑设置”中可随时调整并即时生效。
+# DOCUMENT_FONT_SIZE = 15
+
 # APStack 接口管理。这里只配置服务地址，具体接口路径由应用维护。
 # 使用 Docker 时，localhost 指向容器本身，请改为宿主机或接口服务的可访问地址。
 APSTACK_API_BASE_URL = 'http://localhost:9988'

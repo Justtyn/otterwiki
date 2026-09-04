@@ -55,10 +55,11 @@ def test_wikilink_page_suggestions_are_filtered_and_limited(
 
 
 def test_wikilink_page_suggestions_require_write_permission(
-    create_app, test_client
+    app_with_user, other_client
 ):
-    create_app.config["WRITE_ACCESS"] = "REGISTERED"
-    response = test_client.get("/-/api/v1/pages?q=home")
+    # 已登录但无写权限的用户（WRITE_ACCESS=ADMIN 时非管理员被视图层拒绝）
+    app_with_user.config["WRITE_ACCESS"] = "ADMIN"
+    response = other_client.get("/-/api/v1/pages?q=home")
     assert response.status_code == 403
 
 

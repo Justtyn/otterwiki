@@ -65,6 +65,12 @@
 <div class="mw-full w-800">
   <h2 class="card-title">重置并导入 APStack 文档</h2>
 
+  <p class="form-text">
+    本操作作用于当前空间：
+    <strong>{{ current_space_name or "默认空间" }}</strong>。
+    导入完成后仅清理该空间的旧草稿。
+  </p>
+
   <div class="alert alert-danger" role="alert">
     <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> 此操作会重建整个内容仓库</h4>
     当前 Wiki 的全部 Markdown、附件和 Git 历史都会被删除，并替换为从 APStack 源文档生成的新仓库。

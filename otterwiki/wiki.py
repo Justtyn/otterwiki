@@ -75,6 +75,7 @@ from otterwiki.util import (
 )
 
 from .backlinks import rename_backlinks
+from otterwiki.spaces import current_space_id, login_redirect
 
 # global timeout used in regexps
 _REGEX_TIMEOUT = 5
@@ -112,7 +113,7 @@ class Changelog:
     def render(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         log = self.get()
         pages = []
@@ -237,7 +238,7 @@ class Changelog:
     def show_commit(self, revision):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         try:
             metadata, diff = storage.show_commit(revision)
@@ -370,6 +371,8 @@ class Page:
             self.pagepath = get_pagepath(pagename)
 
         self.page_view_url = url_for("view", path=self.pagepath)
+        # 当前请求的空间（草稿等元数据按空间隔离）
+        self.space_id = current_space_id()
 
         self.pagename_full = get_pagename(self.pagepath, full=True)
         self.revision = revision
@@ -470,7 +473,7 @@ class Page:
         # handle permissions
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         # handle case that the page doesn't exists
         if self.storage_error is not None:
@@ -523,7 +526,7 @@ class Page:
                 toast(
                     "You lack the permissions to access this wiki. Please login."
                 )
-            return redirect(url_for("login", next=request.full_path))
+            return login_redirect()
         # handle case that page doesn't exists
         self.exists_or_404()
 
@@ -852,7 +855,7 @@ class Page:
     def blame(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         # handle case that the page doesn't exists
         if self.storage_error is not None:
@@ -925,7 +928,7 @@ class Page:
     def diff(self, rev_a=None, rev_b=None):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         # handle case that the page doesn't exists
         self.exists_or_404()
@@ -959,7 +962,7 @@ class Page:
     def history(self, rev_a: str | None = None, rev_b: str | None = None):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
 
         self.exists_or_404(in_git=True)
@@ -1134,10 +1137,13 @@ class Page:
         if not has_permission("WRITE"):
             abort(403)
         menutree = SidebarPageIndex(self.pagepath)
-        olddrafts = Drafts.query.filter_by(pagepath=self.pagepath).all()
+        olddrafts = Drafts.query.filter_by(
+            pagepath=self.pagepath, space_id=self.space_id
+        ).all()
         if new_pagename != self.pagepath:
             newdrafts = Drafts.query.filter_by(
-                pagepath=get_pagepath(new_pagename)
+                pagepath=get_pagepath(new_pagename),
+                space_id=self.space_id,
             ).all()
         else:
             newdrafts = []
@@ -1226,7 +1232,7 @@ class Page:
     def render_attachments(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         # handle case that the page doesn't exists
         self.exists_or_404()
@@ -1314,7 +1320,7 @@ class Page:
     ):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         a = Attachment(self.pagepath, filename)
         if not a.exists():
@@ -1352,7 +1358,9 @@ class Page:
             author_email = author[1]
 
         draft = Drafts.query.filter_by(
-            pagepath=self.pagepath, author_email=author_email
+            pagepath=self.pagepath,
+            author_email=author_email,
+            space_id=self.space_id,
         ).first()
         return draft
 
@@ -1363,7 +1371,9 @@ class Page:
             author_email = author[1]
 
         Drafts.query.filter_by(
-            pagepath=self.pagepath, author_email=author_email
+            pagepath=self.pagepath,
+            author_email=author_email,
+            space_id=self.space_id,
         ).delete()
         db.session.commit()
 
@@ -1380,12 +1390,15 @@ class Page:
 
         # find existing Draft
         draft = Drafts.query.filter_by(
-            pagepath=self.pagepath, author_email=author_email
+            pagepath=self.pagepath,
+            author_email=author_email,
+            space_id=self.space_id,
         ).first()
         if draft is None:
             draft = Drafts()
             draft.pagepath = self.pagepath
             draft.author_email = author_email
+            draft.space_id = self.space_id
         # update content, timestamp, revision, line
         draft.content = content
         draft.datetime = datetime.now(UTC)
@@ -1559,7 +1572,7 @@ class Attachment:
     def edit(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         if not self.exists():
             return abort(404)
@@ -1584,7 +1597,7 @@ class Attachment:
     def get(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         if self.revision is None:
             if not storage.exists(self.filepath):
@@ -1895,7 +1908,7 @@ class Search:
     def render(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         self.compile()
         result = self.search()

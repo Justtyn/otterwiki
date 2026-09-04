@@ -536,6 +536,8 @@ def document_import_form(
             except TypeError:
                 result = None
     limits = _configured_limits(app)
+    from otterwiki.spaces import current_space
+
     return (
         render_template(
             "admin/document_import.html",
@@ -545,6 +547,9 @@ def document_import_form(
             result=result,
             import_error=error,
             source_directory=source_directory,
+            current_space_name=(
+                current_space().name if current_space() else None
+            ),
         ),
         status,
     )
@@ -558,10 +563,14 @@ def handle_document_import(form, files):
     from otterwiki.auth import get_author, has_permission
     from otterwiki.helper import toast
     from otterwiki.models import Drafts
-    from otterwiki.server import app, db, storage
+    from otterwiki.server import app, db
+    from otterwiki.spaces import current_space, current_storage
 
     if not has_permission("ADMIN"):
         abort(403)
+    # 导入作用于管理员当前选定的空间，使用该空间的具体仓库对象
+    space = current_space()
+    storage = current_storage()
     source_directory = form.get("source_directory", "").strip()
     upload = files.get("archive")
     has_upload = bool(upload and upload.filename)
@@ -642,7 +651,8 @@ def handle_document_import(form, files):
         _document_import_lock.release()
 
     try:
-        Drafts.query.delete()
+        # 仅清理当前空间的旧草稿
+        Drafts.query.filter_by(space_id=space.id if space else None).delete()
         db.session.commit()
     except Exception as error:
         db.session.rollback()

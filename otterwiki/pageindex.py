@@ -28,6 +28,7 @@ from otterwiki.helper import (
     upsert_pagecrumbs,
 )
 from otterwiki.server import app, storage
+from otterwiki.spaces import login_redirect
 from otterwiki.sidebar import SidebarMenu, SidebarPageIndex
 from otterwiki.util import (
     get_page_directoryname,
@@ -274,7 +275,7 @@ class PageIndex:
     def render(self):
         if not has_permission("READ"):
             if not current_user.is_authenticated:
-                return redirect(url_for("login", next=request.full_path))
+                return login_redirect()
             abort(403)
         menutree = SidebarPageIndex(self.path)
 
