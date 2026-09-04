@@ -1,41 +1,48 @@
 {# vim: set et ts=8 sts=4 sw=4 ai: #}
-{% extends "form.html" %}
+{% extends "auth_form.html" %}
 {% block formcontent %}
-<form action="{{ url_for("login") }}" method="POST" class="form-inline">{# <!-- w-400 = width: 40rem (400px), mw-full = max-width: 100% --> #}
+<form action="{{ url_for("login") }}" method="POST" class="login-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% if next %}
     <input type="hidden" name="next" value="{{next}}">
 {% endif %}
 {% if message %}
-  <div class="form-group">
-    <div>
+  <div class="login-message" role="alert">
       {{ message }}
       {% if confirmation_url %}
-        <a href="{{ confirmation_url }}" class="btn btn-secondary">重新发送确认链接</a>
+        <a href="{{ confirmation_url }}" class="login-confirmation">重新发送确认链接</a>
       {% endif %}
-    </div>
   </div>
 {% endif %}
-  <div class="form-group">
-    <label for="email" class="required w-100">电子邮箱</label>
-    <input type="text" class="form-control" name="email" id="email" placeholder="you@example.com" value="{{email if email}}" autofocus>
-  </div>
-  <div class="form-group">
-    <label for="password" class="required w-100">密码</label>
-    <input type="password" class="form-control" id="password" name="password" placeholder="密码">
-  </div>
-  <div class="form-group">
-    <div class="custom-switch">
-        <input type="checkbox" id="remember-my-information" name="remember" {{"checked" if remember}}>
-      <label for="remember-my-information">记住我</label>
+  <div class="login-field">
+    <label for="email" class="required">电子邮箱</label>
+    <div class="login-input-wrap">
+      <i class="far fa-envelope" aria-hidden="true"></i>
+      <input type="text" class="form-control" name="email" id="email" placeholder="you@example.com" value="{{email if email}}" autocomplete="username" autofocus>
     </div>
   </div>
-  <input class="btn btn-primary" type="submit" value="登录">
+  <div class="login-field">
+    <label for="password" class="required">密码</label>
+    <div class="login-input-wrap">
+      <i class="fas fa-lock" aria-hidden="true"></i>
+      <input type="password" class="form-control" id="password" name="password" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+  </div>
+  <div class="login-options">
+    <div class="login-remember">
+        <input type="checkbox" id="remember-my-information" name="remember" {{"checked" if remember}}>
+      <label for="remember-my-information"><span class="login-switch-track" aria-hidden="true"></span>记住我</label>
+    </div>
+    <a href="{{ url_for('lost_password') }}">忘记密码？</a>
+  </div>
+  <div class="login-submit-wrap">
+    <input class="btn btn-primary login-submit" type="submit" value="登录">
+    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+  </div>
 
   {% if not config.DISABLE_REGISTRATION %}
-  <a href="{{ url_for("register") }}" class="btn btn-link" role="button">注册</a>
+  <p class="login-register">还没有账号？<a href="{{ url_for('register') }}">注册</a></p>
   {% endif %}
 
-  <a href="{{ url_for("lost_password") }}" class="btn btn-link" role="button">忘记密码？</a>
 </form>
 {% endblock %}
