@@ -1,5 +1,6 @@
 {# vim: set et ts=8 sts=4 sw=4 ai: #}
 {% extends "form.html" %}
+{% block portal_theme_class %}{% endblock %}
 {% block head %}
 {{ super() }}
 <link href="{{ url_for('static', filename='css/login.css') | debug_unixtime }}" rel="stylesheet">

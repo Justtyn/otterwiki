@@ -1,5 +1,6 @@
 {#- vim: set et ts=8 sts=4 sw=4 ai: -#}
 <!DOCTYPE html>
+{%- set portal_theme_class %}{% block portal_theme_class %}portal-theme{% endblock %}{% endset %}
 <html lang="{{config.SITE_LANG}}" class="auto-scaling-disabled">
 <head>
 {#- Meta tags #}
@@ -82,6 +83,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 {%- block head %}
 {%- endblock %}
+{%- if portal_theme_class|trim %}
+    <link href="{{ url_for('static', filename='css/portal.css') | debug_unixtime }}" rel="stylesheet" media="screen" />
+{%- endif %}
 {%- if request.cookies.get('halfmoon_preferredMode') == "dark-mode" %}
 {#- Dark Mode Optimization -#}
     {#- Chrome, Firefox OS and Opera mobile address bar theming #}
@@ -94,9 +98,9 @@
 </head>
 <body
   {% if request.cookies.get('halfmoon_preferredMode') -%}
-  class="{% if request.cookies.get('halfmoon_preferredMode') == "dark-mode" %}dark-mode {%endif%}with-custom-webkit-scrollbars with-custom-css-scrollbars"
+  class="{{ portal_theme_class|trim }} {% if request.cookies.get('halfmoon_preferredMode') == "dark-mode" %}dark-mode {%endif%}with-custom-webkit-scrollbars with-custom-css-scrollbars"
   {%- else -%}
-  class="with-custom-webkit-scrollbars with-custom-css-scrollbars" data-set-preferred-mode-onload="true"
+  class="{{ portal_theme_class|trim }} with-custom-webkit-scrollbars with-custom-css-scrollbars" data-set-preferred-mode-onload="true"
   {%- endif %}
   data-page-index-retain-user-expanded-nodes="{{config.SIDEBAR_MENUTREE_FOCUS == 'TOP'}}"
   {% block body_attrs %}{% endblock %}

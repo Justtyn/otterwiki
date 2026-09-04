@@ -21,6 +21,7 @@ def ci_build(tmp_path):
     tools = tmp_path / 'bin'
     tools.mkdir()
     log = tmp_path / 'calls.log'
+    pulled = tmp_path / 'base-image-pulled'
     wheels = tmp_path / 'offline wheels'
     wheels.mkdir()
     (wheels / 'Flask-3.1.3-py3-none-any.whl').write_text('offline dependency')
@@ -42,7 +43,14 @@ def ci_build(tmp_path):
         '  build:build) exit 13 ;;\n'
         '  test:run) exit 14 ;;\n'
         '  push:push) exit 15 ;;\n'
+        '  pull:pull) exit 16 ;;\n'
         'esac\n'
+        'if [[ "$1" == pull ]]; then\n'
+        '  : > "$MOCK_PULL_MARKER"\n'
+        'fi\n'
+        'if [[ "$1" == image && "${MOCK_NO_LOCAL_IMAGE:-false}" == true ]]; then\n'
+        '  [[ -f "$MOCK_PULL_MARKER" ]] || exit 12\n'
+        'fi\n'
         'if [[ "$1" == build ]]; then\n'
         '  [[ "$DOCKER_BUILDKIT" == 0 ]] || exit 83\n'
         '  [[ -s target/wheels/Flask-3.1.3-py3-none-any.whl ]] || exit 84\n'
@@ -61,11 +69,13 @@ def ci_build(tmp_path):
 
     def run(*args, **overrides):
         log.write_text('')
+        pulled.unlink(missing_ok=True)
         env = {
             'PATH': f'{tools}{os.pathsep}{os.environ["PATH"]}',
             'WHEELHOUSE': str(wheels),
             'BASE_IMAGE': 'registry.example.com/otterwiki-runtime:2.23.0',
             'MOCK_LOG': str(log),
+            'MOCK_PULL_MARKER': str(pulled),
             **overrides,
         }
         result = subprocess.run(
@@ -83,7 +93,12 @@ def ci_build(tmp_path):
 def test_build_offline_then_push(ci_build):
     result, calls, target = ci_build('dev', '1.0.0')
     assert result.returncode == 0, result.stderr
-    assert calls.index('docker build') < calls.index('docker push')
+    assert (
+        calls.index('docker pull')
+        < calls.index('docker image inspect')
+        < calls.index('docker build')
+        < calls.index('docker push')
+    )
     assert '--network none --pull=false' in calls
     assert 'docker run' not in calls
     assert (target / 'wheels/Flask-3.1.3-py3-none-any.whl').exists()
@@ -91,7 +106,27 @@ def test_build_offline_then_push(ci_build):
     assert 'PUSHED=true' in (target / 'image.env').read_text()
 
 
-@pytest.mark.parametrize('failure', ['info', 'image', 'build', 'test', 'push'])
+@pytest.mark.parametrize('local_missing', ['true', 'false'])
+def test_pull_base_on_every_build_with_or_without_local_cache(
+    ci_build, local_missing
+):
+    for _ in range(2):
+        result, calls, _ = ci_build(
+            'dev', '1.0', MOCK_NO_LOCAL_IMAGE=local_missing
+        )
+        assert result.returncode == 0, result.stderr
+        assert (
+            calls.count(
+                'docker pull registry.example.com/otterwiki-runtime:2.23.0\n'
+            )
+            == 1
+        )
+        assert calls.index('docker pull') < calls.index('docker image inspect')
+
+
+@pytest.mark.parametrize(
+    'failure', ['info', 'pull', 'image', 'build', 'test', 'push']
+)
 def test_failure_removes_previous_success_and_stops_publication(
     ci_build, failure
 ):
@@ -106,6 +141,13 @@ def test_failure_removes_previous_success_and_stops_publication(
     assert not (target / 'image.env').exists()
     if failure != 'push':
         assert 'docker push' not in calls
+    if failure in ['info', 'pull', 'image']:
+        assert 'docker build' not in calls
+        assert 'docker run' not in calls
+    if failure == 'pull':
+        # 即使本地已有缓存，也不能在拉取失败后回退到旧镜像继续发布。
+        assert 'docker image inspect' not in calls
+        assert '基础镜像拉取失败' in result.stderr
 
 
 def test_optional_tests_use_runtime_image_and_gate_push(ci_build):
@@ -130,6 +172,8 @@ def test_sudo_and_build_only_with_custom_image(ci_build):
         IMAGE_TAG='manual-tag',
     )
     assert result.returncode == 0, result.stderr
+    assert 'sudo -n docker pull' in calls
+    assert 'sudo -n docker image inspect' in calls
     assert 'sudo -n docker build' in calls
     assert 'docker push' not in calls
     assert (

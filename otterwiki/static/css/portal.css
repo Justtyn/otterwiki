@@ -1,0 +1,256 @@
+/* 企业文档门户：仅作用于常规业务页面，登录与找回密码使用独立主题。 */
+body.portal-theme {
+    --portal-bg: #ffffff;
+    --portal-surface: #ffffff;
+    --portal-soft: #f7f9fc;
+    --portal-hover: #eef3f9;
+    --portal-text: #25344b;
+    --portal-heading: #17283f;
+    --portal-muted: #66778d;
+    --portal-line: #e5ebf2;
+    --portal-input-line: #ccd6e3;
+    --portal-blue: #2563d9;
+    --portal-blue-hover: #194fb4;
+    --portal-selected: #eaf2ff;
+    --portal-code: #f3f6fb;
+    --portal-shadow: 0 4px 20px #203c6507;
+    --portal-popup-shadow: 0 12px 38px #203c651c;
+    --navbar-height: 6rem;
+    --primary-color: #2563d9;
+    --primary-color-light: #3976eb;
+    --primary-box-shadow-color: #2563d926;
+    --primary-box-shadow-color-darker: #2563d940;
+    --base-border-radius: .7rem;
+    --lm-base-text-color: var(--portal-text);
+    --dm-base-text-color: var(--portal-text);
+    --lm-base-text-color-light: var(--portal-muted);
+    --dm-base-text-color-light: var(--portal-muted);
+    --lm-muted-text-color: var(--portal-muted);
+    --dm-muted-text-color: var(--portal-muted);
+    --lm-link-text-color: var(--portal-blue);
+    --dm-link-text-color: var(--portal-blue);
+    --lm-link-text-color-hover: var(--portal-blue-hover);
+    --dm-link-text-color-hover: var(--portal-blue-hover);
+    --lm-sidebar-link-text-color: var(--portal-muted);
+    --dm-sidebar-link-text-color: var(--portal-muted);
+    --lm-sidebar-link-text-color-hover: var(--portal-heading);
+    --dm-sidebar-link-text-color-hover: var(--portal-heading);
+    --lm-card-bg-color: var(--portal-surface);
+    --dm-card-bg-color: var(--portal-surface);
+    --lm-card-border-color: var(--portal-line);
+    --dm-card-border-color: var(--portal-line);
+    --lm-dropdown-bg-color: var(--portal-surface);
+    --dm-dropdown-bg-color: var(--portal-surface);
+    --lm-dropdown-border-color: var(--portal-line);
+    --dm-dropdown-border-color: var(--portal-line);
+    --lm-dropdown-divider-bg-color: var(--portal-line);
+    --dm-dropdown-divider-bg-color: var(--portal-line);
+    --lm-modal-content-bg-color: var(--portal-surface);
+    --dm-modal-content-bg-color: var(--portal-surface);
+    --lm-input-bg-color: var(--portal-surface);
+    --dm-input-bg-color: var(--portal-surface);
+    --lm-input-text-color: var(--portal-text);
+    --dm-input-text-color: var(--portal-text);
+    --lm-input-border-color: var(--portal-input-line);
+    --dm-input-border-color: var(--portal-input-line);
+    --lm-button-box-shadow: none;
+    --dm-button-box-shadow: none;
+    --lm-button-bg-color: var(--portal-surface);
+    --dm-button-bg-color: var(--portal-surface);
+    --lm-button-border-color: var(--portal-input-line);
+    --dm-button-border-color: var(--portal-input-line);
+    --lm-button-bg-color-hover: var(--portal-hover);
+    --dm-button-bg-color-hover: var(--portal-hover);
+    color: var(--portal-text);
+    background: var(--portal-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+body.portal-theme.dark-mode {
+    --portal-bg: #111923;
+    --portal-surface: #172230;
+    --portal-soft: #141e2b;
+    --portal-hover: #202f42;
+    --portal-text: #c8d4e3;
+    --portal-heading: #e8eff8;
+    --portal-muted: #95a7bf;
+    --portal-line: #2a394d;
+    --portal-input-line: #40516a;
+    --portal-blue: #79adff;
+    --portal-blue-hover: #aacbff;
+    --portal-selected: #203652;
+    --portal-code: #1a283a;
+    --portal-shadow: 0 4px 20px #00000012;
+    --portal-popup-shadow: 0 12px 38px #00000045;
+}
+
+/* 顶部导航。保留原有按钮、菜单、搜索表单与显示条件。 */
+.portal-theme .navbar {
+    background: var(--portal-surface);
+    border-bottom: 1px solid var(--portal-line);
+    box-shadow: 0 2px 10px #162c4904;
+    padding-inline: 1.6rem;
+}
+.portal-theme .navbar-brand { color: var(--portal-heading); font-size: 1.7rem; font-weight: 650; letter-spacing: .01em; min-width: 0; }
+.portal-theme .navbar-brand span { max-width: 28rem; }
+.portal-theme .navbar-brand img { height: 2.7rem; object-fit: contain; }
+.portal-theme .navbar-content { gap: .6rem; }
+.portal-theme .navbar-content .btn { min-width: 3.4rem; border-radius: .7rem; box-shadow: none; }
+.portal-theme .navbar-content .dropdown button { margin-inline: .2rem; }
+.portal-theme #toggle-sidebar-btn { background: transparent; border-color: transparent; color: var(--portal-muted); }
+.portal-theme #toggle-sidebar-btn:hover { background: var(--portal-hover); color: var(--portal-blue); }
+.portal-theme #search-query { width: 24rem; max-width: 26vw; height: 3.6rem; border-color: var(--portal-line); background: var(--portal-soft); padding-inline: 1.3rem; font-size: 1.3rem; }
+.portal-theme #search-query:focus { background: var(--portal-surface); border-color: var(--portal-blue); }
+.portal-theme .interface-management-navbar-btn { font-size: 1.25rem; padding-inline: 1.1rem; }
+
+/* 左侧文档树。宽度仍由原有拖动逻辑写入 --sidebar-width。 */
+.portal-theme .page-wrapper { --sidebar-width: 27.2rem; }
+.portal-theme .sidebar { background: var(--portal-soft); border-right: 1px solid var(--portal-line); padding-top: 1.6rem; }
+.portal-theme .sidebar-menu { padding: 0 1.2rem 2rem; }
+.portal-theme .sidebar-resize-handle { top: var(--navbar-height); }
+.portal-theme .sidebar-resize-handle:hover,
+.portal-theme .sidebar-resize-handle.is-dragging { background: #3976eb33; }
+.portal-theme .sidebar-link { color: var(--portal-muted); border-radius: .6rem; font-size: 1.3rem; }
+.portal-theme .sidebar-link:hover { background: var(--portal-hover); color: var(--portal-heading); }
+.portal-theme .sidebar .sidebar-link { margin-inline: .2rem; padding-block: .75rem; }
+.portal-theme .sidebar-link .sidebar-icon { background: transparent; color: var(--portal-muted); font-size: 1.4rem; }
+.portal-theme .sidebar .collapse-panel { padding-inline: 0; margin: 1.8rem 0; }
+.portal-theme .sidebar .collapse-header { padding: .8rem 1rem; color: var(--portal-muted); font-size: 1.2rem; font-weight: 600; letter-spacing: .04em; }
+.portal-theme .sidebar-divider { background: var(--portal-line); }
+.portal-theme .sidebarmenu { --spacing: 1.2rem; }
+.portal-theme .sidebarmenu li { padding-top: .1rem; margin-bottom: .2rem; }
+.portal-theme .parent-sidebar-menu > li { padding-left: .6rem; }
+.portal-theme .sidebarmenu a { display: inline-block; padding: .55rem .7rem; border-radius: .6rem; line-height: 1.9rem; font-size: 1.3rem; color: var(--portal-text); opacity: 1; }
+.portal-theme .sidebarmenu a:hover { color: var(--portal-blue); background: var(--portal-hover); }
+.portal-theme .sidebarmenu a[aria-current="page"] { color: var(--portal-blue); background: var(--portal-selected); font-weight: 600; }
+.portal-theme .sidebarmenu summary::before { color: var(--portal-muted); font-size: 1.2rem; }
+.portal-theme .structured-menutree .navigation-label { color: var(--portal-text); font-size: 1.3rem; line-height: 2.6rem; }
+.portal-theme .structured-menutree .navigation-number { color: var(--portal-muted); font-size: 1.2rem; }
+.portal-theme .custom-menu-heading-label,
+.portal-theme .custom-menu-heading-link { color: var(--portal-muted); }
+.portal-theme .documentation-tabs { margin: .6rem .2rem 1.2rem; gap: .4rem; border-color: var(--portal-line); }
+.portal-theme .documentation-tabs :is(a, span) { color: var(--portal-muted); font-size: 1.25rem; border-bottom-width: 2px; padding-block: .9rem; }
+.portal-theme .documentation-tabs :is(a:hover, .active) { color: var(--portal-blue); border-color: var(--portal-blue); background: var(--portal-selected); border-radius: .5rem .5rem 0 0; }
+.portal-theme .documentation-navigation-actions a { color: var(--portal-muted); }
+.portal-theme .sidebar-title-link { color: var(--portal-text); }
+.portal-theme .sidebar-otter { padding: 1rem; border-top: 1px solid var(--portal-line); }
+.portal-theme .sidebar-otter .sidebar-link { font-size: 1.1rem; color: var(--portal-muted); }
+.portal-theme .sidebar-otter img { width: 6rem; opacity: .65; }
+
+/* 中间阅读区与右侧目录。只改变尺寸，不改变列的显示与切换逻辑。 */
+.portal-theme .content-wrapper { background: var(--portal-bg); scroll-padding-top: 2.4rem; }
+.portal-theme #column-main { min-width: 0; }
+.portal-theme #column-main > .content { margin: 0; padding: 3.2rem clamp(2.4rem, 3vw, 5.6rem) 6rem; }
+.portal-theme .breadcrumb { margin: 0 0 2.4rem; font-size: 1.2rem; color: var(--portal-muted); }
+.portal-theme .breadcrumb-item a { color: var(--portal-muted); }
+.portal-theme .breadcrumb-item a:hover { color: var(--portal-blue); }
+.portal-theme .breadcrumb-item + .breadcrumb-item::before { color: var(--portal-input-line); }
+.portal-theme .extra-nav { width: 22rem; max-width: 100%; padding: 3.2rem 1.6rem 2rem; margin: 0; max-height: calc(100vh - var(--navbar-height)); border-left: 1px solid var(--portal-line); background: var(--portal-bg); }
+.portal-theme .extra-nav .collapse-header { color: var(--portal-muted); font-size: 1.2rem; font-weight: 600; margin-bottom: 1.2rem; padding-left: 1rem; letter-spacing: .03em; }
+.portal-theme .extra-nav .sidebar-link { border-left: 2px solid transparent; border-radius: 0 .4rem .4rem 0; line-height: 1.7; padding-block: .6rem; color: var(--portal-muted); font-size: 1.2rem; }
+.portal-theme .extra-nav .sidebar-active { color: var(--portal-blue); background: var(--portal-selected); border-left-color: var(--portal-blue); font-weight: 500; }
+@media (min-width: 1201px) {
+    .portal-theme #column-main.col-xl-9 { flex: 1 1 0; max-width: calc(100% - 23.2rem); }
+    .portal-theme #column-extra.col-xl-3 { flex: 0 0 23.2rem; max-width: 23.2rem; }
+}
+.portal-theme .page { font-size: 1.5rem; line-height: 1.85; color: var(--portal-text); overflow-wrap: anywhere; }
+.portal-theme .page > :first-child { margin-top: 0; }
+.portal-theme .page :is(h1, h2, h3, h4, h5, h6) { color: var(--portal-heading); font-weight: 600; line-height: 1.45; scroll-margin-top: 2.4rem; }
+.portal-theme .page h1 { font-size: 3.2rem; margin-bottom: 2rem; letter-spacing: -.02em; font-weight: 650; }
+.portal-theme .page h2 { font-size: 2.3rem; margin-top: 3.8rem; margin-bottom: 1.6rem; padding-bottom: .9rem; border-bottom: 1px solid var(--portal-line); }
+.portal-theme .page h3 { font-size: 1.85rem; margin-top: 2.8rem; margin-bottom: 1.2rem; }
+.portal-theme .page h4 { font-size: 1.6rem; margin-top: 2.2rem; }
+.portal-theme .page :is(h5, h6) { font-size: 1.45rem; }
+.portal-theme .page :is(p, li) { font-size: 1.5rem; line-height: 1.85; }
+.portal-theme .page p { margin-block: 1.4rem; }
+.portal-theme .page li { margin-bottom: .45rem; }
+.portal-theme .page :is(ul, ol) { padding-left: 1.8rem; }
+.portal-theme .page a:not(.btn):not(.anchor) { color: var(--portal-blue); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+.portal-theme .page a:not(.btn):hover { color: var(--portal-blue-hover); }
+.portal-theme .page a.anchor:focus-visible { opacity: 1; }
+.portal-theme .page hr { border-color: var(--portal-line); margin-block: 3rem; }
+.portal-theme .page > blockquote { background: var(--portal-soft); border-left: 3px solid var(--portal-blue); border-radius: 0 .6rem .6rem 0; padding: .8rem 1.8rem; color: var(--portal-muted); }
+.portal-theme .page .quote-alert { background: var(--portal-soft); border-radius: .6rem; padding: 1.2rem 1.8rem; }
+.portal-theme .page :is(code, .code) { background: var(--portal-code); border: 1px solid var(--portal-line); border-radius: .4rem; font-size: 1.3rem; padding: .15em .4em; white-space: break-spaces; }
+.portal-theme .page pre:not(.mermaid) { background: var(--portal-code); border: 1px solid var(--portal-line); border-radius: .8rem; padding: 1.6rem 1.8rem; margin: 1.8rem 0; line-height: 1.7; }
+.portal-theme .page pre code { border: 0; padding: 0; margin: 0; background: transparent; white-space: pre; }
+.portal-theme .page .highlight { border-radius: .8rem; }
+.portal-theme .page table:not(.highlighttable) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin-block: 2rem; background: transparent; font-size: 1.35rem; }
+.portal-theme .page table:not(.highlighttable) > :is(thead, tbody) > tr > :is(th, td) { padding: 1rem 1.4rem; border: 0; border-bottom: 1px solid var(--portal-line); text-align: left; }
+.portal-theme .page table:not(.highlighttable) > thead > tr > th { background: var(--portal-soft); color: var(--portal-heading); font-weight: 600; border-top: 1px solid var(--portal-line); }
+.portal-theme .page table:not(.highlighttable) > tbody > tr:hover { background: var(--portal-soft); }
+.portal-theme .page #frontmatter { color: var(--portal-muted); }
+.portal-theme .page #frontmatter pre { color: var(--portal-text); background: var(--portal-soft); }
+
+/* 二三级页面共用的卡片、表单、列表、菜单与对话框。保留语义状态色。 */
+.portal-theme .card { border: 1px solid var(--portal-line); border-radius: 1rem; background: var(--portal-surface); box-shadow: var(--portal-shadow); padding: 2.8rem; color: var(--portal-text); }
+.portal-theme :is(.card-title, .content-title, .modal-title) { color: var(--portal-heading); font-weight: 600; }
+.portal-theme .card-title { font-size: 2rem; margin-bottom: 2.4rem; }
+.portal-theme .form-group { margin-bottom: 2.2rem; }
+.portal-theme label { color: var(--portal-text); }
+.portal-theme .form-text { color: var(--portal-muted); font-size: 1.25rem; line-height: 1.7; margin-top: .7rem; }
+.portal-theme .form-control { border-color: var(--portal-input-line); border-radius: .6rem; background-color: var(--portal-surface); color: var(--portal-text); box-shadow: none; }
+.portal-theme .form-control:focus { border-color: var(--portal-blue); box-shadow: 0 0 0 3px #3976eb18; }
+.portal-theme .form-control::placeholder { color: var(--portal-muted); opacity: 1; }
+.portal-theme .form-control:disabled { background: var(--portal-soft); color: var(--portal-muted); }
+.portal-theme .btn { border-radius: .6rem; box-shadow: none; font-weight: 500; }
+.portal-theme .btn.btn-primary { background: #2563d9; border-color: #2563d9; color: #fff; }
+.portal-theme .btn.btn-primary:hover { background: #194fb4; border-color: #194fb4; }
+.portal-theme .btn.btn-link { color: var(--portal-blue); background: transparent; border-color: transparent; }
+.portal-theme :is(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--portal-blue); outline-offset: 3px; }
+.portal-theme .dropdown-menu { background: var(--portal-surface); border: 1px solid var(--portal-line); border-radius: .9rem; padding: .6rem; box-shadow: var(--portal-popup-shadow); }
+.portal-theme .dropdown-item-with-icon { color: var(--portal-text); border-radius: .5rem; font-size: 1.3rem; }
+.portal-theme .dropdown-item-with-icon:hover { color: var(--portal-blue); background: var(--portal-hover); }
+.portal-theme .dropdown-icon { background: transparent; color: var(--portal-muted); width: 2.4rem; height: 2.8rem; margin-right: .6rem; font-size: 1.4rem; }
+.portal-theme .table { color: var(--portal-text); }
+.portal-theme .table :is(th, td) { border-color: var(--portal-line); padding: 1.2rem 1.4rem; }
+.portal-theme .table th { color: var(--portal-heading); background: var(--portal-soft); font-weight: 600; }
+.portal-theme .table.table-hover tbody tr:hover { background: var(--portal-hover); }
+.portal-theme .modal-content { background: var(--portal-surface); border: 1px solid var(--portal-line); border-radius: 1.2rem; box-shadow: var(--portal-popup-shadow); }
+.portal-theme .close { color: var(--portal-muted); }
+.portal-theme .pageindex-header { border-color: var(--portal-line); color: var(--portal-heading); }
+.portal-theme .pageindex-letterblock { margin-bottom: 1.5rem; }
+.portal-theme .pageindex-pageblock { line-height: 1.9; }
+.portal-theme .datatable-input,
+.portal-theme .datatable-selector { color: var(--portal-text); background: var(--portal-surface); border: 1px solid var(--portal-input-line); border-radius: .6rem; }
+.portal-theme .datatable-top,
+.portal-theme .datatable-bottom { padding: 1.4rem 0; color: var(--portal-muted); }
+.portal-theme .datatable-table :is(th, td) { border-color: var(--portal-line); padding: 1rem 1.2rem; }
+.portal-theme .datatable-pagination .datatable-active a { background: var(--portal-selected); color: var(--portal-blue); border-radius: .5rem; }
+
+/* 接口管理各层级页面沿用同一套表面与分割线，业务布局保持原样。 */
+.portal-theme .interface-shell { background: var(--portal-soft); }
+.portal-theme :is(.interface-header, .system-drawer, .system-drawer-footer) { background: var(--portal-surface); border-color: var(--portal-line); }
+.portal-theme .interface-title { color: var(--portal-heading); border-color: var(--portal-line); font-size: 1.7rem; }
+.portal-theme .interface-tab { color: var(--portal-muted); font-size: 1.3rem; padding-inline: 1.5rem; }
+.portal-theme .interface-tab.active { color: var(--portal-blue); border-color: var(--portal-blue); background: var(--portal-selected); }
+.portal-theme .interface-tab:hover { color: var(--portal-blue); background: var(--portal-hover); }
+.portal-theme :is(.summary-card, .activity-card, .system-filter-card, .system-table-card, .version-comparison-filter-card, .version-comparison-summary-card, .version-comparison-detail-card, .version-comparison-detail-dialog, .audit-log-confirm-dialog) { background: var(--portal-surface); border-color: var(--portal-line); border-radius: 1rem; box-shadow: var(--portal-shadow); }
+.portal-theme :is(.summary-copy strong, .system-drawer-header h2, .activity-card h2, .version-comparison-filter-card h1, .version-comparison-detail-header h2, .version-comparison-summary-card strong) { color: var(--portal-heading); border-color: var(--portal-line); }
+.portal-theme :is(.summary-copy span, .system-filter-card label) { color: var(--portal-muted); }
+.portal-theme .summary-icon { font-size: 3.2rem; }
+.portal-theme .summary-copy strong { font-size: 2.6rem; }
+.portal-theme .activity-card h2 { background: var(--portal-surface); }
+.portal-theme .system-drawer-header { border-color: var(--portal-line); }
+
+@media (max-width: 1200px) {
+    .portal-theme #column-main > .content { padding-inline: 2.8rem; }
+    .portal-theme .navbar-brand span { max-width: 20rem; }
+}
+@media (max-width: 768px) {
+    body.portal-theme { --navbar-height: 5.6rem; }
+    .portal-theme .navbar { padding-inline: .8rem; }
+    .portal-theme .navbar-content { gap: .2rem; }
+    .portal-theme .navbar-content .btn { min-width: 3rem; padding-inline: .7rem; }
+    .portal-theme .navbar-brand { margin-left: .8rem !important; }
+    .portal-theme .navbar-brand span { max-width: 16rem; font-size: 1.4rem; }
+    .portal-theme .page-wrapper { --sidebar-width: min(28rem, 85vw); }
+    .portal-theme #column-main > .content { padding: 2.4rem 1.8rem 4rem; }
+    .portal-theme .page h1 { font-size: 2.6rem; }
+    .portal-theme .page h2 { font-size: 2rem; }
+    .portal-theme .card { padding: 2rem; margin-inline: 0; }
+    .portal-theme .interface-main { padding: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .portal-theme .summary-card { transition: none; }
+}

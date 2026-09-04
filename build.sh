@@ -49,8 +49,13 @@ fi
 
 echo '检查构建环境'
 "${docker_cmd[@]}" info >/dev/null
+
+# 每次先从内网仓库同步基础镜像，避免执行机切换或本地缓存清理后构建失败。
+echo "从内网仓库拉取基础镜像：$BASE_IMAGE"
+"${docker_cmd[@]}" pull "$BASE_IMAGE" || \
+    fail '基础镜像拉取失败，请检查内网仓库连接、镜像地址及流水线执行账号的仓库登录权限。'
 "${docker_cmd[@]}" image inspect "$BASE_IMAGE" >/dev/null || \
-    fail '本机未找到基础镜像，请先 docker load 离线导入，或从内网仓库 docker pull。'
+    fail '拉取后仍未找到本地基础镜像，请检查 Docker 服务连接和镜像是否被并发清理。'
 
 # Docker 只能 COPY 构建目录里的文件；此处只复制文件，不执行宿主机 Python。
 rm -rf target/wheels
@@ -64,6 +69,7 @@ wheels=(target/wheels/*.whl)
 [[ ${#wheels[@]} -gt 0 ]] || fail '离线包目录中没有依赖 wheel，请先执行联网准备步骤。'
 
 echo "构建镜像：$IMAGE"
+# 基础镜像已显式拉取；构建阶段复用本地镜像，依赖安装继续禁用网络。
 DOCKER_BUILDKIT=0 "${docker_cmd[@]}" build --network none --pull=false \
     --build-arg "BASE_IMAGE=$BASE_IMAGE" \
     --build-arg "GIT_TAG=$IMAGE_TAG" \

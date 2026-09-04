@@ -41,6 +41,8 @@ docker push 10.71.96.165:31104/edtp/otterwiki-runtime:py311-bullseye
 ```
 
 Docker 登录和构建使用相同账号；需要 sudo 时也保持一致。
+当前 `build.sh` 每次先从内网仓库拉取基础镜像，因此需要先完成上述入库和登录步骤；
+拉取失败时构建停止，不回退到本地旧缓存。
 
 ## 4. 修改 build.sh 的两项配置
 

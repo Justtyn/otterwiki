@@ -1,8 +1,10 @@
-# OtterWiki：完全离线的 Docker 构建教程
+# OtterWiki：内网 Docker 构建与离线依赖准备教程
 
 适用环境：截图中的 CentOS 7、x86_64、Docker 18.09.6、Bash 4.2。
 Python 打包、依赖安装、可选测试都在容器内执行。流水线机器使用已有的 Docker，
 流水线页面只负责调用 `build.sh`。
+每次构建先从内网 Harbor 拉取基础镜像，再在禁用网络的容器中打包和安装依赖，
+最后推送业务镜像到内网 Harbor；执行机无需访问公网。
 
 ## 1. 先分清需要准备的东西
 
@@ -131,13 +133,15 @@ docker push 10.71.96.165:31104/edtp/otterwiki-runtime:py311-bullseye
 如果流水线必须用 `sudo -n docker`，则登录、导入和构建都使用一致的 sudo 方式。
 密码在 `docker login` 提示时输入，不写入 Git 或编译脚本。
 
-以后增加另一台执行机，需要复制离线包目录，并执行一次：
+以后增加另一台执行机，需要复制离线包目录，并配置仓库登录凭据。
+`build.sh` 会自动拉取基础镜像；也可以先手动执行下面的命令验证连接和权限：
 
 ```bash
 docker pull 10.71.96.165:31104/edtp/otterwiki-runtime:py311-bullseye
 ```
 
-这里仅访问内网仓库。基础镜像已存在于执行机后，构建脚本不会尝试联网拉取它。
+这里仅访问内网仓库。构建脚本每次都先拉取基础镜像，再检查本地镜像是否可用。
+即使本地已有镜像，也会先与仓库同步；拉取失败则停止，不继续使用旧缓存。
 
 ## 5. 修改项目里的 build.sh
 
@@ -174,7 +178,9 @@ PUSH_IMAGE=false bash build.sh dev 1.0.0
 实际过程是：
 
 ```text
-build.sh 复制离线包到构建目录
+build.sh 从内网 Harbor 拉取基础镜像
+  → 检查本地基础镜像
+  → 复制离线包到构建目录
   → docker build
   → 容器内安装本地构建工具
   → 容器内把本次源码生成 wheel
@@ -184,6 +190,8 @@ build.sh 复制离线包到构建目录
 
 Docker 的构建步骤使用 `--network none`，pip 使用 `--no-index --find-links`。
 因此依赖缺失会直接报错，不会去访问公网补包。最终镜像不包含准备时的整个离线包目录。
+`docker build --pull=false` 复用前面显式拉取的基础镜像，不代表整个脚本不拉取镜像。
+即使设置 `PUSH_IMAGE=false`，构建前仍会拉取基础镜像，只是不推送最终业务镜像。
 
 成功后用独立的测试数据卷启动，避免接触已有 Wiki 数据：
 

@@ -10,7 +10,7 @@
 | prepare-offline.sh | 在联网准备机导出 amd64 完整运行镜像，准备 Python 离线依赖 |
 | docker/Dockerfile.runtime | 在联网准备阶段制作 Bullseye/Python 3.11 运行基础镜像，包含 Git、Nginx、uWSGI |
 | docker/prepare-wheels.py | 在准备容器中读取 pyproject，收集依赖与构建/测试工具，验证离线安装 |
-| build.sh | 复制本地包、构建镜像、可选容器测试、推送、写发布记录 |
+| build.sh | 拉取内网基础镜像、复制本地包、构建、可选容器测试、推送、写发布记录 |
 | Dockerfile | 容器内离线打包源码、安装依赖，保留 Nginx/uWSGI 启动结构 |
 | docs/pipeline-intranet.sh | 流水线「自定义编译脚本」的两行模板 |
 
@@ -22,7 +22,9 @@
 Bullseye 是兼容过渡方案，长期应更新宿主机运行环境并使用受支持的基础系统。
 `BASE_IMAGE` 默认使用已推送的
 `10.71.96.165:31104/edtp/otterwiki-runtime:py311-bullseye`。
-执行机需要先拉取该镜像，并完成默认安全配置下的线程测试。
+每次构建都会先从该内网地址执行 `docker pull`，再检查本地镜像并开始构建。
+无论本地是否有缓存，都先拉取；拉取失败就停止，不回退到旧缓存继续发布。
+新执行机应完成默认安全配置下的线程测试，并准备可读的离线包目录和仓库凭据。
 
 Dockerfile 的构建阶段和运行阶段使用同一基础镜像。构建阶段仅从本地 wheel 目录安装，
 当前源码生成新的应用 wheel 并强制重新安装；最终阶段复制安装结果和本仓库的服务配置、
@@ -30,6 +32,8 @@ Dockerfile 的构建阶段和运行阶段使用同一基础镜像。构建阶段
 
 `build.sh` 使用 `DOCKER_BUILDKIT=0`，Dockerfile 不使用 `RUN --mount`、`COPY --chmod`
 或 `HEALTHCHECK --start-interval`。构建及可选测试容器使用 `--network none`。
+`docker build --pull=false` 表示复用刚刚拉取的基础镜像，避免构建阶段再次拉取；
+它不影响前面的显式 `docker pull`。构建前拉取和构建后推送只访问配置的内网仓库。
 这解决构建语法和联网依赖问题，旧内核/容器运行时是否能运行基础镜像需要现场验证。
 
 ## 调用与产物
@@ -40,6 +44,7 @@ bash build.sh dev 1.0.0
 
 默认推送，默认跳过自动化测试，与用户提供的 Spring Boot 构建习惯一致。
 可用 `PUSH_IMAGE=false` 只构建，或 `SKIP_TESTS=false` 启用容器内测试。
+`PUSH_IMAGE=false` 仅关闭业务镜像推送，基础镜像仍会在每次构建前拉取。
 测试失败时不推送；其他步骤失败时也不会写入成功发布记录。
 已有成功记录在本次构建开始时清除，避免后续作业读取上一次的结果。
 
