@@ -14,6 +14,7 @@
 - 页面需要内置账号登录、全局阅读资格和用户组授权；多组授权取并集。
 - 全局管理员可以访问归档空间。普通用户在网页和 Git HTTP 均不能访问归档空间。
 - v1 为升级前具备阅读资格的本地用户建立默认组；v2 补齐历史草稿空间。
+- v4 创建异步导入任务表；v1–v3 实例也必须执行本次升级。
 - v3 清理孤立成员及授权关系，并兼容早期草稿结构；不会重新授予已撤销的权限。
 - 已经被复用的用户 ID 无法仅凭现有关系判断原归属。如果旧版本曾删除用户并
   创建新账号，请在管理界面核对这些新账号的所属组。
@@ -35,7 +36,7 @@ kubectl -n "$WIKI_NS" get pods -l app=otterwiki -o wide
 export WIKI_POD=替换为当前Pod名称
 ```
 
-通过平台维护入口暂停访问，暂停外部 Git 同步/推送及导入任务，确认没有写入。
+通过平台维护入口暂停访问，暂停外部 Git 同步/推送及新导入提交，等待已接受的导入任务结束，确认没有写入。
 **此时保持当前 Pod 存活，尤其是 emptyDir 部署：先缩容到 0 或重建 Pod，
 会直接删除临时卷，之后无法再备份。** 同时暂停会自动恢复副本数的发布流水线/HPA。
 
@@ -112,7 +113,7 @@ Harbor 的应用镜像，不使用 runtime 基础镜像；固定不可变标签�
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: otterwiki-migrate-v3
+  name: otterwiki-migrate-v4
   namespace: newcore-dev-ns
 spec:
   backoffLimit: 0
@@ -157,8 +158,8 @@ Job 应使用与应用匹配的卷访问身份。本项目镜像的 Web 进程�
 
 ```bash
 kubectl -n "$WIKI_NS" apply -f otterwiki-migrate.yaml
-kubectl -n "$WIKI_NS" wait --for=condition=complete job/otterwiki-migrate-v3 --timeout=300s
-kubectl -n "$WIKI_NS" logs job/otterwiki-migrate-v3
+kubectl -n "$WIKI_NS" wait --for=condition=complete job/otterwiki-migrate-v4 --timeout=300s
+kubectl -n "$WIKI_NS" logs job/otterwiki-migrate-v4
 ```
 
 只有 Job 成功且日志显示“数据库迁移完成”才继续。失败时保持应用停止，先查看日志。
@@ -193,3 +194,64 @@ kubectl -n "$WIKI_NS" rollout status deploy/"$WIKI_DEPLOY" --timeout=300s
 删除用户会同时清理组关系；新注册用户需要管理员分配组。
 “内容与编辑设置”可调整全局文档字号（12–24px，默认 15px），恢复默认时回退
 配置文件/环境变量中的默认值。字号不会改变导航、管理界面或编辑器输入大小。
+
+
+## 6. 异步导入部署约定（v4）
+
+应用保持 **1 个副本、1 个 uWSGI 工作进程、4 个请求线程**。内置后台线程在
+收到提交后创建；不在预加载阶段启动，也不需要 Redis 或 Celery。Windows
+继续使用原启动方式，但不要同时启动两个应用进程。开发自动重载会中断任务。
+
+必须持久化整个 `/app-data`，包括：
+
+- SQLite 数据库、默认仓库以及 `spaces` 下的空间仓库。
+- 默认位于仓库父目录的 `.otterwiki-import-tasks/`（任务检查点和执行锁）。
+- 每个目标仓库父目录中的 `.otterwiki-import-<任务ID>/`（上传和临时仓库），
+  以及 `.<仓库名>.pre-import-*` 备份。不要用只挂载 `repository` 的卷布局。
+
+`DOCUMENT_IMPORT_TASK_ROOT` 可指定检查点目录；所有进程必须指向同一持久目录。
+独立迁移 Job 和应用应使用同一份 settings.cfg、相同环境覆盖项及全部数据挂载。
+如 `REPOSITORY`、`SPACES_ROOT`、`DOCUMENT_IMPORT_TASK_ROOT` 由环境变量覆盖，
+将这些相同值补充到迁移 Job 的 `env`，不要只传配置文件路径。
+
+容器内置 Nginx 对 uWSGI 使用 `uwsgi_read_timeout`、`uwsgi_send_timeout`。
+在 Deployment 的容器环境变量配置 `NGINX_UWSGI_TIMEOUT="600"`（默认 600，
+只接受正整数秒数）。上传仍然占用 HTTP 请求：检查外层 Ingress/负载均衡的
+请求体大小、上传及上游超时，并与 `NGINX_MAX_UPLOAD`、应用 ZIP 大小限制协调。
+提高这个超时不会让整个后台导入占用请求，提交接受后返回 202。
+
+导入页先展示上传字节进度，随后每 2 秒查询任务；短暂网络失败最多退避至
+10 秒。离开或刷新页面不取消导入；任务结果保存在数据库，重新进入当前空间
+导入页可继续查看。目标空间返回 423 维护提示，其他空间与登录仍可使用。
+同一实例只接受一个活动任务；第二个不同请求返回 409。
+
+执行器等待已进入目标空间的请求退出，最多 60 秒，超时即失败且不替换仓库。
+应用内 Git 同步使用同一门禁，但操作系统外部的脚本、Git 命令或卷写入不受控制，
+导入前必须自行停止。不要删除 `executor.lock` 来“解锁”：删除锁文件可能绕过
+仍存活进程持有的锁。文件锁由进程退出时自动释放，心跳过期不能证明任务死亡。
+
+### 中断与人工恢复
+
+部署、重启、切换镜像前等待任务结束；本版不支持取消或断点续传。若发生退出：
+
+1. 保留数据库、任务 JSON 检查点、任务目录和所有备份，停止应用及外部写入。
+   先备份故障现场，确认没有执行中的进程，不要删除 PVC。
+2. 启动恢复会先于 GitStorage 初始化执行。替换前中断时保留旧仓库；两次移动
+   之间中断且目标缺失、备份有效时自动恢复备份；不自动重复导入。
+3. 若目标已匹配检查点中的新 `commit`，进度页显示“仓库已切换，但任务未完整
+   结束”。核对文档、附件、Git 提交和草稿；可能需要在维护工具清理旧草稿。
+   **不要因中断状态直接再导入**，重导入会重建历史。
+4. 无法识别的目标继续保持维护。检查点 JSON 记录 `target`、`backup`、`stage`、
+   `old_commit`、`commit`。使用 `git -C <目录> rev-parse HEAD` 和
+   `git -C <目录> fsck --full` 验证现场，选择已验证的旧备份或新临时仓库。
+   应用停止时先将不明目标改名留存，再将选定仓库恢复到准确的 `target` 路径；
+   不要直接覆盖、删除未知内容或手工把任务标记为成功。
+5. 用相同配置执行 `/opt/venv/bin/python -m otterwiki.import_runtime`（Windows
+   使用当前虚拟环境的 `python`）重新核对恢复。可在挂相同卷的恢复 Pod 中执行，
+   不与应用同时运行。默认空间输出 0 表示可开放，1 表示仍维护；其他空间须查看
+   对应任务 JSON 的 `maintenance` 和 `error`，不能只看这一行输出。
+6. 恢复仓库可识别后启动应用，进入导入页查看中断说明。核对数据后再决定是否
+   重新选择文件并输入确认文本重试。核对完成前不清理备份。
+
+失败的结构迁移遵循前述整套备份恢复流程；v4 创建任务表与版本记录在同一事务
+提交，失败回滚 v4，此前已成功的 v1–v3 不会撤销。重复升级不会重新执行导入。

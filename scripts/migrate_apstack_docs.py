@@ -77,8 +77,14 @@ def map_relative(relative: PurePosixPath, *, page: bool) -> PurePosixPath:
 
 class Migration:
     def __init__(
-        self, source: Path, target_repo: Path, apply: bool, refresh: bool
+        self,
+        source: Path,
+        target_repo: Path,
+        apply: bool,
+        refresh: bool,
+        progress=None,
     ):
+        self.progress = progress
         self.source = source.resolve()
         self.docs = (self.source / "docs").resolve()
         self.nav_docs = (self.source / "nav" / "docs").resolve()
@@ -543,7 +549,9 @@ class Migration:
         if not self.apply:
             return
 
-        for source_file in self.selected_files:
+        if self.progress:
+            self.progress("converting", 0, len(self.selected_files))
+        for index, source_file in enumerate(self.selected_files, 1):
             relative_target = self.file_map[source_file.resolve()]
             destination = self.target_repo / relative_target
             destination.parent.mkdir(parents=True, exist_ok=True)
@@ -579,6 +587,9 @@ class Migration:
                 ):
                     shutil.copy2(source_file, destination)
                 self.stats.copied_assets += 1
+
+            if self.progress:
+                self.progress("converting", index, len(self.selected_files))
 
         self.write_home()
         self.write_report()
@@ -676,10 +687,24 @@ title: APStack6 产品文档
         checked_urls = 0
         broken_urls: list[tuple[str, str]] = []
 
-        for source_file, relative_target in self.file_map.items():
+        total = (
+            len(self.file_map)
+            + sum(
+                target.suffix.lower() in (".md", ".html", ".htm", ".css")
+                for target in self.file_map.values()
+            )
+            + 1
+        )
+        if self.progress:
+            self.progress("verifying", 0, total)
+        for index, (source_file, relative_target) in enumerate(
+            self.file_map.items(), 1
+        ):
             destination = self.target_repo / relative_target
             if not destination.is_file():
                 missing.append(relative_target.as_posix())
+                if self.progress:
+                    self.progress("verifying", index, total)
                 continue
             if source_file.suffix.lower() not in (
                 ".md",
@@ -693,6 +718,8 @@ title: APStack6 产品文档
                     or self.digest(source_file) != self.digest(destination)
                 ):
                     changed_assets.append(relative_target.as_posix())
+            if self.progress:
+                self.progress("verifying", index, total)
 
         text_targets = [
             self.target_repo / target
@@ -700,8 +727,12 @@ title: APStack6 产品文档
             if target.suffix.lower() in (".md", ".html", ".htm", ".css")
         ]
         text_targets.append(self.target_repo / "apstack6" / "迁移报告.md")
-        for target_file in text_targets:
+        for index, target_file in enumerate(
+            text_targets, len(self.file_map) + 1
+        ):
             if not target_file.is_file():
+                if self.progress:
+                    self.progress("verifying", index, total)
                 continue
             text = target_file.read_text(encoding="utf-8", errors="replace")
             for match in ABSOLUTE_APSTACK_URL.finditer(text):
@@ -717,6 +748,9 @@ title: APStack6 产品文档
                             match.group("url"),
                         )
                     )
+
+            if self.progress:
+                self.progress("verifying", index, total)
 
         if missing or changed_assets or broken_urls:
             details = [

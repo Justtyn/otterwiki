@@ -159,3 +159,29 @@ class Cache(db.Model):
     key = db.Column(db.String(64), index=True, primary_key=True)
     value = db.Column(db.Text)
     datetime = db.Column(TimeStamp())
+
+
+class DocumentImportTask(db.Model):
+    """持久化导入状态；内部工作路径不向 API 暴露。"""
+
+    __tablename__ = "document_import_task"
+    id = db.Column(db.String(32), primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    space_id = db.Column(db.Integer, nullable=False, index=True)
+    request_key = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="queued")
+    phase = db.Column(db.String(32), nullable=False, default="queued")
+    completed = db.Column(db.BigInteger, nullable=False, default=0)
+    total = db.Column(db.BigInteger, nullable=True)
+    extracted_bytes = db.Column(db.BigInteger, nullable=False, default=0)
+    created_at = db.Column(db.Float, nullable=False)
+    updated_at = db.Column(db.Float, nullable=False)
+    started_at = db.Column(db.Float, nullable=True)
+    finished_at = db.Column(db.Float, nullable=True)
+    result = db.Column(db.JSON, nullable=True)
+    error = db.Column(db.Text, nullable=True)
+    workspace = db.Column(db.Text, nullable=False)
+    checkpoint = db.Column(db.JSON, nullable=True)
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "space_id", "request_key"),
+    )

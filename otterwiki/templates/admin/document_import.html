@@ -1,65 +1,5 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
-{% block head %}
-{{ super() }}
-<style>
-  .document-import-overlay[hidden] {
-    display: none;
-  }
-  .document-import-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    background: rgba(17, 20, 23, 0.82);
-    backdrop-filter: blur(0.3rem);
-  }
-  .document-import-progress-card {
-    width: min(56rem, 100%);
-    padding: 3rem;
-    border-radius: 0.8rem;
-    color: rgba(0, 0, 0, 0.85);
-    background: #fff;
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4);
-    text-align: center;
-  }
-  .dark-mode .document-import-progress-card {
-    color: rgba(255, 255, 255, 0.85);
-    background: #25282c;
-  }
-  .document-import-progress-card .progress {
-    height: 1.2rem;
-  }
-  body.document-import-active {
-    overflow: hidden;
-  }
-</style>
-{% endblock %}
-{% block bodytop %}
-{{ super() }}
-<div id="document-import-overlay" class="document-import-overlay" hidden
-     role="dialog" aria-modal="true" aria-labelledby="document-import-progress-title"
-     aria-describedby="document-import-progress-description" tabindex="-1">
-  <div class="document-import-progress-card">
-    <div class="font-size-24 text-primary mb-15" aria-hidden="true">
-      <i class="fas fa-spinner fa-spin"></i>
-    </div>
-    <h3 id="document-import-progress-title">正在重建文档仓库</h3>
-    <p id="document-import-progress-description">
-      正在上传或读取导入源，并依次完成解析、链接重写、Git 构建和校验。
-    </p>
-    <div class="progress mt-20 mb-15" aria-label="文档导入处理中">
-      <div class="progress-bar progress-bar-animated" style="width: 100%;"
-           role="progressbar" aria-valuetext="正在处理"></div>
-    </div>
-    <p class="mb-5">已处理 <strong id="document-import-elapsed">0</strong> 秒</p>
-    <p class="text-muted mb-0">文档较大时可能需要几分钟，请勿关闭、刷新或操作当前页面。</p>
-  </div>
-</div>
-{% endblock %}
 {% block content %}
 <div class="card m-auto m-lg-20">
 <div class="mw-full w-800">
@@ -84,25 +24,17 @@
   </div>
   {% endif %}
 
-  {% if result %}
-  <div class="alert alert-success" role="alert">
-    <h4 class="alert-heading">文档仓库重建完成</h4>
-    <ul>
-      <li>源目录：<code>{{ result.source_name }}</code></li>
-      <li>Markdown 页面：{{ result.pages }}</li>
-      <li>图片及其他附件：{{ result.assets }}</li>
-      <li>已重写链接：{{ result.rewritten_links }}</li>
-      <li>未解析引用：{{ result.unresolved_links }}</li>
-      <li>新 Git 提交：<code>{{ result.commit }}</code></li>
-      <li>耗时：{{ "%.2f"|format(result.duration_seconds) }} 秒</li>
-    </ul>
-    <pre style="white-space: pre-wrap;">{{ result.verification }}</pre>
-    {% for warning in result.warnings %}
-    <div class="text-danger">{{ warning }}</div>
-    {% endfor %}
-    <a class="btn btn-primary mt-10" href="{{ url_for('view', path='apstack6') }}">打开 APStack 文档</a>
-  </div>
-  {% endif %}
+  <section id="document-import-progress" class="alert alert-primary" hidden aria-live="polite">
+    <h3 id="document-import-phase">等待导入</h3>
+    <p id="document-import-message"></p>
+    <progress id="document-import-bar" class="w-full" max="100" aria-label="导入进度"></progress>
+    <p id="document-import-counts"></p>
+    <p>耗时：<strong id="document-import-elapsed">0</strong> 秒</p>
+    <p>可离开或刷新页面，任务会在后台继续。导入期间当前空间暂时维护。</p>
+    <pre id="document-import-result" style="white-space: pre-wrap;"></pre>
+    <a id="document-import-open" class="btn btn-primary" hidden>打开 APStack 文档</a>
+  </section>
+  <script type="application/json" id="document-import-task">{{ latest_task | tojson }}</script>
 
   <form id="document-import-form" action="{{ url_for('admin_document_import') }}"
         method="POST" enctype="multipart/form-data">
@@ -146,69 +78,5 @@
 {% endblock %}
 {% block js %}
 {{ super() }}
-<script type="text/javascript">
-  (function () {
-    "use strict";
-
-    const form = document.getElementById("document-import-form");
-    const overlay = document.getElementById("document-import-overlay");
-    const elapsed = document.getElementById("document-import-elapsed");
-    const submitButton = document.getElementById("document-import-submit");
-    const pageWrapper = document.getElementById("page-wrapper");
-    let submitting = false;
-    let startedAt = 0;
-    let elapsedTimer = null;
-
-    function resetImportState() {
-      submitting = false;
-      window.clearInterval(elapsedTimer);
-      elapsedTimer = null;
-      overlay.hidden = true;
-      submitButton.disabled = false;
-      form.removeAttribute("aria-busy");
-      document.body.classList.remove("document-import-active");
-      if (pageWrapper) {
-        pageWrapper.inert = false;
-      }
-    }
-
-    function showImportProgress() {
-      submitting = true;
-      startedAt = Date.now();
-      elapsed.textContent = "0";
-      form.setAttribute("aria-busy", "true");
-      submitButton.disabled = true;
-      document.body.classList.add("document-import-active");
-      if (pageWrapper) {
-        pageWrapper.inert = true;
-      }
-      overlay.hidden = false;
-      overlay.focus();
-      elapsedTimer = window.setInterval(function () {
-        elapsed.textContent = String(Math.floor((Date.now() - startedAt) / 1000));
-      }, 1000);
-    }
-
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
-      if (submitting) {
-        return;
-      }
-      if (!window.confirm("确定删除当前全部文档和 Git 历史，并重新构建吗？")) {
-        return;
-      }
-
-      showImportProgress();
-      window.setTimeout(function () {
-        HTMLFormElement.prototype.submit.call(form);
-      }, 50);
-    });
-
-    window.addEventListener("pageshow", function (event) {
-      if (event.persisted) {
-        resetImportState();
-      }
-    });
-  }());
-</script>
+<script src="{{ url_for('static', filename='js/document-import.js') | debug_unixtime }}"></script>
 {% endblock %}

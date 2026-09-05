@@ -96,6 +96,7 @@ app.config.update(
     APSTACK_IMPORT_MAX_ARCHIVE_SIZE=1024 * 1024 * 1024,
     APSTACK_IMPORT_MAX_EXTRACTED_SIZE=2 * 1024 * 1024 * 1024,
     APSTACK_IMPORT_MAX_FILES=50_000,
+    DOCUMENT_IMPORT_TASK_ROOT=None,
     APSTACK_API_BASE_URL="http://localhost:9988",
     APSTACK_API_TIMEOUT=10,
     # 多空间：新空间仓库根目录；默认取 REPOSITORY 同级的 spaces 目录
@@ -165,8 +166,22 @@ if (
 # enable CSRF protection globally
 csrf = CSRFProtect(app)
 
+# 初始化 GitStorage 前恢复中断导入留下的目录缺口。
+from otterwiki.import_runtime import recover_before_storage, blocked, task_root
+
+if app.config["REPOSITORY"]:
+    recover_before_storage(app.config)
+
 # setup storage
-if app.config["REPOSITORY"] is None:
+_import_maintenance = bool(app.config["REPOSITORY"]) and blocked(
+    task_root(app.config), app.config["REPOSITORY"]
+)
+if _import_maintenance:
+    default_storage = otterwiki.gitstorage.DeferredGitStorage(
+        app.config["REPOSITORY"]
+    )
+    storage = otterwiki.gitstorage.SpaceStorageProxy(default_storage)
+elif app.config["REPOSITORY"] is None:
     fatal_error("Please configure a REPOSITORY path.")
 elif not os.path.exists(app.config["REPOSITORY"]):
     fatal_error(
@@ -191,8 +206,12 @@ if otterwiki.util.empty(app.config["SERVER_NAME"]):
     app.config["SERVER_NAME"] = None
 
 # check if the git repository is empty
-if (len(storage.list()[0]) < 1) and (  # pyright: ignore never unbound
-    len(storage.log()) < 1  # pyright: ignore
+if (
+    not _import_maintenance
+    and (len(storage.list()[0]) < 1)
+    and (  # pyright: ignore never unbound
+        len(storage.log()) < 1  # pyright: ignore
+    )
 ):
     home_page_config = app.config.get("HOME_PAGE", "")
 
@@ -286,7 +305,15 @@ def update_app_config():
 
 
 with app.app_context():
-    db.create_all()
+    # 导入任务表必须由 v4 原子建表，不能在升级命令加载应用时提前提交。
+    db.metadata.create_all(
+        bind=db.engine,
+        tables=[
+            table
+            for table in db.metadata.sorted_tables
+            if table.name != "document_import_task"
+        ],
+    )
 
     # 已有表的结构变更仅由 flask db upgrade 执行，不能在加载应用时
     # 提前提交；否则迁移失败时无法回滚，也会让多个工作进程竞争 ALTER。

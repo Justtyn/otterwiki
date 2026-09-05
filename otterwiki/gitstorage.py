@@ -53,9 +53,9 @@ class SpaceStorageProxy(object):
 
     def resolve_storage(self):
         try:
-            from flask import g, has_request_context
+            from flask import g, has_app_context
 
-            if has_request_context():
+            if has_app_context():
                 space = getattr(g, "space", None)
                 if space is not None and not getattr(
                     space, "is_default", True
@@ -89,6 +89,27 @@ class SpaceStorageProxy(object):
         return "<SpaceStorageProxy default={!r}>".format(
             getattr(self._default_storage, "path", None)
         )
+
+
+class DeferredGitStorage:
+    """故障现场恢复期间延迟打开仓库，允许登录和查看维护任务。"""
+
+    def __init__(self, path):
+        self.path = str(pathlib.Path(path).resolve())
+        self._storage = None
+
+    def __getattr__(self, name):
+        if self._storage is None:
+            self._storage = GitStorage(self.path)
+        return getattr(self._storage, name)
+
+    def __setattr__(self, name, value):
+        if name in ("path", "_storage"):
+            object.__setattr__(self, name, value)
+        else:
+            if self._storage is None:
+                object.__setattr__(self, "_storage", GitStorage(self.path))
+            setattr(self._storage, name, value)
 
 
 class GitStorage(object):

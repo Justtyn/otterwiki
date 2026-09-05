@@ -78,7 +78,14 @@ def _migrate_v1():
     成员只做增量添加：后续管理员移除的成员不会因重复执行而回填。
     """
     # 1. 创建缺失的数据表
-    db.metadata.create_all(bind=db.session.connection())
+    db.metadata.create_all(
+        bind=db.session.connection(),
+        tables=[
+            table
+            for table in db.metadata.sorted_tables
+            if table.name != "document_import_task"
+        ],
+    )
 
     # 2. drafts.space_id 列（对旧库幂等补充）
     _ensure_draft_space_column()
@@ -167,6 +174,16 @@ def _migrate_v3():
         (~GroupSpaceAuth.group_id.in_(db.session.query(Group.id)))
         | (~GroupSpaceAuth.space_id.in_(db.session.query(Space.id)))
     ).delete(synchronize_session=False)
+
+
+@migration(4)
+def _migrate_v4():
+    """创建后台导入任务表；与版本记录使用同一事务。"""
+    from otterwiki.models import DocumentImportTask
+
+    DocumentImportTask.__table__.create(
+        bind=db.session.connection(), checkfirst=True
+    )
 
 
 def run_migrations():

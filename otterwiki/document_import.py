@@ -10,7 +10,6 @@ import stat
 import importlib.util
 import sys
 import tempfile
-import threading
 import time
 import uuid
 import zipfile
@@ -44,7 +43,6 @@ except ModuleNotFoundError:
 CONFIRMATION_TEXT = "RESET APSTACK"
 IMPORT_COMMIT_MESSAGE = "重新构建 APStack 文档"
 IMPORT_AUTHOR = ("OtterWiki Importer", "noreply@otterwiki")
-_document_import_lock = threading.Lock()
 
 
 class DocumentImportError(Exception):
@@ -178,6 +176,7 @@ def extract_zip_safely(
     archive_path: Path,
     destination: Path,
     limits: ImportLimits,
+    progress=None,
 ) -> None:
     """Extract a ZIP without traversal, links, devices, or zip bombs."""
     try:
@@ -220,6 +219,9 @@ def extract_zip_safely(
             validated.append((info, target))
 
         extracted_size = 0
+        completed = 0
+        if progress:
+            progress("extracting", 0, len(files), 0)
         try:
             for info, target in validated:
                 if info.is_dir():
@@ -232,11 +234,23 @@ def extract_zip_safely(
                         if not chunk:
                             break
                         extracted_size += len(chunk)
+                        if progress:
+                            progress(
+                                "extracting",
+                                completed,
+                                len(files),
+                                extracted_size,
+                            )
                         if extracted_size > limits.max_extracted_size:
                             raise DocumentImportError(
                                 "ZIP 实际解压大小超过允许上限。"
                             )
                         output.write(chunk)
+                completed += 1
+                if progress:
+                    progress(
+                        "extracting", completed, len(files), extracted_size
+                    )
         except DocumentImportError:
             raise
         except (OSError, RuntimeError, zipfile.BadZipFile) as error:
@@ -271,14 +285,19 @@ def _run_migration(
     stage_repo: Path,
     limits: ImportLimits,
     author: tuple[str, str],
+    progress=None,
 ) -> tuple[Migration, str, str]:
     stage_repo.mkdir(parents=True)
     repo = git.Repo.init(stage_repo)
     try:
         with repo.config_writer() as config:
             config.set_value("receive", "denyCurrentBranch", "updateInstead")
-        migration = Migration(source_root, stage_repo, True, False)
+        migration = Migration(
+            source_root, stage_repo, True, False, progress=progress
+        )
         try:
+            if progress:
+                progress("scanning")
             migration.select()
             _validate_selected_files(migration, limits)
             migration.write()
@@ -294,6 +313,8 @@ def _run_migration(
             ) from error
 
         try:
+            if progress:
+                progress("git")
             repo.git.add(all=True)
             commit = repo.index.commit(
                 IMPORT_COMMIT_MESSAGE,
@@ -381,13 +402,23 @@ def _cleanup_repository_backups(target: Path, backup: Path) -> list[str]:
     return warnings
 
 
-def _replace_repository(storage, stage_repo: Path) -> list[str]:
+def _replace_repository(
+    storage, stage_repo: Path, checkpoint=None
+) -> list[str]:
     target = Path(storage.path).resolve()
     backup = target.parent / f".{target.name}.pre-import-{uuid.uuid4().hex}"
     failed_new = (
         target.parent / f".{target.name}.failed-import-{uuid.uuid4().hex}"
     )
     warnings: list[str] = []
+    if checkpoint:
+        checkpoint(
+            target=str(target),
+            backup=str(backup),
+            stage=str(stage_repo),
+            commit=repo_commit_for_import(stage_repo),
+            old_commit=repo_commit_for_import(target),
+        )
 
     if target.is_symlink() or not target.is_dir():
         raise DocumentImportError("当前内容仓库路径不是普通文件夹，拒绝替换。")
@@ -430,7 +461,8 @@ def _replace_repository(storage, stage_repo: Path) -> list[str]:
             f"加载新内容仓库失败，已恢复旧仓库：{error}"
         ) from error
 
-    warnings.extend(_cleanup_repository_backups(target, backup))
+    if checkpoint is None:
+        warnings.extend(_cleanup_repository_backups(target, backup))
     return warnings
 
 
@@ -440,6 +472,9 @@ def reset_repository_from_source(
     *,
     limits: ImportLimits | None = None,
     author: tuple[str, str] = IMPORT_AUTHOR,
+    progress=None,
+    workspace: Path | None = None,
+    checkpoint=None,
 ) -> DocumentImportResult:
     """Build a fresh Git repo from APStack source, then replace the live repo."""
     started = time.monotonic()
@@ -463,18 +498,25 @@ def reset_repository_from_source(
         )
 
     target.parent.mkdir(parents=True, exist_ok=True)
+    from contextlib import nullcontext
+
     try:
-        with tempfile.TemporaryDirectory(
-            prefix=".otterwiki-apstack-build-", dir=target.parent
-        ) as workspace_name:
+        temporary = (
+            nullcontext(str(workspace))
+            if workspace is not None
+            else tempfile.TemporaryDirectory(
+                prefix=".otterwiki-apstack-build-", dir=target.parent
+            )
+        )
+        with temporary as workspace_name:
             stage_repo = Path(workspace_name) / "repository"
             migration, verification, commit = _run_migration(
-                source_root, stage_repo, limits, author
+                source_root, stage_repo, limits, author, progress
             )
             from otterwiki.repomgmt import RepositoryManager
 
             with RepositoryManager.git_push_pull_Lock:
-                warnings = _replace_repository(storage, stage_repo)
+                warnings = _replace_repository(storage, stage_repo, checkpoint)
     except DocumentImportError:
         raise
     except OSError as error:
@@ -521,20 +563,13 @@ def document_import_form(
     source_directory: str = "",
     status: int = 200,
 ):
-    from flask import abort, render_template, session
+    from flask import abort, render_template
 
     from otterwiki.auth import has_permission
     from otterwiki.server import app
 
     if not has_permission("ADMIN"):
         abort(403)
-    if result is None and error is None:
-        stored_result = session.pop("document_import_result", None)
-        if isinstance(stored_result, dict):
-            try:
-                result = DocumentImportResult(**stored_result)
-            except TypeError:
-                result = None
     limits = _configured_limits(app)
     from otterwiki.spaces import current_space
 
@@ -547,6 +582,7 @@ def document_import_form(
             result=result,
             import_error=error,
             source_directory=source_directory,
+            latest_task=latest_import_task(),
             current_space_name=(
                 current_space().name if current_space() else None
             ),
@@ -555,113 +591,19 @@ def document_import_form(
     )
 
 
+def latest_import_task():
+    from otterwiki.import_tasks import latest_task
+
+    return latest_task()
+
+
+def repo_commit_for_import(path):
+    from otterwiki.import_runtime import repo_commit
+
+    return repo_commit(path)
+
+
 def handle_document_import(form, files):
-    from dataclasses import asdict
+    from otterwiki.import_tasks import submit_task
 
-    from flask import abort, redirect, session, url_for
-
-    from otterwiki.auth import get_author, has_permission
-    from otterwiki.helper import toast
-    from otterwiki.models import Drafts
-    from otterwiki.server import app, db
-    from otterwiki.spaces import current_space, current_storage
-
-    if not has_permission("ADMIN"):
-        abort(403)
-    # 导入作用于管理员当前选定的空间，使用该空间的具体仓库对象
-    space = current_space()
-    storage = current_storage()
-    source_directory = form.get("source_directory", "").strip()
-    upload = files.get("archive")
-    has_upload = bool(upload and upload.filename)
-
-    if form.get("confirmation", "").strip() != CONFIRMATION_TEXT:
-        return document_import_form(
-            error=f"请输入 {CONFIRMATION_TEXT} 以确认重置。",
-            source_directory=source_directory,
-            status=400,
-        )
-    if has_upload == bool(source_directory):
-        return document_import_form(
-            error="必须且只能选择一种来源：上传 ZIP 或服务器文件夹。",
-            source_directory=source_directory,
-            status=400,
-        )
-    limits = _configured_limits(app)
-    if not _document_import_lock.acquire(blocking=False):
-        return document_import_form(
-            error="已有文档导入任务正在执行，请稍后再试。",
-            source_directory=source_directory,
-            status=409,
-        )
-
-    try:
-        if has_upload:
-            if not upload.filename.lower().endswith(".zip"):
-                raise DocumentImportError("仅支持上传 .zip 压缩包。")
-            repository_parent = Path(storage.path).resolve().parent
-            with tempfile.TemporaryDirectory(
-                prefix=".otterwiki-apstack-upload-", dir=repository_parent
-            ) as workspace_name:
-                workspace = Path(workspace_name)
-                archive_path = workspace / "upload.zip"
-                extracted = workspace / "extracted"
-                extracted.mkdir()
-                save_upload(
-                    upload.stream, archive_path, limits.max_archive_size
-                )
-                extract_zip_safely(archive_path, extracted, limits)
-                result = reset_repository_from_source(
-                    extracted,
-                    storage,
-                    limits=limits,
-                    author=get_author(),
-                )
-                result.source_name = Path(
-                    upload.filename.replace("\\", "/")
-                ).name
-        else:
-            source_path = Path(source_directory).expanduser()
-            if not source_path.is_absolute():
-                raise DocumentImportError("服务器文件夹必须填写绝对路径。")
-            result = reset_repository_from_source(
-                source_path,
-                storage,
-                limits=limits,
-                author=get_author(),
-            )
-
-    except DocumentImportError as error:
-        db.session.rollback()
-        app.logger.warning("APStack document import rejected: %s", error)
-        return document_import_form(
-            error=str(error),
-            source_directory=source_directory,
-            status=400,
-        )
-    except Exception:
-        db.session.rollback()
-        app.logger.exception("Unexpected APStack document import failure")
-        return document_import_form(
-            error="导入过程中发生内部错误，旧仓库已保留；请查看服务器日志。",
-            source_directory=source_directory,
-            status=500,
-        )
-    finally:
-        _document_import_lock.release()
-
-    try:
-        # 仅清理当前空间的旧草稿
-        Drafts.query.filter_by(space_id=space.id if space else None).delete()
-        db.session.commit()
-    except Exception as error:
-        db.session.rollback()
-        app.logger.exception("Unable to clear drafts after APStack import")
-        result.warnings.append(f"旧草稿未能自动清理：{error}")
-
-    toast(
-        f"APStack 文档已重建：{result.pages} 个页面，"
-        f"{result.assets} 个附件。"
-    )
-    session["document_import_result"] = asdict(result)
-    return redirect(url_for("admin_document_import"))
+    return submit_task(form, files)

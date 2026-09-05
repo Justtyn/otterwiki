@@ -250,10 +250,10 @@ def test_admin_document_import_page_is_available(admin_client):
     assert response.status_code == 200
     page = response.data.decode()
     assert CONFIRMATION_TEXT in page
-    assert 'id="document-import-overlay"' in page
-    assert 'class="progress-bar progress-bar-animated"' in page
+    assert 'id="document-import-progress"' in page
+    assert "document-import.js" in page
     assert 'id="document-import-form"' in page
-    assert "pageWrapper.inert = true" in page
+    assert "pageWrapper.inert" not in page
 
 
 def test_document_import_page_rejects_non_admin(other_client):
@@ -279,26 +279,44 @@ def test_confirmation_failure_keeps_repository(admin_client, app_with_user):
 
 
 def test_admin_can_rebuild_from_server_directory(
-    admin_client, app_with_user, tmp_path
+    admin_client, app_with_user, tmp_path, monkeypatch
 ):
+    from otterwiki import import_tasks
+
+    pending = []
+    monkeypatch.setattr(
+        import_tasks, "start_task", lambda *args: pending.append(args)
+    )
     source = _write_apstack_source(tmp_path / "APStackDoc")
 
     response = admin_client.post(
         "/-/admin/document_import",
         data={
             "confirmation": CONFIRMATION_TEXT,
+            "request_key": "regression-request-123456",
             "source_directory": str(source),
         },
         follow_redirects=True,
     )
 
-    assert response.status_code == 200
-    assert "文档仓库重建完成" in response.data.decode()
+    assert response.status_code == 202
+    import_tasks.run_task(*pending.pop())
+    response = admin_client.get(response.json["status_url"])
+    assert response.json["status"] == "succeeded", response.json
+    assert "文档仓库重建完成" in response.json["phase_label"]
     assert app_with_user.storage.exists("apstack6.md")
     assert len(app_with_user.storage.log()) == 1
 
 
-def test_admin_can_rebuild_from_zip(admin_client, app_with_user, tmp_path):
+def test_admin_can_rebuild_from_zip(
+    admin_client, app_with_user, tmp_path, monkeypatch
+):
+    from otterwiki import import_tasks
+
+    pending = []
+    monkeypatch.setattr(
+        import_tasks, "start_task", lambda *args: pending.append(args)
+    )
     source = _write_apstack_source(tmp_path / "APStackDoc")
     archive = _zip_source(source)
 
@@ -306,15 +324,16 @@ def test_admin_can_rebuild_from_zip(admin_client, app_with_user, tmp_path):
         "/-/admin/document_import",
         data={
             "confirmation": CONFIRMATION_TEXT,
+            "request_key": "regression-request-123456",
             "archive": (archive, "测试文档.zip"),
         },
         content_type="multipart/form-data",
         follow_redirects=True,
     )
 
-    assert response.status_code == 200
-    page = response.data.decode()
-    assert "文档仓库重建完成" in page
-    assert "测试文档.zip" in page
+    assert response.status_code == 202
+    import_tasks.run_task(*pending.pop())
+    response = admin_client.get(response.json["status_url"])
+    assert response.json["status"] == "succeeded", response.json
     assert app_with_user.storage.exists("apstack6.md")
     assert len(app_with_user.storage.log()) == 1

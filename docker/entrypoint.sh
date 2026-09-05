@@ -27,6 +27,19 @@ if [ "$PGID" != "33" ]; then
     groupmod --gid $PGID www-data || true
 fi
 
+# take care of the otterwiki settings file
+if [ ! -f ${OTTERWIKI_SETTINGS} ]; then
+    mkdir -p "$(dirname "$OTTERWIKI_SETTINGS")"
+    RANDOM_SECRET_KEY=$(echo "$(date) ${RANDOM} ${RANDOM} ${RANDOM}" | md5sum | head -c 32)
+    echo "DEBUG = False" >> ${OTTERWIKI_SETTINGS}
+    echo "REPOSITORY = '/app-data/repository'" >> ${OTTERWIKI_SETTINGS}
+    echo "SECRET_KEY = '${RANDOM_SECRET_KEY}'" >> ${OTTERWIKI_SETTINGS}
+    echo "SQLALCHEMY_DATABASE_URI = 'sqlite:////app-data/db.sqlite'" >> ${OTTERWIKI_SETTINGS}
+fi
+
+# 在创建仓库前恢复中断的目录切换；不允许用空仓库覆盖故障现场。
+IMPORT_MAINTENANCE=$(/opt/venv/bin/python -m otterwiki.import_runtime)
+if [ "$IMPORT_MAINTENANCE" = "0" ]; then
 # take care of repository dictionary
 if [ ! -d ${OTTERWIKI_REPOSITORY} ]; then
     mkdir -p ${OTTERWIKI_REPOSITORY}
@@ -36,13 +49,6 @@ if [ ! -d ${OTTERWIKI_REPOSITORY}/.git ]; then
     git init -b main ${OTTERWIKI_REPOSITORY}
 fi
 
-# take care of the otterwiki settings file
-if [ ! -f ${OTTERWIKI_SETTINGS} ]; then
-    RANDOM_SECRET_KEY=$(echo "$(date) ${RANDOM} ${RANDOM} ${RANDOM}" | md5sum | head -c 32)
-    echo "DEBUG = False" >> ${OTTERWIKI_SETTINGS}
-    echo "REPOSITORY = '/app-data/repository'" >> ${OTTERWIKI_SETTINGS}
-    echo "SECRET_KEY = '${RANDOM_SECRET_KEY}'" >> ${OTTERWIKI_SETTINGS}
-    echo "SQLALCHEMY_DATABASE_URI = 'sqlite:////app-data/db.sqlite'" >> ${OTTERWIKI_SETTINGS}
 fi
 
 chown -R www-data:www-data /app-data
@@ -64,6 +70,12 @@ if [ "${USE_LISTEN_PORT}" != "8080" ]; then
     LISTEN_EXTRA_PORT="listen 8080;"
 fi
 
+# uWSGI 请求等待超时；后台任务不占用该请求。
+USE_UWSGI_TIMEOUT=${NGINX_UWSGI_TIMEOUT:-600}
+case "$USE_UWSGI_TIMEOUT" in
+    ''|*[!0-9]*|0*) echo "NGINX_UWSGI_TIMEOUT 必须为正整数秒数" >&2; exit 1 ;;
+esac
+
 # Generate Nginx config first part using the environment variables
 echo "server {
     listen ${USE_LISTEN_PORT};
@@ -84,8 +96,8 @@ echo "    location / {
     location @app {
         include uwsgi_params;
         uwsgi_pass unix:///tmp/uwsgi.sock;
-        proxy_read_timeout 120s;
-        proxy_send_timeout 120s;
+        uwsgi_read_timeout ${USE_UWSGI_TIMEOUT}s;
+        uwsgi_send_timeout ${USE_UWSGI_TIMEOUT}s;
     }
     location $USE_STATIC_URL {
         alias $USE_STATIC_PATH;

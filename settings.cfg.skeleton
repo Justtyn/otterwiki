@@ -70,3 +70,8 @@ SQLALCHEMY_DATABASE_URI = ''
 # MAIL_PORT = 1025
 # MAIL_USERNAME = None
 # MAIL_PASSWORD = None
+
+# 异步导入检查点目录；默认 REPOSITORY 父目录下 .otterwiki-import-tasks。
+# 必须随数据库及仓库一起持久化；不要指向临时目录。
+# DOCUMENT_IMPORT_TASK_ROOT = '/app-data/.otterwiki-import-tasks'
+# NGINX_UWSGI_TIMEOUT 在容器环境变量中设置（默认600秒），不在此文件配置。

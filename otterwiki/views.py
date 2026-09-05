@@ -356,6 +356,14 @@ def admin_document_import():
     return handle_document_import(request.form, request.files)
 
 
+@app.route("/-/admin/document_import/tasks/<task_id>")
+@login_required
+def admin_document_import_task(task_id):
+    from otterwiki.import_tasks import get_task
+
+    return get_task(task_id)
+
+
 @app.route(
     "/-/admin/navigation", methods=["POST", "GET"]
 )  # pyright: ignore -- false positive

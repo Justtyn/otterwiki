@@ -50,6 +50,8 @@ otterwiki/
 ├── interface_management.py   # 接口管理工作台：代理调用外部 IDP API
 ├── structured_navigation.py  # 规则驱动的产品文档导航（.portal.yml/.model.yaml/.sidebar.json）
 ├── navigation_editor.py      # 管理员可视化导航编辑器
+├── import_tasks.py           # v4 持久化任务、后台线程、进度 API、空间维护门禁
+├── import_runtime.py         # 跨平台进程锁、请求排空、仓库切换检查点与启动恢复
 ├── document_import.py        # 管理员触发的 APStack 文档导入/重置（调用 scripts 迁移器）
 ├── spaces.py                 # 多空间：WSGI 前缀中间件、访问门禁、空间仓库定位、上下文注入
 ├── migrations.py             # 版本化数据库迁移（flask db upgrade，可重复执行）
@@ -93,6 +95,8 @@ settings.cfg[.skeleton]      # 本地配置（skeleton 是模板，勿动前者�
 ### 6.3 文档导入 / 重置（`document_import.py` + `scripts/migrate_apstack_docs.py`）
 - 管理员页面触发「重置并导入」：支持 ZIP 上传或服务器文件夹，异步执行，需输入确认文本 `RESET APSTACK`。
 - 迁移器把 APStack MkDocs 树迁入 `apstack6` 命名空间：展开 `include()` 指令、重写本地链接为 OtterWiki URL、处理附件/图片。
+- POST 上传保存后返回 202；进度每 2 秒轮询，不把结果写入 Session。单副本、单 Web 进程、4 个请求线程；目标空间维护，其他空间可用。
+- v4 任务表与版本号原子提交；任务目录随数据持久化。执行锁释放后才可判定中断，不自动重新执行。启动时先恢复切换现场，再初始化 GitStorage。
 - 改动迁移逻辑时必须更新 `tests/test_document_import.py`；注意 Windows 兼容（本分支有专门的 Windows 修复历史，路径处理用 `PurePosixPath` 语义，勿引入 Unix 假设）。
 
 ### 6.4 导航编辑器（`navigation_editor.py`）

@@ -468,3 +468,8 @@ with app.app_context():
     ensure_default_space()
 
 # vim: set et ts=8 sts=4 sw=4 ai:
+
+# 在空间授权完成后执行维护门禁。
+from otterwiki.import_tasks import install_request_guards
+
+install_request_guards(app)

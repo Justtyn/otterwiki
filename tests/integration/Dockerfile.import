@@ -1,0 +1,15 @@
+# 本地已有完整应用镜像提供依赖；整个构建不访问网络。
+ARG TEST_BASE_IMAGE=otterwiki-local-check:bullseye-check
+FROM ${TEST_BASE_IMAGE}
+USER root
+COPY otterwiki /app/otterwiki
+COPY scripts /app/scripts
+COPY docker/entrypoint.sh /entrypoint.sh
+COPY docker/uwsgi.ini /app/uwsgi.ini
+COPY tests/integration/gateway_app.py /app/gateway_app.py
+COPY tests/integration/seed_import.py /app/seed_import.py
+RUN sed -i 's/module = otterwiki.server/module = gateway_app/' /app/uwsgi.ini && \
+    chmod -R a+rX /app
+ENV PYTHONPATH=/app
+ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+CMD ["/bin/sh", "-ec", "su -s /bin/sh www-data -c 'python /app/seed_import.py'; chown -R www-data:www-data /app-data; nginx; exec /usr/bin/uwsgi_python3 --ini /app/uwsgi.ini --venv /opt/venv"]

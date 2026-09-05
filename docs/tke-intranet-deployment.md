@@ -18,6 +18,7 @@
 | PVC 中 storageClassName | 集群中实际存在的存储类名称 |
 | Deployment 中 image | 构建成功后 target/image-name.txt 的业务镜像全名 |
 | Deployment 中 imagePullSecrets | 同一命名空间中可拉取 Harbor 镜像的凭据名称 |
+| Deployment 中 NGINX_UWSGI_TIMEOUT | uWSGI 请求超时秒数，默认 600；只影响上传等请求 |
 
 `SECRET_KEY = 'CHANGE ME'` 是故意保留的无效占位值，必须替换后部署。
 在有基础镜像的内网机器生成一次密钥，不需要宿主机 Python：
@@ -76,7 +77,7 @@ Secret otterwiki-settings 中的 settings.cfg
 
 PVC otterwiki-data
   → 挂载到 /app-data
-  → 保存 repository/ 文档仓库和 db.sqlite 数据库
+  → 保存数据库、所有空间仓库、异步导入任务目录和切换备份
 
 内网访问入口 → Service otterwiki:80 → Pod:8080
 ```
@@ -87,6 +88,10 @@ PVC otterwiki-data
 uWSGI 再以 www-data 运行。无需填写 Java 的 BEFORE_ARGS，也无需宿主机配置路径。
 
 模板使用单副本和 Recreate，沿用项目 Helm 配置对 Git 内容仓库的部署约束。
+异步导入还要求 uWSGI 保持一个工作进程和 4 个请求线程，镜像内置配置已经设置；
+不要通过平台参数覆盖为多进程，也不要将 Deployment 扩容。任务目录默认位于
+`/app-data/.otterwiki-import-tasks`，必须和数据库、`repository`、`spaces` 一起
+持久化。部署或重启前先在导入页确认没有执行中的任务。
 资源申请是起始示例，按可用容量和实际导入文档的内存需求调整。
 节点选择仅限制 amd64 架构，未固定为截图中的具体节点，便于按持久卷位置调度。
 
@@ -117,12 +122,15 @@ curl -f http://localhost:8080/-/healthz
 | chown: Operation not permitted | 数据存储是否允许入口脚本修改属主，例如 NFS root_squash 限制 |
 | SECRET_KEY 配置错误 | 是否仍是 CHANGE ME 占位值 |
 | 没有页面但 Pod 正常 | Service 选择器、端口和内网访问入口 |
+| ZIP 上传 413/504 | 外层 Ingress 的请求体大小、上传/上游超时，以及 NGINX_MAX_UPLOAD |
 
 ## 5. 配置内网访问入口
 
 Service 使用 ClusterIP，只在集群内提供服务。通过平台已有的内网路由/Ingress
 功能创建访问入口，后端选 Service `otterwiki`，端口 `80`，路径 `/`。
 域名使用实际可用的内网域名，并按平台要求配置解析与证书；不能从截图确定具体值。
+ZIP 上传完成前仍经过该入口，因此应让 Ingress 的请求体上限和上游超时覆盖实际
+压缩包大小及内网带宽；后台导入本身不占用这条上传请求，页面用短请求轮询进度。
 
 若先临时验证页面，可在连接集群的本机运行：
 
@@ -134,6 +142,10 @@ kubectl -n newcore-dev-ns port-forward service/otterwiki 18080:80
 此转发仅用于临时检查，命令退出后访问入口关闭。
 
 ## 6. 后续更新
+
+从旧版升级到包含多空间或异步导入任务表的镜像时，先按
+`docs/multi-space-upgrade.md` 停服备份，并使用挂载相同 PVC、Secret 和环境变量的
+独立迁移 Job 执行 v4；不能用直接重启应用代替数据库迁移。
 
 改业务代码：流水线发布新的业务镜像，更新 Deployment 中的 image。
 改运行配置：更新 Secret 中的 settings.cfg，等待配置更新后在平台重建 Pod；

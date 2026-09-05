@@ -118,7 +118,13 @@ class RepositoryManager:
         if not remote_url:
             return False, "No remote URL provided"
 
-        with self.git_push_pull_Lock:
+        from otterwiki.server import app
+        from otterwiki.import_runtime import repository_operation
+
+        with (
+            repository_operation(app.config, self.storage.path),
+            self.git_push_pull_Lock,
+        ):
             key_path, original_ssh_command, original_ssh_auth_sock = (
                 self._setup_ssh_environment(private_key)
             )
@@ -175,7 +181,13 @@ class RepositoryManager:
         if not remote_url:
             return False, "No remote URL provided"
 
-        with self.git_push_pull_Lock:
+        from otterwiki.server import app
+        from otterwiki.import_runtime import repository_operation
+
+        with (
+            repository_operation(app.config, self.storage.path),
+            self.git_push_pull_Lock,
+        ):
             key_path, original_ssh_command, original_ssh_auth_sock = (
                 self._setup_ssh_environment(private_key)
             )
@@ -226,7 +238,13 @@ class RepositoryManager:
         if not remote_url:
             return False, "No remote URL provided"
 
-        with self.git_push_pull_Lock:
+        from otterwiki.server import app
+        from otterwiki.import_runtime import repository_operation
+
+        with (
+            repository_operation(app.config, self.storage.path),
+            self.git_push_pull_Lock,
+        ):
             key_path, original_ssh_command, original_ssh_auth_sock = (
                 self._setup_ssh_environment(private_key)
             )
