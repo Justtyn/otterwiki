@@ -105,7 +105,7 @@ body.portal-theme.dark-mode {
 
 /* 左侧文档树。宽度仍由原有拖动逻辑写入 --sidebar-width。 */
 .portal-theme .page-wrapper { --sidebar-width: 27.2rem; }
-.portal-theme .sidebar { background: var(--portal-soft); border-right: 1px solid var(--portal-line); padding-top: 1.6rem; }
+.portal-theme .sidebar { background: var(--portal-soft); border-right: 1px solid var(--portal-line); padding-top: .4rem; }
 .portal-theme .sidebar-menu { padding: 0 1.2rem 2rem; }
 .portal-theme .sidebar-resize-handle { top: var(--navbar-height); }
 .portal-theme .sidebar-resize-handle:hover,
@@ -115,7 +115,12 @@ body.portal-theme.dark-mode {
 .portal-theme .sidebar .sidebar-link { margin-inline: .2rem; padding-block: .75rem; }
 .portal-theme .sidebar-link .sidebar-icon { background: transparent; color: var(--portal-muted); font-size: 1.4rem; }
 .portal-theme .sidebar .collapse-panel { padding-inline: 0; margin: 1.8rem 0; }
+.portal-theme .sidebar-menu > .collapse-panel:first-of-type { margin-top: .4rem; }
 .portal-theme .sidebar .collapse-header { padding: .8rem 1rem; color: var(--portal-muted); font-size: 1.2rem; font-weight: 600; letter-spacing: .04em; }
+.portal-theme .sidebar .collapse-header:not(.without-arrow) {
+    padding-left: 3.2rem;
+    background-position: 1.2rem center;
+}
 .portal-theme .sidebar-divider { background: var(--portal-line); }
 .portal-theme .sidebarmenu { --spacing: 1.2rem; }
 .portal-theme .sidebarmenu li { padding-top: .1rem; margin-bottom: .2rem; }
@@ -147,6 +152,10 @@ body.portal-theme.dark-mode {
 .portal-theme .breadcrumb-item + .breadcrumb-item::before { color: var(--portal-input-line); }
 .portal-theme .extra-nav { width: 22rem; max-width: 100%; padding: 3.2rem 1.6rem 2rem; margin: 0; max-height: calc(100vh - var(--navbar-height)); border-left: 1px solid var(--portal-line); background: var(--portal-bg); }
 .portal-theme .extra-nav .collapse-header { color: var(--portal-muted); font-size: 1.2rem; font-weight: 600; margin-bottom: 1.2rem; padding-left: 1rem; letter-spacing: .03em; }
+.portal-theme .extra-nav .collapse-header:not(.without-arrow) {
+    padding-left: 3.2rem;
+    background-position: 1.2rem center;
+}
 .portal-theme .extra-nav .sidebar-link { border-left: 2px solid transparent; border-radius: 0 .4rem .4rem 0; line-height: 1.7; padding-block: .6rem; color: var(--portal-muted); font-size: 1.2rem; }
 .portal-theme .extra-nav .sidebar-active { color: var(--portal-blue); background: var(--portal-selected); border-left-color: var(--portal-blue); font-weight: 500; }
 @media (min-width: 1201px) {

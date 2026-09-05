@@ -200,6 +200,7 @@ def test_admin_can_edit_imported_navigation_and_add_heading(
     assert 'id="navigation-collapse-all"' in editor_page
     assert 'data-has-children="true"' in editor_page
     assert "refreshTreeDisplay" in editor_page
+    assert editor_page.count('class="navigation-editor-toolbar-actions"') == 1
 
     payload = {
         "title": "自定义目录",

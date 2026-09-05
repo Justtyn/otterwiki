@@ -21,6 +21,22 @@ def test_html(test_client):
     assert "</html>" in result.data.decode()
 
 
+def test_theme_toggle_describes_both_target_modes(test_client):
+    result = test_client.get("/")
+    soup = bs4.BeautifulSoup(result.data.decode(), "html.parser")
+    toggle = soup.select_one("#theme-mode-toggle")
+
+    assert toggle is not None
+    assert (
+        toggle.select_one("span.theme-toggle-to-dark").get_text(strip=True)
+        == "切换深色模式"
+    )
+    assert (
+        toggle.select_one("span.theme-toggle-to-light").get_text(strip=True)
+        == "切换浅色模式"
+    )
+
+
 def test_healthz(test_client):
     result = test_client.get("/-/healthz")
     assert "ok" in result.data.decode()

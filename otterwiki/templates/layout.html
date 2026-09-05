@@ -204,11 +204,13 @@
 {%- if has_permission('ADMIN') %}
                     <div class="dropdown-divider mt-5 mb-5"></div>
 {%- endif %}
-                    <a href="#" class="dropdown-item-with-icon" onclick="halfmoon.toggleDarkMode()">
+                    <a href="#" id="theme-mode-toggle" class="dropdown-item-with-icon" onclick="halfmoon.toggleDarkMode(); return false;">
                         <span class="dropdown-icon">
-                            <i class="far fa-moon"></i>
+                            <i class="far fa-moon theme-toggle-to-dark" aria-hidden="true"></i>
+                            <i class="far fa-sun theme-toggle-to-light" aria-hidden="true"></i>
                         </span>
-                        切换深色模式
+                        <span class="theme-toggle-to-dark">切换深色模式</span>
+                        <span class="theme-toggle-to-light">切换浅色模式</span>
                     </a>
 {%- if not current_user.is_authenticated %}
                     <a href="{{ url_for("login") }} " class="dropdown-item-with-icon">

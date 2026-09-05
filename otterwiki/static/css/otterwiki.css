@@ -13,6 +13,19 @@
     color-scheme: dark;
 }
 
+/* The theme action describes the mode the button will switch to. */
+#theme-mode-toggle .theme-toggle-to-light {
+    display: none;
+}
+
+.dark-mode #theme-mode-toggle .theme-toggle-to-dark {
+    display: none;
+}
+
+.dark-mode #theme-mode-toggle .theme-toggle-to-light {
+    display: inline;
+}
+
 .navbar {
     background: #d2d2d2;
 }

@@ -7,10 +7,16 @@
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    align-items: end;
+    align-items: flex-end;
   }
   .navigation-editor-toolbar .form-group {
     margin-bottom: 0;
+  }
+  .navigation-editor-toolbar-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: .5rem;
   }
   .navigation-editor-table th,
   .navigation-editor-table td {
@@ -142,8 +148,10 @@
         {% endfor %}
       </select>
     </div>
-    <button class="btn btn-secondary" type="submit">切换</button>
-    <a class="btn btn-link" href="{{ url_for('view', path=namespace) }}">返回文档</a>
+    <div class="navigation-editor-toolbar-actions">
+      <button class="btn btn-secondary" type="submit">切换</button>
+      <a class="btn btn-link" href="{{ url_for('view', path=namespace) }}">返回文档</a>
+    </div>
   </form>
 
   <form id="navigation-editor-form" action="{{ url_for('admin_navigation') }}" method="POST">
