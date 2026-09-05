@@ -411,6 +411,8 @@ def test_v4_upgrade_rollback_and_repeat(tmp_path):
         '''
 from sqlalchemy import inspect
 from otterwiki.migrations import MIGRATIONS, run_migrations
+v6 = MIGRATIONS.pop(6)
+v5 = MIGRATIONS.pop(5)
 original = MIGRATIONS.pop(4)
 run_migrations()
 with app.app_context():
@@ -433,6 +435,22 @@ run_migrations(); run_migrations()
 with app.app_context():
     assert 'document_import_task' in inspect(db.engine).get_table_names()
     assert {v.version for v in SchemaVersion.query.all()} == {1,2,3,4}
+MIGRATIONS[5] = v5
+run_migrations(); run_migrations()
+with app.app_context():
+    tables = inspect(db.engine).get_table_names()
+    assert 'space_git_repository' in tables
+    assert 'git_sync_task' in tables
+    assert {v.version for v in SchemaVersion.query.all()} == {1,2,3,4,5}
+MIGRATIONS[6] = v6
+run_migrations(); run_migrations()
+with app.app_context():
+    columns = {
+        column['name']
+        for column in inspect(db.engine).get_columns('space_git_repository')
+    }
+    assert 'legacy_webhook_hash' in columns
+    assert {v.version for v in SchemaVersion.query.all()} == {1,2,3,4,5,6}
 ''',
         legacy=True,
     )

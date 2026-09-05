@@ -336,9 +336,60 @@ def admin_content_and_editing():
 @login_required
 def admin_repository_management():
     if request.method == "GET":
-        return otterwiki.preferences.repository_management_form()
+        from otterwiki.repository_sync import repository_management_form
+
+        return repository_management_form()
     else:
         return otterwiki.preferences.handle_repository_management(request.form)
+
+
+@app.route("/-/admin/repository_management/repositories", methods=["POST"])
+@login_required
+def admin_repository_save():
+    from otterwiki.repository_sync import save_repository
+
+    return save_repository(request.form)
+
+
+@app.route(
+    "/-/admin/repository_management/repositories/<int:repository_id>/delete",
+    methods=["POST"],
+)
+@login_required
+def admin_repository_delete(repository_id):
+    from otterwiki.repository_sync import delete_repository
+
+    return delete_repository(repository_id)
+
+
+@app.route(
+    "/-/admin/repository_management/repositories/<int:repository_id>/tasks",
+    methods=["POST"],
+)
+@login_required
+def admin_repository_sync_submit(repository_id):
+    from otterwiki.repository_sync import submit_admin_task
+
+    return submit_admin_task(repository_id, request.form)
+
+
+@app.route("/-/admin/repository_management/tasks/<task_id>")
+@login_required
+def admin_repository_sync_task(task_id):
+    from otterwiki.repository_sync import get_admin_task
+
+    return get_admin_task(task_id)
+
+
+@app.route(
+    "/-/admin/repository_management/repositories/<int:repository_id>/webhook",
+    methods=["POST"],
+)
+@login_required
+def admin_repository_webhook(repository_id):
+    from otterwiki.repository_sync import regenerate_webhook
+
+    return regenerate_webhook(repository_id)
 
 
 @app.route(
@@ -1667,7 +1718,9 @@ def pull_webhook(webhook_hash):
     from otterwiki.repomgmt import get_repo_manager
 
     if not app.config.get('GIT_REMOTE_PULL_ENABLED'):
-        abort(404)
+        from otterwiki.repository_sync import legacy_webhook_pull
+
+        return legacy_webhook_pull(webhook_hash)
 
     remote_url = app.config.get('GIT_REMOTE_PULL_URL')
     if not remote_url:
@@ -1695,6 +1748,17 @@ def pull_webhook(webhook_hash):
             jsonify({"status": "error", "message": "Failed to trigger pull"}),
             500,
         )
+
+
+@app.route(
+    "/-/api/v1/repositories/<int:repository_id>/pull/<string:token>",
+    methods=["POST"],
+)
+@csrf.exempt
+def repository_pull_webhook(repository_id, token):
+    from otterwiki.repository_sync import webhook_pull
+
+    return webhook_pull(repository_id, token)
 
 
 @app.route("/-/plugin/<string:name>/<string:extra>", methods=["POST", "GET"])

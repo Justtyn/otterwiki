@@ -15,6 +15,21 @@ from otterwiki.repomgmt import get_repo_manager
 from otterwiki.plugins import plugin_manager
 
 
+def _auto_push(storage):
+    """Prefer a per-space remote and fall back to the legacy default remote."""
+    try:
+        from otterwiki.repository_sync import schedule_auto_push
+
+        if schedule_auto_push(storage.path):
+            return
+    except Exception:
+        # Repository tables may not exist until ``flask db upgrade``.
+        pass
+    repo_manager = get_repo_manager()
+    if repo_manager:
+        repo_manager.auto_push_if_enabled()
+
+
 class StorageError(Exception):
     pass
 
@@ -488,9 +503,7 @@ class GitStorage(object):
         plugin_manager.hook.repository_changed(changed_files=[filename])
 
         # auto-push after storing file
-        repo_manager = get_repo_manager()
-        if repo_manager:
-            repo_manager.auto_push_if_enabled()
+        _auto_push(self)
 
         return True
 
@@ -513,9 +526,7 @@ class GitStorage(object):
         plugin_manager.hook.repository_changed(changed_files=changed_list)
 
         # auto-push after commit
-        repo_manager = get_repo_manager()
-        if repo_manager:
-            repo_manager.auto_push_if_enabled()
+        _auto_push(self)
 
     def _known_paths(self, paths, revision):
         """Filter `paths` down to what git knows about, either in the index
@@ -590,9 +601,7 @@ class GitStorage(object):
         plugin_manager.hook.repository_changed(changed_files=changed_files)
 
         # auto-push after revert
-        repo_manager = get_repo_manager()
-        if repo_manager:
-            repo_manager.auto_push_if_enabled()
+        _auto_push(self)
 
     def diff(self, rev_a, rev_b):
         # https://docs.python.org/2/library/difflib.html
@@ -631,9 +640,7 @@ class GitStorage(object):
         plugin_manager.hook.repository_changed(changed_files=filename_remove)
 
         # auto-push after delete
-        repo_manager = get_repo_manager()
-        if repo_manager:
-            repo_manager.auto_push_if_enabled()
+        _auto_push(self)
 
     def rename(
         self,

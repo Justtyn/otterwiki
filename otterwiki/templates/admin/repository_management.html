@@ -4,6 +4,13 @@
 {##}
 <div class="card m-auto m-lg-20">
 <div class="mw-full">
+    {% include "admin/space_repositories.html" %}
+    <hr class="my-20">
+    <details>
+    <summary><strong>旧版默认空间仓库设置（兼容）</strong></summary>
+    {% if legacy_remote_locked %}
+    <div class="alert alert-secondary mt-10">默认空间已绑定新版空间仓库，旧版远程推送/拉取设置已锁定；Git Web 服务开关仍可使用。</div>
+    {% endif %}
     <form action="{{ url_for("admin_repository_management") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <h2 class="card-title">仓库管理</h2>
@@ -164,6 +171,7 @@
   </div>
 </div>
 {% endif %}
+</details>
 </div>
 </div>
 
@@ -249,4 +257,5 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
+<script src="{{ url_for('static', filename='js/repository-sync.js') }}"></script>
 {% endblock %}

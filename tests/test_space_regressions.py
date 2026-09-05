@@ -183,7 +183,7 @@ with app.app_context():
     run_migrations()
     run_migrations()
     db.session.expire_all()
-    assert {v.version for v in SchemaVersion.query.all()} == {1, 2, 3, 4}
+    assert {v.version for v in SchemaVersion.query.all()} == {1, 2, 3, 4, 5, 6}
     assert Drafts.query.one().content == 'old-draft'
     assert Drafts.query.one().space_id == get_default_space().id
     assert Group.query.count() == 1
@@ -229,14 +229,14 @@ with app.app_context():
     db.session.expire_all()
     assert UserGroup.query.count() == 3
     assert GroupSpaceAuth.query.count() == 2
-    assert {v.version for v in SchemaVersion.query.all()} == {1, 2, 4}
+    assert {v.version for v in SchemaVersion.query.all()} == {1, 2, 4, 5, 6}
     MIGRATIONS[3] = original
     run_migrations()
     run_migrations()
     db.session.expire_all()
     assert [(r.user_id, r.group_id) for r in UserGroup.query.all()] == [(user.id, group.id)]
     assert GroupSpaceAuth.query.count() == 0
-    assert {v.version for v in SchemaVersion.query.all()} == {1, 2, 3, 4}
+    assert {v.version for v in SchemaVersion.query.all()} == {1, 2, 3, 4, 5, 6}
 """,
     )
 

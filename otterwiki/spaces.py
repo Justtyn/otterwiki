@@ -62,6 +62,7 @@ _GLOBAL_URL_PREFIXES = (
     "/-/healthz",
     "/-/plugin-static.css",
     "/-/api/v1/pull",
+    "/-/api/v1/repositories",
     "/static/",
     "/.git",
     "/robots.txt",
@@ -94,6 +95,7 @@ SPACE_EXEMPT_ENDPOINTS = frozenset(
         "git_upload_pack",
         "git_receive_pack",
         "pull_webhook",
+        "repository_pull_webhook",
         "static",
         "plugin_static_css",
     }

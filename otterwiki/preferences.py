@@ -312,6 +312,46 @@ def handle_content_and_editing(form):
 def handle_repository_management(form):
     if not has_permission("ADMIN"):
         abort(403)
+    # Once the default space has a per-space remote, do not allow the legacy
+    # global form to create a second outbound repository for that space.
+    try:
+        from otterwiki.models import SpaceGitRepository
+        from otterwiki.spaces import get_default_space
+
+        default_space = get_default_space()
+        has_space_remote = (
+            default_space
+            and SpaceGitRepository.query.filter_by(
+                space_id=default_space.id
+            ).first()
+        )
+    except Exception:
+        has_space_remote = False
+    remote_submission = any(
+        form.get(name)
+        for name in (
+            "git_remote_push_enabled",
+            "git_remote_pull_enabled",
+            "git_push",
+            "git_force_push",
+            "git_pull",
+            "git_reset_remote",
+        )
+    ) or any(
+        (form.get(name) or "").strip() not in ("", "**********")
+        for name in (
+            "git_remote_push_url",
+            "git_remote_pull_url",
+            "git_remote_push_private_key",
+            "git_remote_pull_private_key",
+        )
+    )
+    if has_space_remote and remote_submission:
+        toast(
+            "默认空间已使用新版 Git 仓库配置，不能同时启用旧版远程同步。",
+            "error",
+        )
+        return redirect(url_for("admin_repository_management"))
     # handle repo actions first
     git_action_result = None
 

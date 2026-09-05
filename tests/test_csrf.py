@@ -256,6 +256,27 @@ class TestCSRFRejection:
         )
         assert rv.status_code == 400
 
+    def test_admin_space_repository_save_rejected(self, raw_admin_client):
+        rv = raw_admin_client.post(
+            "/-/admin/repository_management/repositories",
+            data={},
+        )
+        assert rv.status_code == 400
+
+    def test_admin_space_repository_task_rejected(self, raw_admin_client):
+        rv = raw_admin_client.post(
+            "/-/admin/repository_management/repositories/1/tasks",
+            data={},
+        )
+        assert rv.status_code == 400
+
+    def test_admin_space_repository_webhook_rejected(self, raw_admin_client):
+        rv = raw_admin_client.post(
+            "/-/admin/repository_management/repositories/1/webhook",
+            data={},
+        )
+        assert rv.status_code == 400
+
     def test_admin_document_import_rejected(self, raw_admin_client):
         rv = raw_admin_client.post(
             "/-/admin/document_import",

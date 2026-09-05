@@ -83,7 +83,12 @@ def _migrate_v1():
         tables=[
             table
             for table in db.metadata.sorted_tables
-            if table.name != "document_import_task"
+            if table.name
+            not in (
+                "document_import_task",
+                "space_git_repository",
+                "git_sync_task",
+            )
         ],
     )
 
@@ -183,6 +188,121 @@ def _migrate_v4():
 
     DocumentImportTask.__table__.create(
         bind=db.session.connection(), checkfirst=True
+    )
+
+
+@migration(5)
+def _migrate_v5():
+    """Create per-space remote repositories and persisted sync tasks."""
+    from otterwiki.models import GitSyncTask, SpaceGitRepository
+
+    connection = db.session.connection()
+    SpaceGitRepository.__table__.create(bind=connection, checkfirst=True)
+    GitSyncTask.__table__.create(bind=connection, checkfirst=True)
+
+    # Migrate an unambiguous legacy default-space SSH setup.  Different pull
+    # and push URLs cannot satisfy the one-space/one-remote invariant, so they
+    # are intentionally left in the legacy panel for explicit review.
+    push_url = str(app.config.get("GIT_REMOTE_PUSH_URL") or "").strip()
+    pull_url = str(app.config.get("GIT_REMOTE_PULL_URL") or "").strip()
+    urls = {url for url in (push_url, pull_url) if url}
+    push_key = str(app.config.get("GIT_REMOTE_PUSH_PRIVATE_KEY") or "")
+    pull_key = str(app.config.get("GIT_REMOTE_PULL_PRIVATE_KEY") or "")
+    keys = {key for key in (push_key, pull_key) if key}
+    if not urls or len(urls) > 1 or len(keys) > 1:
+        return
+
+    from otterwiki.credentials import encrypt_secret
+    from otterwiki.spaces import ensure_default_space, get_space_storage
+
+    space = ensure_default_space(commit=False)
+    if SpaceGitRepository.query.filter_by(space_id=space.id).first():
+        return
+    key = pull_key or push_key
+    legacy_webhook_hash = None
+    if app.config.get("GIT_REMOTE_PULL_ENABLED") and pull_url:
+        from otterwiki.util import (
+            compute_webhook_hash,
+            compute_webhook_hash_legacy,
+        )
+
+        legacy_webhook_hash = (
+            compute_webhook_hash(app.config["SECRET_KEY"], pull_url)
+            if app.config.get("GIT_REMOTE_PULL_URL_SECURE")
+            else compute_webhook_hash_legacy(pull_url)
+        )
+    try:
+        branch = get_space_storage(space).repo.active_branch.name
+        commit = get_space_storage(space).repo.head.commit.hexsha
+    except Exception:
+        branch, commit = "main", None
+    db.session.add(
+        SpaceGitRepository(
+            space_id=space.id,
+            remote_url=next(iter(urls)),
+            branch=branch,
+            auth_type="ssh",
+            secret_ciphertext=encrypt_secret(key) if key else None,
+            auto_push_enabled=bool(app.config.get("GIT_REMOTE_PUSH_ENABLED")),
+            legacy_webhook_hash=legacy_webhook_hash,
+            state="ready",
+            last_synced_commit=commit,
+            initialized_at=datetime.now(UTC),
+        )
+    )
+    # Do not retain the migrated private key in the plaintext preferences
+    # table.  The new record is the source of truth after this transaction.
+    from otterwiki.models import Preferences
+
+    replacements = {
+        "GIT_REMOTE_PUSH_ENABLED": "False",
+        "GIT_REMOTE_PULL_ENABLED": "False",
+        "GIT_REMOTE_PUSH_URL": "",
+        "GIT_REMOTE_PULL_URL": "",
+        "GIT_REMOTE_PUSH_PRIVATE_KEY": "",
+        "GIT_REMOTE_PULL_PRIVATE_KEY": "",
+    }
+    for name, value in replacements.items():
+        preference = db.session.get(Preferences, name)
+        if preference is None:
+            preference = Preferences(name=name, value=value)
+            db.session.add(preference)
+        else:
+            preference.value = value
+        app.config[name] = (
+            value.lower() == "true" if "ENABLED" in name else value
+        )
+
+
+@migration(6)
+def _migrate_v6():
+    """Repair repository tables created by an early v5 implementation.
+
+    The legacy webhook compatibility field was added to the model while v5
+    was still under development.  Instances that had already recorded v5
+    therefore have the repository tables, but not this column.  ``create_all``
+    cannot add columns to an existing table, so repair those databases with a
+    forward migration.
+    """
+    connection = db.session.connection()
+    columns = {
+        column["name"]
+        for column in inspect(connection).get_columns("space_git_repository")
+    }
+    if "legacy_webhook_hash" in columns:
+        return
+    connection.execute(
+        text(
+            "ALTER TABLE space_git_repository "
+            "ADD COLUMN legacy_webhook_hash VARCHAR(64)"
+        )
+    )
+    connection.execute(
+        text(
+            "CREATE UNIQUE INDEX "
+            "uq_space_git_repository_legacy_webhook_hash "
+            "ON space_git_repository (legacy_webhook_hash)"
+        )
     )
 
 

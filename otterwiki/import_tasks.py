@@ -234,6 +234,25 @@ def submit_task(form, files):
                 {"error": "存在需要人工恢复的导入现场，请先处理。"}, 409
             )
         storage = current_storage()
+        # A per-space Git task is persisted before its worker starts.  Check
+        # it while holding the APStack executor lock so the two replacement
+        # workflows cannot race on the same repository.
+        try:
+            from otterwiki.models import GitSyncTask
+            from sqlalchemy.exc import OperationalError
+
+            git_busy = (
+                GitSyncTask.query.filter_by(space_id=space.id)
+                .filter(GitSyncTask.status.in_(ACTIVE))
+                .first()
+            )
+        except OperationalError:
+            git_busy = None
+        if git_busy:
+            return _json(
+                {"error": "当前空间正在执行 Git 同步，请稍后再试。"},
+                409,
+            )
         task_id = uuid.uuid4().hex
         target = Path(storage.path).resolve()
         workspace = target.parent / (".otterwiki-import-" + task_id)

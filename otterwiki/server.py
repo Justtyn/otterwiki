@@ -305,13 +305,18 @@ def update_app_config():
 
 
 with app.app_context():
-    # 导入任务表必须由 v4 原子建表，不能在升级命令加载应用时提前提交。
+    # 持久化后台任务表必须由版本迁移原子建表。
     db.metadata.create_all(
         bind=db.engine,
         tables=[
             table
             for table in db.metadata.sorted_tables
-            if table.name != "document_import_task"
+            if table.name
+            not in (
+                "document_import_task",
+                "space_git_repository",
+                "git_sync_task",
+            )
         ],
     )
 

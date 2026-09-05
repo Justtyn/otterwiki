@@ -14,6 +14,8 @@ __all__ = [
     'UserGroup',
     'GroupSpaceAuth',
     'SchemaVersion',
+    'SpaceGitRepository',
+    'GitSyncTask',
 ]
 
 
@@ -24,12 +26,16 @@ class TimeStamp(db.types.TypeDecorator):
     cache_ok = True
 
     def process_bind_param(self, value: datetime, dialect):
+        if value is None:
+            return None
         if value.tzinfo is None:
             value = value.astimezone(self.LOCAL_TIMEZONE)
 
         return value.astimezone(UTC)
 
     def process_result_value(self, value, dialect):
+        if value is None:
+            return None
         if value.tzinfo is None:
             return value.replace(tzinfo=UTC)
 
@@ -184,4 +190,69 @@ class DocumentImportTask(db.Model):
     checkpoint = db.Column(db.JSON, nullable=True)
     __table_args__ = (
         db.UniqueConstraint("user_id", "space_id", "request_key"),
+    )
+
+
+class SpaceGitRepository(db.Model):
+    """A single outbound Git remote bound to one wiki space."""
+
+    __tablename__ = "space_git_repository"
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space.id"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    remote_url = db.Column(db.Text, nullable=False)
+    branch = db.Column(db.String(255), nullable=False, default="main")
+    auth_type = db.Column(db.String(16), nullable=False, default="none")
+    username = db.Column(db.String(512), nullable=True)
+    secret_ciphertext = db.Column(db.Text, nullable=True)
+    auto_push_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    auto_push_pending = db.Column(db.Boolean, nullable=False, default=False)
+    webhook_token_hash = db.Column(db.String(64), nullable=True, unique=True)
+    legacy_webhook_hash = db.Column(db.String(64), nullable=True, unique=True)
+    state = db.Column(db.String(24), nullable=False, default="uninitialized")
+    last_synced_commit = db.Column(db.String(64), nullable=True)
+    initialized_at = db.Column(TimeStamp(), nullable=True)
+    created_at = db.Column(TimeStamp(), default=lambda: datetime.now(UTC))
+    updated_at = db.Column(
+        TimeStamp(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class GitSyncTask(db.Model):
+    """Persisted status for import, pull and push operations."""
+
+    __tablename__ = "git_sync_task"
+    id = db.Column(db.String(32), primary_key=True)
+    repository_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space_git_repository.id"),
+        nullable=True,
+        index=True,
+    )
+    space_id = db.Column(db.Integer, nullable=False, index=True)
+    user_id = db.Column(db.Integer, nullable=True)
+    operation = db.Column(db.String(16), nullable=False)
+    trigger = db.Column(db.String(16), nullable=False, default="manual")
+    request_key = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="queued")
+    phase = db.Column(db.String(32), nullable=False, default="queued")
+    created_at = db.Column(db.Float, nullable=False)
+    updated_at = db.Column(db.Float, nullable=False)
+    started_at = db.Column(db.Float, nullable=True)
+    finished_at = db.Column(db.Float, nullable=True)
+    before_commit = db.Column(db.String(64), nullable=True)
+    after_commit = db.Column(db.String(64), nullable=True)
+    result = db.Column(db.JSON, nullable=True)
+    error = db.Column(db.Text, nullable=True)
+    workspace = db.Column(db.Text, nullable=True)
+    checkpoint = db.Column(db.JSON, nullable=True)
+    __table_args__ = (
+        db.UniqueConstraint("repository_id", "operation", "request_key"),
     )

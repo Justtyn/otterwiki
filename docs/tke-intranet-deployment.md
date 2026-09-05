@@ -145,7 +145,7 @@ kubectl -n newcore-dev-ns port-forward service/otterwiki 18080:80
 
 从旧版升级到包含多空间或异步导入任务表的镜像时，先按
 `docs/multi-space-upgrade.md` 停服备份，并使用挂载相同 PVC、Secret 和环境变量的
-独立迁移 Job 执行 v4；不能用直接重启应用代替数据库迁移。
+独立迁移 Job 执行至 v5；不能用直接重启应用代替数据库迁移。
 
 改业务代码：流水线发布新的业务镜像，更新 Deployment 中的 image。
 改运行配置：更新 Secret 中的 settings.cfg，等待配置更新后在平台重建 Pod；

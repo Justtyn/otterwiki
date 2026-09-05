@@ -134,11 +134,17 @@ def journals(root):
             }
 
 
+def git_sync_root(root):
+    """Keep Git-sync journals separate from APStack import recovery."""
+    return Path(root) / "git-sync"
+
+
 def blocked(root, target):
     target = str(Path(target).resolve())
     return any(
         j.get("maintenance") and j["target"] in (target, "*")
-        for j in journals(root)
+        for journal_root in (Path(root), git_sync_root(root))
+        for j in journals(journal_root)
     )
 
 
@@ -244,13 +250,15 @@ def recover_before_storage(config):
     if not lock.acquire():
         return
     try:
-        for data in journals(root):
-            if data.get("_corrupt"):
-                continue
-            if data.get("status") in ("queued", "running") or (
-                data.get("status") == "interrupted" and data.get("maintenance")
-            ):
-                recover_journal(root, data)
+        for journal_root in (root, git_sync_root(root)):
+            for data in journals(journal_root):
+                if data.get("_corrupt"):
+                    continue
+                if data.get("status") in ("queued", "running") or (
+                    data.get("status") == "interrupted"
+                    and data.get("maintenance")
+                ):
+                    recover_journal(journal_root, data)
     finally:
         lock.release()
 

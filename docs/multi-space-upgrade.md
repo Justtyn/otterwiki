@@ -14,7 +14,7 @@
 - 页面需要内置账号登录、全局阅读资格和用户组授权；多组授权取并集。
 - 全局管理员可以访问归档空间。普通用户在网页和 Git HTTP 均不能访问归档空间。
 - v1 为升级前具备阅读资格的本地用户建立默认组；v2 补齐历史草稿空间。
-- v4 创建异步导入任务表；v1–v3 实例也必须执行本次升级。
+- v4 创建异步导入任务表；v5 创建按空间绑定的 Git 仓库与同步任务表。
 - v3 清理孤立成员及授权关系，并兼容早期草稿结构；不会重新授予已撤销的权限。
 - 已经被复用的用户 ID 无法仅凭现有关系判断原归属。如果旧版本曾删除用户并
   创建新账号，请在管理界面核对这些新账号的所属组。
@@ -113,7 +113,7 @@ Harbor 的应用镜像，不使用 runtime 基础镜像；固定不可变标签�
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: otterwiki-migrate-v4
+  name: otterwiki-migrate-v5
   namespace: newcore-dev-ns
 spec:
   backoffLimit: 0
@@ -158,8 +158,8 @@ Job 应使用与应用匹配的卷访问身份。本项目镜像的 Web 进程�
 
 ```bash
 kubectl -n "$WIKI_NS" apply -f otterwiki-migrate.yaml
-kubectl -n "$WIKI_NS" wait --for=condition=complete job/otterwiki-migrate-v4 --timeout=300s
-kubectl -n "$WIKI_NS" logs job/otterwiki-migrate-v4
+kubectl -n "$WIKI_NS" wait --for=condition=complete job/otterwiki-migrate-v5 --timeout=300s
+kubectl -n "$WIKI_NS" logs job/otterwiki-migrate-v5
 ```
 
 只有 Job 成功且日志显示“数据库迁移完成”才继续。失败时保持应用停止，先查看日志。
@@ -214,6 +214,19 @@ kubectl -n "$WIKI_NS" rollout status deploy/"$WIKI_DEPLOY" --timeout=300s
 如 `REPOSITORY`、`SPACES_ROOT`、`DOCUMENT_IMPORT_TASK_ROOT` 由环境变量覆盖，
 将这些相同值补充到迁移 Job 的 `env`，不要只传配置文件路径。
 
+## 7. 按空间 Git 同步（v5）
+
+“设置 → 仓库管理”可为每个空间绑定一个 HTTPS 或 SSH 远程仓库。
+远程分支必须已是 OtterWiki Markdown 格式；首次导入会替换目标空间的
+本地仓库，应先备份。日常拉取仅允许快进，分支分叉时不会自动合并或覆盖。
+
+密码、PAT 和 SSH 私钥使用 `SECRET_KEY` 派生的密钥加密入库。所有应用
+实例和迁移 Job 必须使用同一个稳定的 `SECRET_KEY`；更换后需在管理页
+重新录入仓库凭据。后台 Git 任务与旧版导入共用
+`.otterwiki-import-tasks` 检查点目录，同样要求单 Web 进程和持久化数据卷。
+可无歧义迁移的旧版 Webhook 会继续有效；管理员在新页生成 Webhook 后，
+旧地址立即失效，应同步更新 Git 平台配置。
+
 容器内置 Nginx 对 uWSGI 使用 `uwsgi_read_timeout`、`uwsgi_send_timeout`。
 在 Deployment 的容器环境变量配置 `NGINX_UWSGI_TIMEOUT="600"`（默认 600，
 只接受正整数秒数）。上传仍然占用 HTTP 请求：检查外层 Ingress/负载均衡的
@@ -253,5 +266,5 @@ kubectl -n "$WIKI_NS" rollout status deploy/"$WIKI_DEPLOY" --timeout=300s
 6. 恢复仓库可识别后启动应用，进入导入页查看中断说明。核对数据后再决定是否
    重新选择文件并输入确认文本重试。核对完成前不清理备份。
 
-失败的结构迁移遵循前述整套备份恢复流程；v4 创建任务表与版本记录在同一事务
-提交，失败回滚 v4，此前已成功的 v1–v3 不会撤销。重复升级不会重新执行导入。
+失败的结构迁移遵循前述整套备份恢复流程；v4、v5 的建表与各自版本记录
+在同一事务提交，当前版本失败不会撤销先前已成功的版本。重复升级不会重新执行导入。
