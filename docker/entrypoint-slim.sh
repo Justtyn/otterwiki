@@ -34,6 +34,12 @@ for PLUGIN in /app-data/plugins/*/ /plugins/*/; do
     pip install -U . || echo "Error: Installation of plugin in $PLUGIN failed." >&2
 done
 
+# Upgrade the persisted database before starting uWSGI.  Applied migration
+# versions are skipped, and a failure prevents the application from starting.
+echo '检查并升级数据库'
+cd /app
+/opt/venv/bin/python -m flask --app otterwiki.server db upgrade
+
 # Get the absolute path of the static files from the environment variable
 export USE_STATIC_PATH=${STATIC_PATH:-'/app/otterwiki/static'}
 # Configure UWSGI via ENV

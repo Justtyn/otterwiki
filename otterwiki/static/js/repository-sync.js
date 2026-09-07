@@ -40,7 +40,14 @@
         const operation = button.dataset.operation;
         const data = new FormData();
         data.set("operation", operation);
-        data.set("request_key", crypto.randomUUID().replace(/-/g, ""));
+        // randomUUID() is unavailable when the site is opened over plain
+        // HTTP.  The server generates a request key when it is omitted.
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          data.set(
+            "request_key",
+            window.crypto.randomUUID().replace(/-/g, "")
+          );
+        }
         if (operation === "import") {
           const expected = "IMPORT " + button.dataset.spaceSlug;
           const confirmation = window.prompt("首次导入将替换该空间当前内容。请输入：" + expected);

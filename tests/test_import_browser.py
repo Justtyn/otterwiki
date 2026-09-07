@@ -91,3 +91,69 @@ function setup(initial){document.getElementById('fixture').innerHTML=FIXTURE;el(
     assert result.returncode == 0, result.stderr
     found = re.search(r'<pre id="checks">(.*?)</pre>', result.stdout, re.S)
     assert found and html.unescape(found[1]) == 'passed', result.stdout
+
+
+def test_repository_import_works_without_random_uuid(tmp_path):
+    candidates = [os.environ.get('CHROME_BIN')] + list(
+        (Path.home() / 'Library/Caches/ms-playwright').glob(
+            'chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell'
+        )
+    )
+    chrome = next(
+        (str(p) for p in candidates if p and Path(p).is_file()), None
+    )
+    if not chrome:
+        pytest.skip('需要 Chromium 验证仓库导入交互')
+    script = Path('otterwiki/static/js/repository-sync.js').read_text()
+    checks = r'''
+Object.defineProperty(window.crypto, 'randomUUID', {value: undefined});
+window.prompt=()=> 'IMPORT main';
+let posted;
+const task={id:'task-123',operation:'import',phase:'done',phase_label:'完成',status:'failed',error:'测试结束',status_url:'/status'};
+window.fetch=async(url,options={})=>{
+  if(options.method==='POST')posted=options.body;
+  return {ok:true,json:async()=>task};
+};
+function ok(value,label){if(!value)throw new Error(label);}
+(async()=>{
+  (0,eval)(SOURCE);
+  document.querySelector('.repository-task').click();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  ok(posted,'HTTP 环境仍应提交首次导入请求');
+  ok(posted.get('operation')==='import','应提交导入操作');
+  ok(posted.get('confirmation')==='IMPORT main','应提交确认文本');
+  ok(!posted.has('request_key'),'不支持 randomUUID 时由服务端生成标识');
+  document.getElementById('checks').textContent='passed';
+})().catch(e=>document.getElementById('checks').textContent=e.stack);
+'''.replace(
+        'SOURCE', json.dumps(script).replace('<', r'\u003c')
+    )
+    page = tmp_path / 'repository-import-ui.html'
+    page.write_text(
+        '<!doctype html><meta charset="utf-8">'
+        '<meta name="csrf-token" content="token">'
+        '<div class="repository-card" data-state="uninitialized" '
+        'data-task-url="/tasks">'
+        '<button class="repository-task" data-operation="import" '
+        'data-space-slug="main">首次导入</button>'
+        '<div class="repository-task-result"></div></div>'
+        '<pre id="checks"></pre><script>' + checks + '</script>'
+    )
+    result = subprocess.run(
+        [
+            chrome,
+            '--headless',
+            '--disable-gpu',
+            '--no-first-run',
+            '--disable-background-networking',
+            f'--user-data-dir={tmp_path / "profile"}',
+            '--dump-dom',
+            page.as_uri(),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=45,
+    )
+    assert result.returncode == 0, result.stderr
+    found = re.search(r'<pre id="checks">(.*?)</pre>', result.stdout, re.S)
+    assert found and html.unescape(found[1]) == 'passed', result.stdout

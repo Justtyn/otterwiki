@@ -117,6 +117,14 @@ for PLUGIN in /app-data/plugins/*/ /plugins/*/; do
     pip install -U . || echo "Error: Installation of plugin in $PLUGIN failed." >&2
 done
 
+# Upgrade the persisted database before starting Nginx/uWSGI.  Migrations are
+# idempotent; a failure stops container startup because this script uses set -e.
+echo '检查并升级数据库'
+cd /app
+/opt/venv/bin/python -m flask --app otterwiki.server db upgrade
+# A fresh database and migration work files are created by root in this image.
+chown -R www-data:www-data /app-data
+
 # print nginx version
 nginx -v
 # run nginx config test
