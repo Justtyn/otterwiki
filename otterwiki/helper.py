@@ -12,6 +12,7 @@ lightweight as utils.
 import os
 import re
 import json
+import git
 from collections import namedtuple
 from otterwiki.server import app, mail, storage, Preferences, db, app_renderer
 from otterwiki.gitstorage import StorageError
@@ -121,8 +122,13 @@ def health_check():
     if not os.access(storage.path, os.W_OK):
         msg += [f"{storage.path} is not writeable."]
     try:
-        storage.log(fail_on_git_error=True, max_count=1)
-    except StorageError as e:
+        if storage.repo.head.is_valid():
+            storage.log(fail_on_git_error=True, max_count=1)
+        else:
+            # An unborn branch is valid while a new space waits for its first
+            # import.  ``git status`` still detects a missing or broken worktree.
+            storage.repo.git.status("--porcelain")
+    except (StorageError, git.GitError) as e:
         msg += [f"StorageError in {storage.path}: {e}"]
     # db check
     try:

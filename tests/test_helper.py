@@ -55,6 +55,26 @@ def test_health_check_ok(create_app, req_ctx):
     assert messages == ["ok"]
 
 
+def test_health_check_allows_repository_without_commits(
+    create_app, req_ctx, tmp_path
+):
+    from otterwiki.gitstorage import GitStorage
+    from otterwiki.helper import health_check
+
+    empty = GitStorage(str(tmp_path / 'empty-repository'), initialize=True)
+    old_path, old_repo = create_app.storage.path, create_app.storage.repo
+    create_app.storage.path = empty.path
+    create_app.storage.repo = empty.repo
+    try:
+        healthy, messages = health_check()
+    finally:
+        create_app.storage.path = old_path
+        create_app.storage.repo = old_repo
+
+    assert healthy is True
+    assert messages == ['ok']
+
+
 def test_health_check_error_storage(create_app, req_ctx, tmpdir):
     from otterwiki.helper import health_check
     from otterwiki.gitstorage import GitStorage
