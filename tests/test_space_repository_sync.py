@@ -43,6 +43,7 @@ def _remote_repository(tmp_path):
 
 def test_remote_and_branch_validation():
     assert validate_remote_url("https://example.com/team/wiki.git")
+    assert validate_remote_url("http://example.com/team/wiki.git")
     assert validate_remote_url("git@example.com:team/wiki.git")
     assert validate_remote_url("ssh://git@example.com/team/wiki.git")
     for value in ("file:///tmp/repo", "ext::touch /tmp/x", "-upload-pack=x"):
@@ -99,6 +100,46 @@ def test_repository_form_encrypts_secret_and_enforces_one_space(
     )
     assert duplicate.status_code == 200
     assert "已绑定远程仓库" in duplicate.data.decode()
+    assert SpaceGitRepository.query.count() == 1
+
+
+def test_repository_form_accepts_plain_http_with_warning(
+    app_with_user, admin_client
+):
+    from otterwiki.server import db
+    from otterwiki.spaces import ensure_default_space
+
+    space = ensure_default_space()
+    response = admin_client.post(
+        "/-/admin/repository_management/repositories",
+        data={
+            "space_id": str(space.id),
+            "remote_url": "http://code.example.com/team/wiki.git",
+            "branch": "main",
+            "auth_type": "https",
+            "username": "robot",
+            "secret": "plaintext-pat",
+        },
+    )
+    assert response.status_code == 200
+    html = response.data.decode()
+    assert "明文传输" in html
+    record = SpaceGitRepository.query.filter_by(space_id=space.id).one()
+    assert record.remote_url == "http://code.example.com/team/wiki.git"
+    assert decrypt_secret(record.secret_ciphertext) == "plaintext-pat"
+
+    # Editing the bound record to SSH auth over an HTTP URL must be rejected.
+    ssh_mismatch = admin_client.post(
+        "/-/admin/repository_management/repositories",
+        data={
+            "repository_id": str(record.id),
+            "remote_url": "http://code.example.com/team/wiki.git",
+            "branch": "main",
+            "auth_type": "ssh",
+        },
+    )
+    assert ssh_mismatch.status_code == 200
+    assert "SSH 认证不能用于 HTTP(S)" in ssh_mismatch.data.decode()
     assert SpaceGitRepository.query.count() == 1
 
 

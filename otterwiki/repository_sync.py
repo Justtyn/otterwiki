@@ -85,8 +85,8 @@ def validate_remote_url(value):
     if _SCP_RE.fullmatch(value):
         return value
     parsed = urlsplit(value)
-    if parsed.scheme not in ("https", "ssh") or not parsed.hostname:
-        raise RepositorySyncError("仓库地址仅支持 HTTPS 或 SSH。")
+    if parsed.scheme not in ("http", "https", "ssh") or not parsed.hostname:
+        raise RepositorySyncError("仓库地址仅支持 HTTP(S) 或 SSH。")
     if parsed.password is not None:
         raise RepositorySyncError("请勿在仓库 URL 中嵌入密码或令牌。")
     return value
@@ -108,8 +108,8 @@ def validate_branch(value):
     return value
 
 
-def _is_https(url):
-    return urlsplit(url).scheme == "https"
+def _is_http_or_https(url):
+    return urlsplit(url).scheme in ("http", "https")
 
 
 class GitCredentials:
@@ -759,10 +759,10 @@ def save_repository(form):
         auth_type = form.get("auth_type", "none")
         if auth_type not in ("none", "https", "ssh"):
             raise RepositorySyncError("请选择有效的认证方式。")
-        if auth_type == "https" and not _is_https(record.remote_url):
-            raise RepositorySyncError("HTTPS 认证只能用于 HTTPS 仓库地址。")
-        if auth_type == "ssh" and _is_https(record.remote_url):
-            raise RepositorySyncError("SSH 认证不能用于 HTTPS 仓库地址。")
+        if auth_type == "https" and not _is_http_or_https(record.remote_url):
+            raise RepositorySyncError("HTTPS 认证只能用于 HTTP(S) 仓库地址。")
+        if auth_type == "ssh" and _is_http_or_https(record.remote_url):
+            raise RepositorySyncError("SSH 认证不能用于 HTTP(S) 仓库地址。")
         record.auth_type = auth_type
         record.username = (
             (form.get("username") or "").strip() or None
@@ -795,7 +795,17 @@ def save_repository(form):
             record.initialized_at = None
             record.last_synced_commit = None
         db.session.commit()
-        toast("空间 Git 仓库配置已保存。")
+        if (
+            record.auth_type == "https"
+            and urlsplit(record.remote_url).scheme == "http"
+        ):
+            toast(
+                "已保存。注意：HTTP 仓库地址会以明文传输用户名和密码，"
+                "请仅用于可信内网；如需加密请改用 HTTPS。",
+                "warning",
+            )
+        else:
+            toast("空间 Git 仓库配置已保存。")
     except (
         RepositorySyncError,
         CredentialError,

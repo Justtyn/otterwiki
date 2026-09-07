@@ -75,3 +75,12 @@ SQLALCHEMY_DATABASE_URI = ''
 # 必须随数据库及仓库一起持久化；不要指向临时目录。
 # DOCUMENT_IMPORT_TASK_ROOT = '/app-data/.otterwiki-import-tasks'
 # NGINX_UWSGI_TIMEOUT 在容器环境变量中设置（默认600秒），不在此文件配置。
+
+# 整站备份暂存目录；默认 REPOSITORY 同级 .otterwiki-site，必须持久化。
+# 与数据库、仓库、SPACES_ROOT、DOCUMENT_IMPORT_TASK_ROOT 互不包含。
+# SITE_BACKUP_ROOT = '/app-data/.otterwiki-site'
+# 整站 ZIP 上传上限、解压上限和文件数上限（字节 / 个）。
+# SITE_BACKUP_MAX_ARCHIVE_SIZE = 2 * 1024 * 1024 * 1024
+# SITE_BACKUP_MAX_EXTRACTED_SIZE = 8 * 1024 * 1024 * 1024
+# SITE_BACKUP_MAX_FILES = 200000
+# 管理页导入在停站重启时生效；初始化命令见 docs/site-backup-and-reset.md。

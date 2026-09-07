@@ -14,6 +14,17 @@ _condition = threading.Condition(threading.RLock())
 _readers = {}
 _process_locks = set()
 _process_locks_guard = threading.Lock()
+_site_maintenance = set()
+
+
+def set_site_maintenance(root, active):
+    """整站快照期间阻止非 HTTP 的仓库任务进入。"""
+    key = str(Path(root).resolve())
+    with _condition:
+        if active:
+            _site_maintenance.add(key)
+        else:
+            _site_maintenance.discard(key)
 
 
 def task_root(config):
@@ -140,6 +151,8 @@ def git_sync_root(root):
 
 
 def blocked(root, target):
+    if str(Path(root).resolve()) in _site_maintenance:
+        return True
     target = str(Path(target).resolve())
     return any(
         j.get("maintenance") and j["target"] in (target, "*")

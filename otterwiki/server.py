@@ -22,88 +22,9 @@ app = Flask(__name__)
 # embedded in the page) instead of escaping every character as ``\uXXXX``.
 app.json.ensure_ascii = False
 # default configuration settings
-app.config.update(
-    DEBUG=False,  # make sure DEBUG is off unless enabled explicitly otherwise
-    TESTING=False,
-    LOG_LEVEL="INFO",
-    REPOSITORY=None,
-    SECRET_KEY="CHANGE ME",
-    SITE_NAME="An Otter Wiki",
-    SITE_DESCRIPTION=None,
-    SERVER_NAME=None,
-    SITE_LOGO=None,
-    SITE_ICON=None,
-    SITE_LANG="zh-CN",
-    HIDE_LOGO=False,
-    OPEN_LINKS_IN_NEW_TAB=False,
-    AUTH_METHOD="",
-    AUTH_HEADERS_USERNAME="x-otterwiki-name",
-    AUTH_HEADERS_EMAIL="x-otterwiki-email",
-    AUTH_HEADERS_PERMISSIONS="x-otterwiki-permissions",
-    AUTH_ROLES_READ="READ",
-    AUTH_ROLES_WRITE="WRITE",
-    AUTH_ROLES_UPLOAD="UPLOAD",
-    AUTH_ROLES_ADMIN="ADMIN",
-    READ_ACCESS="ANONYMOUS",
-    WRITE_ACCESS="ANONYMOUS",
-    ATTACHMENT_ACCESS="ANONYMOUS",
-    AUTO_APPROVAL=True,
-    DISABLE_REGISTRATION=False,
-    EMAIL_NEEDS_CONFIRMATION=True,
-    NOTIFY_ADMINS_ON_REGISTER=False,
-    NOTIFY_USER_ON_APPROVAL=False,
-    RETAIN_PAGE_NAME_CASE=False,
-    SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
-    MAIL_DEFAULT_SENDER="otterwiki@YOUR.ORGANIZATION.TLD",
-    MAIL_SERVER="",
-    MAIL_PORT="",
-    MAIL_USERNAME="",
-    MAIL_PASSWORD="",
-    MAIL_USE_TLS=False,
-    MAIL_USE_SSL=False,
-    SQLALCHEMY_TRACK_MODIFICATIONS=False,
-    MINIFY_HTML=True,
-    SIDEBAR_MENUTREE_MODE="SORTED",
-    SIDEBAR_MENUTREE_IGNORE_CASE=False,
-    SIDEBAR_MENUTREE_MAXDEPTH="",
-    SIDEBAR_MENUTREE_FOCUS="SUBTREE",  # OFF
-    SIDEBAR_CUSTOM_MENU="",
-    COMMIT_MESSAGE="REQUIRED",  # OPTIONAL DISABLED
-    DEFAULT_COMMIT_MESSAGE="",
-    GIT_WEB_SERVER=False,
-    GIT_REMOTE_PUSH_ENABLED=False,
-    GIT_REMOTE_PUSH_URL="",
-    GIT_REMOTE_PUSH_PRIVATE_KEY="",
-    GIT_REMOTE_PULL_ENABLED=False,
-    GIT_REMOTE_PULL_URL="",
-    GIT_REMOTE_PULL_URL_SECURE=False,
-    GIT_REMOTE_PULL_PRIVATE_KEY="",
-    SIDEBAR_SHORTCUTS="home pageindex createpage",
-    ROBOTS_TXT="allow",
-    WIKILINK_STYLE="",
-    MAX_FORM_MEMORY_SIZE=1_000_000,
-    HTML_EXTRA_HEAD="",
-    HTML_EXTRA_BODY="",
-    LOG_LEVEL_WERKZEUG="INFO",
-    TREAT_UNDERSCORE_AS_SPACE_FOR_TITLES=False,
-    HOME_PAGE="",
-    RENDERER_HTML_ALLOWLIST="",
-    ADMIN_USER_EMAIL="",
-    SESSION_COOKIE_SAMESITE="Lax",
-    SECURITY_HEADERS=True,
-    WTF_CSRF_ENABLED=True,
-    WTF_CSRF_TIME_LIMIT=86400,
-    APSTACK_IMPORT_MAX_ARCHIVE_SIZE=1024 * 1024 * 1024,
-    APSTACK_IMPORT_MAX_EXTRACTED_SIZE=2 * 1024 * 1024 * 1024,
-    APSTACK_IMPORT_MAX_FILES=50_000,
-    DOCUMENT_IMPORT_TASK_ROOT=None,
-    APSTACK_API_BASE_URL="http://localhost:9988",
-    APSTACK_API_TIMEOUT=10,
-    # 多空间：新空间仓库根目录；默认取 REPOSITORY 同级的 spaces 目录
-    SPACES_ROOT=None,
-    # 全局文档字号（px），允许 12-24 的整数
-    DOCUMENT_FONT_SIZE=15,
-)
+from otterwiki.defaults import DEFAULT_CONFIG
+
+app.config.update(DEFAULT_CONFIG)
 app.config.from_envvar("OTTERWIKI_SETTINGS", silent=True)
 
 # print current version
@@ -150,6 +71,11 @@ app.config["DOCUMENT_FONT_SIZE"] = _document_font_size
 # configure logging
 app.logger.setLevel(app.config["LOG_LEVEL"])
 logging.getLogger('werkzeug').setLevel(app.config["LOG_LEVEL_WERKZEUG"])
+
+# 停站导入必须早于数据库连接和仓库初始化。
+from otterwiki.site_backup import apply_pending
+
+apply_pending(app.config)
 
 # setup database
 db = SQLAlchemy(app)
@@ -205,44 +131,6 @@ else:
 if otterwiki.util.empty(app.config["SERVER_NAME"]):
     app.config["SERVER_NAME"] = None
 
-# check if the git repository is empty
-if (
-    not _import_maintenance
-    and (len(storage.list()[0]) < 1)
-    and (  # pyright: ignore never unbound
-        len(storage.log()) < 1  # pyright: ignore
-    )
-):
-    home_page_config = app.config.get("HOME_PAGE", "")
-
-    # only create initial page if HOME_PAGE is empty or doesn't start with /-/
-    if not home_page_config or not home_page_config.startswith("/-/"):
-        with open(os.path.join(app.root_path, "initial_home.md")) as f:
-            content = f.read()
-
-            if not home_page_config:
-                # use the default Home page
-                filename = (
-                    "Home.md"
-                    if app.config["RETAIN_PAGE_NAME_CASE"]
-                    else "home.md"
-                )
-            else:
-                # use the custom page path from HOME_PAGE
-                custom_path = home_page_config.strip("/")
-                if app.config["RETAIN_PAGE_NAME_CASE"]:
-                    filename = f"{custom_path}.md"
-                else:
-                    filename = f"{custom_path.lower()}.md"
-
-            storage.store(  # pyright: ignore
-                filename=filename,
-                content=content,
-                author=("Otterwiki Robot", "noreply@otterwiki"),
-                message="Initial commit",
-            )
-            app.logger.info(f"server: Created initial page /{filename[:-3]}.")
-
 
 #
 # app.config from db preferences
@@ -260,24 +148,9 @@ def update_app_config():
                 # 文档字号按请求从数据库读取（保证多进程一致），
                 # app.config 中仅保留配置文件/环境变量的默认值
                 continue
-            if item.name.upper() in [
-                "MAIL_USE_TLS",
-                "MAIL_USE_SSL",
-                "DISABLE_REGISTRATION",
-                "AUTO_APPROVAL",
-                "EMAIL_NEEDS_CONFIRMATION",
-                "NOTIFY_ADMINS_ON_REGISTER",
-                "NOTIFY_USER_ON_APPROVAL",
-                "RETAIN_PAGE_NAME_CASE",
-                "SIDEBAR_MENUTREE_IGNORE_CASE",
-                "GIT_WEB_SERVER",
-                "GIT_REMOTE_PUSH_ENABLED",
-                "GIT_REMOTE_PULL_ENABLED",
-                "GIT_REMOTE_PULL_URL_SECURE",
-                "HIDE_LOGO",
-                "OPEN_LINKS_IN_NEW_TAB",
-                "TREAT_UNDERSCORE_AS_SPACE_FOR_TITLES",
-            ] or item.name.upper().startswith("SIDEBAR_SHORTCUT_"):
+            if isinstance(
+                DEFAULT_CONFIG.get(item.name.upper()), bool
+            ) or item.name.upper().startswith("SIDEBAR_SHORTCUT_"):
                 item.value = item.value.lower() in ["true", "yes"]
             if item.name.upper() in ["MAIL_PORT"]:
                 try:
@@ -323,6 +196,59 @@ with app.app_context():
     # 已有表的结构变更仅由 flask db upgrade 执行，不能在加载应用时
     # 提前提交；否则迁移失败时无法回滚，也会让多个工作进程竞争 ALTER。
 update_app_config()
+if not app.config.get("SERVER_NAME"):
+    app.config["SERVER_NAME"] = None
+
+# 整站恢复后更换 Cookie 名，旧会话不能继承恢复后的用户编号。
+if app.config.get("SITE_SESSION_GENERATION"):
+    app.config["SESSION_COOKIE_NAME"] = (
+        "session_" + app.config["SITE_SESSION_GENERATION"]
+    )
+    app.config["REMEMBER_COOKIE_NAME"] = (
+        "remember_" + app.config["SITE_SESSION_GENERATION"]
+    )
+
+
+# check if the git repository is empty
+if (
+    not _import_maintenance
+    and (len(storage.list()[0]) < 1)
+    and (  # pyright: ignore never unbound
+        len(storage.log()) < 1  # pyright: ignore
+    )
+):
+    home_page_config = app.config.get("HOME_PAGE", "")
+
+    # only create initial page if HOME_PAGE is empty or doesn't start with /-/
+    if not home_page_config or not home_page_config.startswith("/-/"):
+        # 模板以 UTF-8 保存，不能依赖中文 Windows 的默认 GBK 编码。
+        with open(
+            os.path.join(app.root_path, "initial_home.md"), encoding="utf-8"
+        ) as f:
+            content = f.read()
+
+            if not home_page_config:
+                # use the default Home page
+                filename = (
+                    "Home.md"
+                    if app.config["RETAIN_PAGE_NAME_CASE"]
+                    else "home.md"
+                )
+            else:
+                # use the custom page path from HOME_PAGE
+                custom_path = home_page_config.strip("/")
+                if app.config["RETAIN_PAGE_NAME_CASE"]:
+                    filename = f"{custom_path}.md"
+                else:
+                    filename = f"{custom_path.lower()}.md"
+
+            storage.store(  # pyright: ignore
+                filename=filename,
+                content=content,
+                author=("Otterwiki Robot", "noreply@otterwiki"),
+                message="Initial commit",
+            )
+            app.logger.info(f"server: Created initial page /{filename[:-3]}.")
 
 
 #
@@ -484,3 +410,8 @@ import otterwiki.views  # pyright: ignore
 
 # register CLI commands
 import otterwiki.cli  # pyright: ignore
+
+# 整站备份门禁覆盖前缀解析、账号请求及流式 Git 请求。
+from otterwiki.site_backup_web import install_site_backup
+
+install_site_backup(app)

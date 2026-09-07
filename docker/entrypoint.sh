@@ -37,6 +37,9 @@ if [ ! -f ${OTTERWIKI_SETTINGS} ]; then
     echo "SQLALCHEMY_DATABASE_URI = 'sqlite:////app-data/db.sqlite'" >> ${OTTERWIKI_SETTINGS}
 fi
 
+# 整站导入须早于旧版导入恢复及目录初始化，且此时 Web 尚未启动。
+/opt/venv/bin/python -c 'import os; from otterwiki.site_backup import load_config, apply_pending; apply_pending(load_config(os.environ["OTTERWIKI_SETTINGS"]))'
+
 # 在创建仓库前恢复中断的目录切换；不允许用空仓库覆盖故障现场。
 IMPORT_MAINTENANCE=$(/opt/venv/bin/python -m otterwiki.import_runtime)
 if [ "$IMPORT_MAINTENANCE" = "0" ]; then

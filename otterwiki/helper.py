@@ -40,10 +40,18 @@ _serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 
 def serialize(str, salt=None):
+    if app.config.get("SITE_SESSION_GENERATION"):
+        salt = (
+            f"{salt or 'itsdangerous'}.{app.config['SITE_SESSION_GENERATION']}"
+        )
     return _serializer.dumps(str, salt=salt)
 
 
 def deserialize(str, salt=None, max_age=86400):
+    if app.config.get("SITE_SESSION_GENERATION"):
+        salt = (
+            f"{salt or 'itsdangerous'}.{app.config['SITE_SESSION_GENERATION']}"
+        )
     try:
         return _serializer.loads(str, salt=salt, max_age=max_age)
     except (BadSignature, SignatureExpired) as e:

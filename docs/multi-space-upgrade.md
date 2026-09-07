@@ -216,7 +216,9 @@ kubectl -n "$WIKI_NS" rollout status deploy/"$WIKI_DEPLOY" --timeout=300s
 
 ## 7. 按空间 Git 同步（v5）
 
-“设置 → 仓库管理”可为每个空间绑定一个 HTTPS 或 SSH 远程仓库。
+“设置 → 仓库管理”可为每个空间绑定一个 HTTPS、SSH，或受信任内网中的明文 HTTP 远程仓库。
+HTTPS/HTTP 使用用户名与密码（或 PAT），SSH 使用私钥；HTTP 会把用户名和密码以明文传输，
+仅应在可信内网使用，需要加密时请改用 HTTPS。
 远程分支必须已是 OtterWiki Markdown 格式；首次导入会替换目标空间的
 本地仓库，应先备份。日常拉取仅允许快进，分支分叉时不会自动合并或覆盖。
 

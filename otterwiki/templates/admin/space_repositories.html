@@ -1,5 +1,5 @@
 <h2 class="card-title">空间 Git 仓库管理</h2>
-<p class="text-muted">每个空间最多绑定一个 OtterWiki 格式远程仓库。首次导入将在校验后原子替换该空间的当前内容。</p>
+<p class="text-muted">每个空间最多绑定一个 OtterWiki 格式远程仓库。首次导入将在校验后原子替换该空间的当前内容。仓库地址支持 HTTPS、SSH，以及受信任内网中的明文 HTTP（使用用户名/密码时将以明文传输，请务必确认网络可信）。</p>
 {% if legacy_repository_conflict %}
 <div class="alert alert-warning">旧版默认空间的推送和拉取地址不同，无法自动归并为一个空间仓库。请在下方兼容设置中确认后再新建记录。</div>
 {% endif %}
