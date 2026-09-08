@@ -251,7 +251,12 @@ def _finish_repository_change(storage):
     from otterwiki.structured_navigation import (
         clear_structured_navigation_cache,
     )
+    from otterwiki.server import storage as storage_proxy
 
+    # Git sync workers use an independent GitStorage object.  Refresh the
+    # request-facing cache after replacing or advancing the repository, so
+    # page metadata is read from the same HEAD as the page content.
+    storage_proxy.reload_repository(storage.path)
     clear_structured_navigation_cache()
     storage.notify_repository_changed_from_external()
 

@@ -25,12 +25,12 @@ def _wait(db, task_id, timeout=10):
     raise AssertionError("Git sync task did not finish")
 
 
-def _remote_repository(tmp_path):
+def _remote_repository(tmp_path, filename="Home.md"):
     source_path = tmp_path / "source"
     bare_path = tmp_path / "remote.git"
     source = git.Repo.init(source_path)
-    (source_path / "Home.md").write_text("# Remote Home\n", encoding="utf-8")
-    source.index.add(["Home.md"])
+    (source_path / filename).write_text("# Remote Home\n", encoding="utf-8")
+    source.index.add([filename])
     source.index.commit(
         "remote initial",
         author=git.Actor("Test", "test@example.invalid"),
@@ -224,6 +224,44 @@ def test_import_pull_push_and_divergence(app_with_user, tmp_path):
     assert conflict.status == "failed"
     assert "分叉" in conflict.error
     assert storage.repo.head.commit.hexsha == before
+
+
+def test_import_refreshes_request_repository_metadata(
+    app_with_user, admin_client, tmp_path
+):
+    from otterwiki.import_runtime import blocked, task_root
+    from otterwiki.server import db
+    from otterwiki.spaces import ensure_default_space, space_repository_path
+
+    source, bare = _remote_repository(tmp_path, filename="home.md")
+    space = ensure_default_space()
+    record = SpaceGitRepository(
+        space_id=space.id,
+        remote_url=str(Path(bare.working_dir)),
+        branch="main",
+        auth_type="none",
+        state="uninitialized",
+    )
+    db.session.add(record)
+    db.session.commit()
+
+    task, _created = queue_task(
+        record, "import", user_id=1, request_key="metadata-refresh"
+    )
+    task = _wait(db, task.id)
+
+    assert task.status == "succeeded", task.error
+    deadline = time.time() + 2
+    while blocked(
+        task_root(app_with_user.config), space_repository_path(space)
+    ):
+        assert time.time() < deadline
+        time.sleep(0.01)
+    page = admin_client.get("/home")
+    assert page.status_code == 200
+    assert b"Not under version control" not in page.data
+    source.close()
+    bare.close()
 
 
 def test_task_api_permissions_and_webhook(

@@ -90,6 +90,31 @@ class SpaceStorageProxy(object):
     def reset_space_cache(self):
         self._space_cache.clear()
 
+    def reload_repository(self, path):
+        """Discard cached Git objects for one externally changed repo."""
+        target = pathlib.Path(path).resolve()
+
+        def matches(instance):
+            return pathlib.Path(instance.path).resolve() == target
+
+        if matches(self._default_storage):
+            try:
+                self._default_storage.repo.close()
+            except Exception:
+                pass
+            object.__setattr__(
+                self, "_default_storage", GitStorage(str(target))
+            )
+
+        for space_id, instance in list(self._space_cache.items()):
+            if not matches(instance):
+                continue
+            try:
+                instance.repo.close()
+            except Exception:
+                pass
+            self._space_cache.pop(space_id, None)
+
     def __getattr__(self, name):
         return getattr(self.resolve_storage(), name)
 
