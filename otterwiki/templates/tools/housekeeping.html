@@ -1,29 +1,32 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<h2 id="settings">维护工具</h2>
-<div class="card m-auto m-lg-20">
+{% set settings_page_title = "维护工具" %}
+{% set settings_page_icon = "fas fa-broom" %}
+{% set settings_page_desc = "清理草稿与异常页面，检查 Wiki 的安全状态。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card">
 <div class="mw-full">
-<h3 class="card-title">草稿</h3>
+<h2 class="card-title"><i class="fas fa-file-alt"></i>草稿</h2>
 {% if drafts %}
 <form action="{{ url_for("housekeeping") }}" method="POST" autocomplete="off">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="task" value="drafts">
-<p>This is the list of your drafts in the wiki. You can review each one or delete any you no longer need.
+<p class="settings-section-hint">以下列出你在当前空间中的草稿，可以逐个查看或删除不再需要的草稿。
 <div class="table-responsive table-striped">
-<table class="table compact">
+<table class="table compact settings-table">
     <thead>
         <tr>
-            <td style="width:1px;">
+            <th style="width:1px;">
                 <div class="custom-checkbox">
                     <input type="checkbox" id="checkbox-a-all" value="">
                   <label for="checkbox-a-all" onclick="otterwiki.toggle_invert_by_name('delete_draft');"></label>
                 </div>
-            </td>
-            <td><strong>页面</strong></td>
-            <td><strong>草稿创建时间</strong></td>
-            <td><strong>版本</strong></td>
-            <td><strong>页面最后修改时间</strong></td>
+            </th>
+            <th>页面</th>
+            <th>草稿创建时间</th>
+            <th>版本</th>
+            <th>页面最后修改时间</th>
         </tr>
     </thead>
     <tbody>
@@ -72,33 +75,33 @@
 </div>
 {#-#}
 {% if has_permission("WRITE") %}
-<div class="card m-auto m-lg-20">
+<div class="card settings-card">
 <div class="mw-full">
-<h3 class="card-title">空页面</h3>
+<h2 class="card-title"><i class="fas fa-file"></i>空页面</h2>
 {% include 'tools/housekeeping_emptypages.html' %}
 </div>
 </div>
 {#-#}
-<div class="card m-auto m-lg-20">
+<div class="card settings-card">
 <div class="mw-full">
-<h3 class="card-title">失效的 WikiLink</h3>
+<h2 class="card-title"><i class="fas fa-unlink"></i>失效的 WikiLink</h2>
 {% include 'tools/housekeeping_brokenwikilinks.html' %}
 </div>
 </div>
 {% endif %}
 {#-#}
 {% if has_permission("ADMIN") %}
-<div class="card m-auto m-lg-20">
+<div class="card settings-card">
 <div class="mw-full">
-<h3 class="card-title">安全检查</h3>
+<h2 class="card-title"><i class="fas fa-shield-alt"></i>安全检查</h2>
 <p class="text-muted">安全检查会概览 Wiki 的安全状态并指出潜在问题。它仅提供信息，可随时在任何环境中安全运行。</p>
 <div id="security-check-results" style="display:none;">
-<table class="table compact" style="table-layout: fixed; width: 100%;">
+<table class="table compact settings-table" style="table-layout: fixed; width: 100%;">
     <thead>
         <tr>
-            <th style="width: 200px;"><strong>问题</strong></th>
-            <th style="width: 110px; text-align: center;"><strong>严重程度</strong></th>
-            <th><strong>说明</strong></th>
+            <th style="width: 200px;">问题</th>
+            <th style="width: 110px; text-align: center;">严重程度</th>
+            <th>说明</th>
         </tr>
     </thead>
     <tbody id="security-check-tbody">
@@ -113,11 +116,11 @@
 </div>
 <details id="security-check-passed-wrapper" class="mt-10" style="display:none;">
     <summary>已通过的检查（<span id="security-check-passed-count">0</span>）</summary>
-    <table class="table compact mt-10" style="table-layout: fixed; width: 100%;">
+    <table class="table compact settings-table mt-10" style="table-layout: fixed; width: 100%;">
         <thead>
             <tr>
-                <th style="width: 200px;"><strong>检查项</strong></th>
-                <th><strong>说明</strong></th>
+                <th style="width: 200px;">检查项</th>
+                <th>说明</th>
             </tr>
         </thead>
         <tbody id="security-check-passed-tbody">
@@ -277,7 +280,7 @@
         errorDiv.style.display = 'none';
 
         btn.disabled = true;
-        btn.textContent = 'Running security check\u2026';
+        btn.textContent = '正在执行安全检查\u2026';
 
         fetch('/-/housekeeping/security-check', {
             method: 'GET',
@@ -299,7 +302,7 @@
             errorDiv.style.display = '';
         }).finally(function() {
             btn.disabled = false;
-            btn.textContent = 'Perform security check';
+            btn.textContent = '执行安全检查';
         });
     };
 })();

@@ -1,0 +1,15 @@
+{#- vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: -#}
+{#- Shared header for all settings tabs.
+    Set settings_page_title (required), settings_page_desc and
+    settings_page_icon before including this snippet. -#}
+<div class="settings-page-header">
+  <h2 class="settings-page-title">
+{%- if settings_page_icon %}
+    <i class="{{ settings_page_icon }}" aria-hidden="true"></i>
+{%- endif %}
+    <span>{{ settings_page_title | default("设置") }}</span>
+  </h2>
+{%- if settings_page_desc %}
+  <p class="settings-page-desc">{{ settings_page_desc }}</p>
+{%- endif %}
+</div>

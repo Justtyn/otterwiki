@@ -1,13 +1,17 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<div class="card m-auto m-lg-20">
+{% set settings_page_title = "组管理" %}
+{% set settings_page_icon = "fas fa-user-tag" %}
+{% set settings_page_desc = "通过用户组为空间分配阅读权限，一个用户可以加入多个组。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card">
 <div class="mw-full">
-<h2 class="card-title">组管理</h2>
-<p class="form-text">
+<h2 class="card-title"><i class="fas fa-users"></i>全部组</h2>
+<p class="settings-section-hint">
     用户可以加入多个组，空间授权取并集。本期用户组只控制空间阅读权限；编辑与上传仍遵循现有全局权限。
 </p>
-<table class="table">
+<table class="table settings-table">
     <thead>
         <tr>
             <th>组名称</th>
@@ -32,9 +36,9 @@
 </div>
 </div>
 
-<div class="card m-auto m-lg-20">
-<div class="mw-full">
-<h2 class="card-title">创建组</h2>
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-plus"></i>创建组</h2>
 <form action="{{ url_for("admin_groups") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
@@ -45,7 +49,7 @@
         <label for="description">组描述</label>
         <input name="description" type="text" class="form-control" id="description" value="">
     </div>
-    <div class="mt-10">
+    <div class="settings-actions">
         <input class="btn btn-primary" type="submit" value="创建组">
     </div>
 </form>

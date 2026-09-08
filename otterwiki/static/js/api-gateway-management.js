@@ -22,6 +22,16 @@
         waitPublish: "待发布",
         WAIT_PUBLISH: "待发布"
     };
+    var statusBadgeClasses = {
+        published: "system-status active",
+        PUBLISHED: "system-status active",
+        downline: "system-status offline",
+        DOWNLINE: "system-status offline",
+        waitTest: "system-status info",
+        WAIT_TEST: "system-status info",
+        waitPublish: "system-status warn",
+        WAIT_PUBLISH: "system-status warn"
+    };
     var tableBody = document.getElementById("api-gateway-table-body");
     var totalElement = document.getElementById("api-gateway-total");
     var currentPageElement = document.getElementById("api-gateway-current-page");
@@ -77,7 +87,12 @@
             var row = document.createElement("tr");
             row.appendChild(cell(record.assetCode));
             row.appendChild(cell(record.assetName));
-            row.appendChild(cell(statusLabels[record.status] || record.status));
+            var statusCell = document.createElement("td");
+            var badge = document.createElement("span");
+            badge.className = statusBadgeClasses[record.status] || "system-status offline";
+            badge.textContent = statusLabels[record.status] || record.status || "--";
+            statusCell.appendChild(badge);
+            row.appendChild(statusCell);
             tableBody.appendChild(row);
         });
     }

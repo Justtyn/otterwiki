@@ -1,9 +1,13 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<div class="card m-auto m-lg-20">
-<div class="mw-full">
-<h2 class="card-title">编辑空间：{{ space.name }}</h2>
+{% set settings_page_title = "空间管理" %}
+{% set settings_page_icon = "fas fa-cube" %}
+{% set settings_page_desc = "编辑空间的名称、首页与阅读授权。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-cube"></i>编辑空间：{{ space.name }}</h2>
 <form action="{{ url_for("admin_space_edit", space_id=space.id) }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
@@ -40,7 +44,7 @@
             授权或撤销从下一次请求开始生效。
         </div>
     </div>
-    <div class="mt-10">
+    <div class="settings-actions">
         <input class="btn btn-primary" type="submit" value="保存设置">
     </div>
 </form>
@@ -48,16 +52,18 @@
 </div>
 
 {% if not space.is_default %}
-<div class="card m-auto m-lg-20">
-<div class="mw-full">
-<h2 class="card-title">归档与恢复</h2>
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-box"></i>归档与恢复</h2>
 {% if space.is_archived %}
 <p class="form-text">
     本空间已归档：普通用户访问时统一返回 404，管理员仍可访问与管理。恢复后立即重新开放。
 </p>
 <form action="{{ url_for("admin_space_restore", space_id=space.id) }}" method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input class="btn btn-primary" type="submit" value="恢复空间">
+    <div class="settings-actions">
+        <input class="btn btn-primary" type="submit" value="恢复空间">
+    </div>
 </form>
 {% else %}
 <p class="form-text">
@@ -65,7 +71,9 @@
 </p>
 <form action="{{ url_for("admin_space_archive", space_id=space.id) }}" method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input class="btn btn-danger" type="submit" value="归档空间">
+    <div class="settings-actions">
+        <input class="btn btn-danger" type="submit" value="归档空间">
+    </div>
 </form>
 {% endif %}
 </div>

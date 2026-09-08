@@ -1,13 +1,17 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<div class="card m-auto m-lg-20">
+{% set settings_page_title = "空间管理" %}
+{% set settings_page_icon = "fas fa-cube" %}
+{% set settings_page_desc = "创建和管理空间：每个空间拥有独立的首页、目录、文档、附件与历史记录。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card">
 <div class="mw-full">
-<h2 class="card-title">空间管理</h2>
-<p class="form-text">
-    每个空间拥有独立的首页、目录、文档、附件与历史记录。管理员通过用户组为空间分配阅读权限。
+<h2 class="card-title"><i class="fas fa-cubes"></i>全部空间</h2>
+<p class="settings-section-hint">
+    管理员通过用户组为空间分配阅读权限；授权在用户组设置中完成。
 </p>
-<table class="table">
+<table class="table settings-table">
     <thead>
         <tr>
             <th>名称</th>
@@ -34,9 +38,9 @@
 </div>
 </div>
 
-<div class="card m-auto m-lg-20">
-<div class="mw-full">
-<h2 class="card-title">创建空间</h2>
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-plus"></i>创建空间</h2>
 <form action="{{ url_for("admin_spaces") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-group">
@@ -56,7 +60,7 @@
         <label for="description">空间简介</label>
         <input name="description" type="text" class="form-control" id="description" value="">
     </div>
-    <div class="mt-10">
+    <div class="settings-actions">
         <input class="btn btn-primary" type="submit" value="创建空间">
     </div>
 </form>

@@ -1,11 +1,15 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<div class="card m-auto m-lg-20" id="mail_preferences">
-<div class="mw-full">
+{% set settings_page_title = "邮件设置" %}
+{% set settings_page_icon = "far fa-envelope" %}
+{% set settings_page_desc = "配置发件邮箱与 SMTP 服务器，用于注册确认、通知等系统邮件。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card" id="mail_preferences">
+<div class="settings-form">
 <form action="{{ url_for("admin_mail_preferences") }}" method="POST" autocomplete="off">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h3 class="card-title">邮件设置</h3>
+<h2 class="card-title"><i class="fas fa-envelope-open-text"></i>发件配置</h2>
 {##}
   <div class="form-group">
     <label for="mail_sender" class="required">发件人</label>
@@ -46,12 +50,12 @@
     </select>
   </div>
 {##}
-  <div class="mt-10">
+  <div class="settings-actions">
     <input class="btn btn-primary" name="update_mail_preferences" type="submit" value="保存邮件设置">
   </div>
 {##}
-<hr class="my-15"/>
-<h3 class="card-title">测试邮件设置</h3>
+<hr class="settings-divider"/>
+<h2 class="card-title"><i class="far fa-paper-plane"></i>测试邮件设置</h2>
 {##}
   <div class="form-group">
     <label for="mail_recipient" class="required">测试收件人</label>
@@ -59,7 +63,7 @@
     {# <div class="form-text"> ...  </div> #}
   </div>
 {##}
-  <div class="mt-10">
+  <div class="settings-actions">
     <input class="btn" name="test_mail_preferences" type="submit" value="发送测试邮件">
   </div>
 </form>

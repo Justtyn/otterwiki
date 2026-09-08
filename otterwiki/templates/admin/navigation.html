@@ -119,9 +119,12 @@
 </style>
 {% endblock %}
 {% block content %}
-<div class="card m-auto m-lg-20">
+{% set settings_page_title = "文档导航编辑" %}
+{% set settings_page_icon = "fas fa-sitemap" %}
+{% set settings_page_desc = "可视化编辑结构化文档的导航目录、分类标签与页面排序。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card">
 <div class="mw-full">
-  <h2 class="card-title">文档导航编辑</h2>
   <p class="text-muted">
     这里编辑的是文档页面左侧的分类标签和目录树。导入文件仍作为基础数据；这里保存的名称、顺序、显示和点击设置会覆盖导入结果。
   </p>

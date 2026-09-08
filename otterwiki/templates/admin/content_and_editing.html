@@ -2,11 +2,15 @@
 {% extends "settings.html" %}
 {% block content %}
 {##}
-<div class="card m-auto m-lg-20">
-<div class="mw-full">
+{% set settings_page_title = "内容与编辑" %}
+{% set settings_page_icon = "fas fa-drafting-compass" %}
+{% set settings_page_desc = "提交说明、页面命名、文档字号与 WikiLink 渲染等编辑行为设置。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card">
+<div class="settings-form">
     <form action="{{ url_for("admin_content_and_editing") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h2 class="card-title">内容与编辑设置</h2>
+<h2 class="card-title"><i class="fas fa-code-branch"></i>版本与提交</h2>
     <div class="form-group">
         <label for="commit_message" class="required">提交说明</label>
         <select class="form-control w-md-600" id="commit_message" name="commit_message">
@@ -21,7 +25,8 @@
     <input name="default_commit_message" type="text" class="form-control" id="default_commit_message" value="{{ config.DEFAULT_COMMIT_MESSAGE}}" placeholder="%P updated on %c">
     <div class="form-text">提交说明设为禁用或可选时使用此默认值。支持 <code>strftime</code> <a href="https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes">格式代码</a>，<code>%P</code> 会替换为页面名称。</div>
   </div>
-{##}
+<hr class="settings-divider" />
+<h2 class="card-title"><i class="fas fa-file-alt"></i>页面与标题</h2>
     <div class="form-group">
       <div class="custom-checkbox">
         <input {%if config.RETAIN_PAGE_NAME_CASE %}checked{% endif %} type="checkbox" id="retain_page_name_case"
@@ -69,7 +74,8 @@
             </div>
         </div>
     </div>
-{##}
+<hr class="settings-divider" />
+<h2 class="card-title"><i class="fas fa-link"></i>渲染</h2>
     <div class="form-group">
         <label for="sidebar_menutree_mode">WikiLink 样式</label>
         <select class="form-control w-md-600" id="wikilink_style" name="wikilink_style">
@@ -99,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {##}
-  <div class="mt-10">
+  <div class="settings-actions">
     <input class="btn btn-primary" name="update_preferences" type="submit" value="保存设置">
   </div>
 </form>

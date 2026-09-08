@@ -1,12 +1,15 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<div class="card mx-auto mx-lg-20" id="user_mangement">
+{% set settings_page_title = "用户管理" %}
+{% set settings_page_icon = "fas fa-users" %}
+{% set settings_page_desc = "查看全部用户并单独授予读取、写入、上传和管理员权限。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card" id="user_mangement">
 <form action="{{ url_for("admin_user_management") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h2 class="card-title">用户管理</h2>
 <div class="table-responsive table-striped">
-  <table class="table compact">
+  <table class="table compact settings-table">
     <thead>
       <tr>
         <th>&nbsp;</th>
@@ -80,15 +83,14 @@
     </tbody>
   </table>
   </div>
-  <div class="mt-10">
-      <em>单独授予用户的权限</em>会叠加在全局权限之上。例如，当全局设置仅允许<strong>管理员</strong>上传附件时，仍可单独允许
+  <div class="settings-actions-note mt-20">
+      单独授予用户的权限会叠加在全局权限之上。例如，当全局设置仅允许<strong>管理员</strong>上传附件时，仍可单独允许
           <tt>user@example.org</tt> <strong>上传</strong>，而无需将其设为管理员。
-      </em>
   </div>
-  <div class="mt-10">
+  <div class="settings-actions">
     <input class="btn btn-primary" name="update_permissions" type="submit" value="更新权限" {% if not
       auth_supported_features['editing'] %}disabled{% endif %}>
-    {% if auth_supported_features['editing'] %}&nbsp;<a href="{{ url_for("user", uid="") }}" class="btn">添加用户</a>{% endif %}
+    {% if auth_supported_features['editing'] %}<a href="{{ url_for("user", uid="") }}" class="btn"><i class="fas fa-user-plus mr-5"></i>添加用户</a>{% endif %}
   </div>
 </form>
 </div>

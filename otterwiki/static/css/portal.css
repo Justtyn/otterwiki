@@ -227,20 +227,7 @@ body.portal-theme.dark-mode {
 .portal-theme .datatable-table :is(th, td) { border-color: var(--portal-line); padding: 1rem 1.2rem; }
 .portal-theme .datatable-pagination .datatable-active a { background: var(--portal-selected); color: var(--portal-blue); border-radius: .5rem; }
 
-/* 接口管理各层级页面沿用同一套表面与分割线，业务布局保持原样。 */
-.portal-theme .interface-shell { background: var(--portal-soft); }
-.portal-theme :is(.interface-header, .system-drawer, .system-drawer-footer) { background: var(--portal-surface); border-color: var(--portal-line); }
-.portal-theme .interface-title { color: var(--portal-heading); border-color: var(--portal-line); font-size: 1.7rem; }
-.portal-theme .interface-tab { color: var(--portal-muted); font-size: 1.3rem; padding-inline: 1.5rem; }
-.portal-theme .interface-tab.active { color: var(--portal-blue); border-color: var(--portal-blue); background: var(--portal-selected); }
-.portal-theme .interface-tab:hover { color: var(--portal-blue); background: var(--portal-hover); }
-.portal-theme :is(.summary-card, .activity-card, .system-filter-card, .system-table-card, .version-comparison-filter-card, .version-comparison-summary-card, .version-comparison-detail-card, .version-comparison-detail-dialog, .audit-log-confirm-dialog) { background: var(--portal-surface); border-color: var(--portal-line); border-radius: 1rem; box-shadow: var(--portal-shadow); }
-.portal-theme :is(.summary-copy strong, .system-drawer-header h2, .activity-card h2, .version-comparison-filter-card h1, .version-comparison-detail-header h2, .version-comparison-summary-card strong) { color: var(--portal-heading); border-color: var(--portal-line); }
-.portal-theme :is(.summary-copy span, .system-filter-card label) { color: var(--portal-muted); }
-.portal-theme .summary-icon { font-size: 3.2rem; }
-.portal-theme .summary-copy strong { font-size: 2.6rem; }
-.portal-theme .activity-card h2 { background: var(--portal-surface); }
-.portal-theme .system-drawer-header { border-color: var(--portal-line); }
+/* 接口管理页面的完整样式由 css/interface-management.css 负责（同样基于 --portal-* 令牌）。 */
 
 @media (max-width: 1200px) {
     .portal-theme #column-main > .content { padding-inline: 2.8rem; }
@@ -258,7 +245,6 @@ body.portal-theme.dark-mode {
     .portal-theme .page h1 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.733333); }
     .portal-theme .page h2 { font-size: calc(var(--otterwiki-document-font-size, 1.5rem) * 1.333333); }
     .portal-theme .card { padding: 2rem; margin-inline: 0; }
-    .portal-theme .interface-main { padding: 1.6rem; }
 }
 @media (prefers-reduced-motion: reduce) {
     .portal-theme .summary-card { transition: none; }

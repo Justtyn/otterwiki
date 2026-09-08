@@ -1,0 +1,333 @@
+/* vim: set et sts=4 ts=4 sw=4 ai: */
+/*
+ * Shared styles for the settings section: the user settings page,
+ * housekeeping and every admin tab. Loaded once from settings.html,
+ * so every tab below it inherits the same visual language.
+ *
+ * Conventions
+ * -----------
+ *  .settings-page-header   page title + description at the top of a tab
+ *  .settings-card          card used on settings pages (uniform width/shadow)
+ *  .settings-form          constrains pure-form pages to a readable width
+ *  .settings-section       groups related fields, optional .settings-section-title
+ *  .settings-actions       bottom row holding save/action buttons
+ *  .settings-table         admin data tables (user/group/space lists ...)
+ *  .settings-nav-*         grouped sidebar navigation
+ */
+
+/* ------------------------------------------------------------------ */
+/* Page header                                                         */
+/* ------------------------------------------------------------------ */
+
+.settings-page-header {
+    max-width: 112rem;
+    margin: 0 auto 1rem;
+    padding: 1rem 0 2rem;
+    border-bottom: 1px solid var(--lm-border-color);
+}
+
+.dark-mode .settings-page-header {
+    border-bottom-color: var(--dm-border-color);
+}
+
+.settings-page-title {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin: 0 0 .8rem;
+    font-size: 2.6rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.settings-page-title i {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+}
+
+.settings-page-desc {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.6;
+    color: var(--lm-muted-text-color);
+}
+
+.dark-mode .settings-page-desc {
+    color: var(--dm-muted-text-color);
+}
+
+/* ------------------------------------------------------------------ */
+/* Cards                                                               */
+/* ------------------------------------------------------------------ */
+
+.settings-card {
+    max-width: 112rem;
+    margin: 2.4rem auto;
+    border-radius: 0.8rem;
+    border-color: var(--lm-card-border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* first card directly below the page header needs less extra room */
+.settings-page-header + .settings-card {
+    margin-top: 2.4rem;
+}
+
+.dark-mode .settings-card {
+    border-color: var(--dm-card-border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* keep pure forms at a readable measure; tables stay full width */
+.settings-form {
+    max-width: 64rem;
+}
+
+/* card title with an optional leading icon */
+.settings-card .card-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.settings-card .card-title i {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sections and dividers inside a card                                 */
+/* ------------------------------------------------------------------ */
+
+.settings-section-title {
+    margin: 3rem 0 1.6rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--lm-muted-text-color);
+}
+
+.settings-card .settings-section-title:first-child {
+    margin-top: 0;
+}
+
+.dark-mode .settings-section-title {
+    color: var(--dm-muted-text-color);
+}
+
+.settings-divider {
+    border: 0;
+    border-top: 1px solid var(--lm-border-color);
+    margin: 3rem 0;
+}
+
+.dark-mode .settings-divider {
+    border-top-color: var(--dm-border-color);
+}
+
+.settings-section-hint {
+    margin: 0 0 1.6rem;
+    font-size: 1.4rem;
+    line-height: 1.7;
+    color: var(--lm-muted-text-color);
+}
+
+.dark-mode .settings-section-hint {
+    color: var(--dm-muted-text-color);
+}
+
+/* ------------------------------------------------------------------ */
+/* Forms                                                               */
+/* ------------------------------------------------------------------ */
+
+.settings-card .form-group > label,
+.settings-card .form-inline > label {
+    font-weight: 500;
+}
+
+/* help text below fields */
+.settings-card .form-text {
+    color: var(--lm-muted-text-color);
+}
+
+.dark-mode .settings-card .form-text {
+    color: var(--dm-muted-text-color);
+}
+
+.settings-card .form-text-plain {
+    color: var(--lm-muted-text-color);
+}
+
+.dark-mode .settings-card .form-text-plain {
+    color: var(--dm-muted-text-color);
+}
+
+/* checkbox rows: slightly more breathing room between options */
+.settings-card .custom-checkbox {
+    line-height: 2rem;
+}
+
+.settings-card .custom-checkbox + .custom-checkbox {
+    margin-top: .6rem;
+}
+
+.settings-card .custom-checkbox label {
+    margin-bottom: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Action rows                                                         */
+/* ------------------------------------------------------------------ */
+
+.settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2.8rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--lm-border-color);
+}
+
+.dark-mode .settings-actions {
+    border-top-color: var(--dm-border-color);
+}
+
+.settings-actions .spacer {
+    flex: 1 1 auto;
+}
+
+.settings-actions-note {
+    font-size: 1.3rem;
+    color: var(--lm-muted-text-color);
+}
+
+.dark-mode .settings-actions-note {
+    color: var(--dm-muted-text-color);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tables                                                              */
+/* ------------------------------------------------------------------ */
+
+.settings-table thead th {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--lm-muted-text-color);
+    background: rgba(0, 0, 0, 0.025);
+    border-bottom: 2px solid var(--lm-border-color);
+    white-space: nowrap;
+}
+
+.dark-mode .settings-table thead th {
+    color: var(--dm-muted-text-color);
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom-color: var(--dm-border-color);
+}
+
+.settings-table tbody tr {
+    transition: background-color 0.1s ease;
+}
+
+.settings-table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.025);
+}
+
+.dark-mode .settings-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.settings-table td,
+.settings-table th {
+    vertical-align: middle;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar navigation for settings pages                               */
+/* ------------------------------------------------------------------ */
+
+.settings-nav-group {
+    margin: 1.6rem 0 0.4rem;
+}
+
+.settings-nav-title {
+    padding: 0.8rem 1.6rem 0.4rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--lm-muted-text-color);
+    user-select: none;
+}
+
+.dark-mode .settings-nav-title {
+    color: var(--dm-muted-text-color);
+}
+
+.settings-nav .sidebar-icon {
+    min-width: 3rem;
+    justify-content: center;
+}
+
+/* active link: bold text, tinted background and a primary marker bar */
+.sidebar-menu a.sidebar-link.active {
+    font-weight: 600;
+    color: var(--lm-link-text-color);
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 0.6rem;
+    box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+.dark-mode .sidebar-menu a.sidebar-link.active {
+    color: var(--dm-link-text-color);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+/* ------------------------------------------------------------------ */
+/* Small shared bits                                                   */
+/* ------------------------------------------------------------------ */
+
+/* monospace clone/copy input row (user settings: git clone url) */
+.settings-copy-group .input-group {
+    max-width: 52rem;
+}
+
+/* inline key-value-ish text in cards */
+.settings-kv {
+    margin: 0;
+}
+
+.settings-kv dt {
+    font-weight: 600;
+    margin-top: 1.2rem;
+}
+
+.settings-kv dd {
+    margin: 0.2rem 0 0 0;
+    color: var(--lm-muted-text-color);
+}
+
+.dark-mode .settings-kv dd {
+    color: var(--dm-muted-text-color);
+}
+
+/* narrow screens: give cards a bit less padding via halfmoon defaults,
+   and let the page header breathe */
+@media (max-width: 576px) {
+    .settings-page-header {
+        padding-bottom: 1.2rem;
+    }
+
+    .settings-page-title {
+        font-size: 2.2rem;
+    }
+
+    .settings-card {
+        margin: 1.6rem auto;
+    }
+
+    .settings-actions {
+        margin-top: 2rem;
+        padding-top: 1.4rem;
+    }
+}

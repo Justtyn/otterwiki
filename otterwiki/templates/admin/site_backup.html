@@ -1,22 +1,27 @@
 {# vim: set et ts=8 sts=4 sw=4 ai: #}
 {% extends "settings.html" %}
 {% block content %}
-<h2>网站备份与恢复</h2>
+{% set settings_page_title = "网站备份与恢复" %}
+{% set settings_page_icon = "fas fa-archive" %}
+{% set settings_page_desc = "导出或导入整站备份 ZIP，以及恢复网站初始化状态。" %}
+{% include "snippets/settings_page_header.html" %}
 {% if error %}<div class="alert alert-danger mb-20" role="alert">{{ error }}</div>{% endif %}
 {% if success %}<div class="alert alert-success mb-20" role="status">{{ success }}</div>{% endif %}
-<div class="card">
-  <h2 class="card-title">导出整站备份</h2>
+<div class="card settings-card">
+  <h2 class="card-title"><i class="fas fa-download"></i>导出整站备份</h2>
   <p>包含所有空间的文档、附件、Git 历史、未提交文件，以及网站设置、账号、用户组、权限、草稿和远程仓库凭据。运行缓存和历史后台任务不进入备份。</p>
-  <p><strong>备份含密码哈希、邮件密码和仓库密钥，ZIP 文件未加密。</strong>请保存到可信位置，仅向可信管理员提供。备份不包含插件程序、部署配置文件和服务器密钥。</p>
   <p>导出期间网站会短暂暂停访问。文档导入或 Git 同步正在运行时，请等待任务结束后再导出。</p>
+  <div class="alert alert-warning" role="alert">
+    <strong>备份含密码哈希、邮件密码和仓库密钥，ZIP 文件未加密。</strong>请保存到可信位置，仅向可信管理员提供。备份不包含插件程序、部署配置文件和服务器密钥。
+  </div>
   <form method="POST" action="{{ url_for('admin_site_backup') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="export">
-    <button class="btn btn-primary" type="submit">下载整站备份</button>
+    <button class="btn btn-primary" type="submit"><i class="fas fa-download mr-5"></i>下载整站备份</button>
   </form>
 </div>
-<div class="card">
-  <h2 class="card-title">导入整站备份</h2>
+<div class="card settings-card">
+  <h2 class="card-title"><i class="fas fa-upload"></i>导入整站备份</h2>
   {% if pending %}
   <div class="alert alert-secondary mb-20" role="status">已有备份等待导入。请停止所有网站实例后重新启动，启动时自动恢复。完成前可以取消。</div>
   <form method="POST" action="{{ url_for('admin_site_backup') }}">
@@ -26,8 +31,10 @@
   </form>
   {% else %}
   <p>上传本站同版本导出的 ZIP 文件，大小上限 {{ max_upload_mb }} MB。系统先校验备份；校验通过后，在下一次停站启动时覆盖现有网站。</p>
-  <p><strong>现有账号、设置和所有空间仓库将被替换，上传后到重启前的新编辑也会被覆盖。</strong>请先导出当前网站，并安排停站。恢复后原登录会话失效，请使用备份中的管理员账号登录。</p>
   <p>目标环境的数据库路径、存储路径和服务器密钥保持不变；仓库凭据会重新加密。Git 钩子和本地 Git 配置不导入。</p>
+  <div class="alert alert-warning" role="alert">
+    <strong>现有账号、设置和所有空间仓库将被替换，上传后到重启前的新编辑也会被覆盖。</strong>请先导出当前网站，并安排停站。恢复后原登录会话失效，请使用备份中的管理员账号登录。
+  </div>
   <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin_site_backup') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="import">
@@ -39,12 +46,14 @@
       <label class="required" for="site-backup-confirm">输入 RESTORE OTTERWIKI 确认覆盖</label>
       <input class="form-control" id="site-backup-confirm" name="confirmation" autocomplete="off" required pattern="RESTORE OTTERWIKI">
     </div>
-    <button class="btn btn-danger" type="submit">校验并安排导入</button>
+    <div class="settings-actions">
+      <button class="btn btn-danger" type="submit"><i class="fas fa-exclamation-triangle mr-5"></i>校验并安排导入</button>
+    </div>
   </form>
   {% endif %}
 </div>
-<div class="card">
-  <h2 class="card-title">恢复网站初始化</h2>
+<div class="card settings-card">
+  <h2 class="card-title"><i class="fas fa-redo-alt"></i>恢复网站初始化</h2>
   <p>初始化通过停站维护脚本执行，会删除所有空间内容和 Git 历史、账号、权限、草稿、远程仓库绑定及后台任务，并恢复默认网站设置。</p>
   <p>请先导出备份并停止所有网站进程，再按部署文档运行初始化命令。重新启动后会生成初始首页，第一个注册用户成为管理员。</p>
 </div>

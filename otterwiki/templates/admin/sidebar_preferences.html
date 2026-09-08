@@ -1,14 +1,17 @@
 {# vim: set et ts=8 sts=4 sw=4 ai ft=jinja.html: #}
 {% extends "settings.html" %}
 {% block content %}
-<div class="card m-auto m-lg-20" id="sidebar_preferences">
+{% set settings_page_title = "侧边栏设置" %}
+{% set settings_page_icon = "fas fa-columns" %}
+{% set settings_page_desc = "配置侧边栏的快捷入口、自定义菜单项与页面索引的展示方式。" %}
+{% include "snippets/settings_page_header.html" %}
+<div class="card settings-card" id="sidebar_preferences">
 <div class="mw-full">
 <form action="{{ url_for("admin_sidebar_preferences") }}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<h2 class="card-title">侧边栏设置</h2>
-<h3 class="card-title">快捷入口</h3>
+<h2 class="card-title"><i class="fas fa-bolt"></i>快捷入口</h2>
 
-<div class="mb-10">
+<div class="settings-section-hint">
 未显示在侧边栏中的入口仍可通过 <span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span> 菜单访问。
 </div>
 {% for name, description in [
@@ -27,8 +30,9 @@
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
 {##}
-<h3 class="card-title">自定义菜单</h3>
-<div class="my-5">
+<hr class="settings-divider" />
+<h2 class="card-title"><i class="fas fa-list-ul"></i>自定义菜单</h2>
+<div class="settings-section-hint">
     可在侧边栏中添加常用页面、外部链接、标题栏和分隔线。
 </div>
 <ul class="mb-20">
@@ -39,7 +43,7 @@
     <li>可在“图标”中填写 HTML 来使用 <a href="https://fontawesome.com/v5/search?q=link&ic=free-collection" target="_blank">FontAwesome 5 <i class="fas fa-external-link-alt"></i></a> 图标，例如 <code>&lt;i class="fas fa-question-circle"&gt;&lt;/i&gt;</code>。</li>
 </ul>
 <div class="table-responsive">
-<table>
+<table class="settings-table">
     <thead>
       <tr>
         <th>&nbsp;</th>
@@ -102,7 +106,8 @@
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
 {##}
-<h3 class="card-title">页面索引</h3>
+<hr class="settings-divider" />
+<h2 class="card-title"><i class="fas fa-sitemap"></i>页面索引</h2>
     <div class="form-group">
         <label for="sidebar_menutree_mode">页面索引模式</label>
         <select class="form-control w-md-400" id="sidebar_menutree_mode" name="sidebar_menutree_mode">
@@ -140,7 +145,7 @@
 {##}
 <div class="form-text pt-0 mt-0 mb-20"></div>
 {##}
-<div class="mt-10">
+<div class="settings-actions">
     <input class="btn btn-primary" name="update_preferences" type="submit" value="保存设置">
 </div>
 </form>

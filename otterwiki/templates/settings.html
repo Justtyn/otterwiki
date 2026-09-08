@@ -1,96 +1,118 @@
 {# vim: set et ts=8 sts=4 sw=4 ai: #}
 {% extends "wiki.html" %}
+{% block head %}
+{{ super() }}
+<link href="{{ url_for("static", filename="css/settings.css") | debug_unixtime }}" rel="stylesheet" media="screen" />
+{% endblock %}
 {% block extra_nav %}
 {% endblock %}
 {% block menu %}
-<a href="{{ url_for("settings") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon">
-        <i class="fas fa-address-card"></i>
-    </span>
-    设置
-</a>
-<a href="{{ url_for("housekeeping") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon">
-        <i class="fas fa-broom"></i>
-    </span>
-    维护工具
-</a>
+{%- set current_ep = request.endpoint -%}
+<div class="settings-nav">
+    <div class="settings-nav-group">
+        <div class="settings-nav-title">账户</div>
+        <a href="{{ url_for("settings") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "settings" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-address-card"></i>
+            </span>
+            设置
+        </a>
+        <a href="{{ url_for("housekeeping") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "housekeeping" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-broom"></i>
+            </span>
+            维护工具
+        </a>
+    </div>
 {% if has_permission("ADMIN") %}
-<a href="{{ url_for("admin") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-cogs"></i>
-    </span>
-    应用设置
-</a>
-<a href="{{ url_for("admin_sidebar_preferences") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-columns"></i>
-    </span>
-    侧边栏设置
-</a>
-<a href="{{ url_for("admin_content_and_editing") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-drafting-compass"></i>
-    </span>
-    内容与编辑
-</a>
-<a href="{{ url_for("admin_repository_management") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-code-branch"></i>
-    </span>
-    仓库管理
-</a>
-<a href="{{ url_for('admin_site_backup') }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-archive"></i>
-    </span>
-    网站备份与恢复
-</a>
-<a href="{{ url_for("admin_navigation") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-sitemap"></i>
-    </span>
-    文档导航编辑
-</a>
-<a href="{{ url_for("admin_user_management") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-users"></i>
-    </span>
-    用户管理
-</a>
-<a href="{{ url_for("admin_spaces") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-cube"></i>
-    </span>
-    空间管理
-</a>
-<a href="{{ url_for("admin_groups") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-user-tag"></i>
-    </span>
-    组管理
-</a>
-<a href="{{ url_for("admin_permissions_and_registration") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon" style="min-width: 3rem;">
-        <i class="fas fa-users-cog"></i>
-    </span>
-    权限与注册
-</a>
-<a href="{{ url_for("admin_mail_preferences") }}" class="sidebar-link sidebar-link-with-icon">
-    <span class="sidebar-icon">
-        <i class="far fa-envelope"></i>
-    </span>
-    邮件设置
-</a>
+    <div class="settings-nav-group">
+        <div class="settings-nav-title">站点管理</div>
+        <a href="{{ url_for("admin") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-cogs"></i>
+            </span>
+            应用设置
+        </a>
+        <a href="{{ url_for("admin_sidebar_preferences") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_sidebar_preferences" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-columns"></i>
+            </span>
+            侧边栏设置
+        </a>
+        <a href="{{ url_for("admin_content_and_editing") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_content_and_editing" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-drafting-compass"></i>
+            </span>
+            内容与编辑
+        </a>
+        <a href="{{ url_for("admin_permissions_and_registration") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_permissions_and_registration" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-users-cog"></i>
+            </span>
+            权限与注册
+        </a>
+        <a href="{{ url_for("admin_mail_preferences") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_mail_preferences" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="far fa-envelope"></i>
+            </span>
+            邮件设置
+        </a>
+    </div>
+    <div class="settings-nav-group">
+        <div class="settings-nav-title">内容与数据</div>
+        <a href="{{ url_for("admin_repository_management") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep in ["admin_repository_management", "admin_repository_save", "admin_repository_delete"] %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-code-branch"></i>
+            </span>
+            仓库管理
+        </a>
+        <a href="{{ url_for('admin_site_backup') }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_site_backup" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-archive"></i>
+            </span>
+            网站备份与恢复
+        </a>
+        <a href="{{ url_for("admin_navigation") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_navigation" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-sitemap"></i>
+            </span>
+            文档导航编辑
+        </a>
+    </div>
+    <div class="settings-nav-group">
+        <div class="settings-nav-title">用户与空间</div>
+        <a href="{{ url_for("admin_user_management") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep == "admin_user_management" %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-users"></i>
+            </span>
+            用户管理
+        </a>
+        <a href="{{ url_for("admin_spaces") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep in ["admin_spaces", "admin_space_edit", "admin_space_archive", "admin_space_restore"] %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-cube"></i>
+            </span>
+            空间管理
+        </a>
+        <a href="{{ url_for("admin_groups") }}" class="sidebar-link sidebar-link-with-icon{% if current_ep in ["admin_groups", "admin_group_edit", "admin_group_delete"] %} active{% endif %}">
+            <span class="sidebar-icon">
+                <i class="fas fa-user-tag"></i>
+            </span>
+            组管理
+        </a>
+    </div>
 {% endif %}
+</div>
 {% endblock %}
 {% block content %}
-<h2 id="settings">设置</h2>
+{% set settings_page_title = "设置" %}
+{% set settings_page_icon = "fas fa-address-card" %}
+{% set settings_page_desc = "管理你的账户信息：姓名、密码，以及 Git 仓库的克隆地址。" %}
+{% include "snippets/settings_page_header.html" %}
 {#
 #}
-<div class="card">
-<div class="mw-full w-600">
-<h2 class="card-title">修改姓名</h2>
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-user"></i>修改姓名</h2>
 <form action="{{url_for("settings")}}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="form-group">
@@ -101,17 +123,19 @@
       请注意，修改姓名不会更改已有编辑历史中的署名。
     </div>
   </div>
-  <input class="btn btn-primary" type="submit" value="更新姓名" {% if not auth_supported_features['editing']
-    %}disabled{% endif %}>
+  <div class="settings-actions">
+    <input class="btn btn-primary" type="submit" value="更新姓名" {% if not auth_supported_features['editing']
+      %}disabled{% endif %}>
+  </div>
 </form>
 </div>
 </div>
 {#
 #}
 {% if auth_supported_features['passwords'] %}
-<div class="card">
-<div class="mw-full w-600">
-<h2 class="card-title">修改密码</h2>
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-key"></i>修改密码</h2>
 <form action="{{url_for("settings")}}" method="POST">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 {% if current_user.password_hash and current_user.password_hash.startswith("sha256$") %}
@@ -133,7 +157,9 @@
     <label for="confirm-password" class="required">确认密码</label>
     <input name="password2" type="password" class="form-control" id="confirm-password" placeholder="再次输入密码">
   </div>
-  <input class="btn btn-primary" type="submit" value="更新密码">
+  <div class="settings-actions">
+    <input class="btn btn-primary" type="submit" value="更新密码">
+  </div>
 </form>
 </div>
 </div>
@@ -141,11 +167,11 @@
 {#
 #}
 {% if config.GIT_WEB_SERVER %}
-<div class="card">
-<div class="mw-full w-600">
-<h2 class="card-title">Git 仓库访问</h2>
+<div class="card settings-card">
+<div class="settings-form">
+<h2 class="card-title"><i class="fas fa-code-branch"></i>Git 仓库访问</h2>
 
- <div class="form-inline">
+ <div class="form-inline settings-copy-group">
     <label for="git-url" class="text-monospace">git clone</label>
     <div class="input-group">
         <input type="text" class="form-control" value="{{url_for("dotgit", _external=True)}}" id="git-url">

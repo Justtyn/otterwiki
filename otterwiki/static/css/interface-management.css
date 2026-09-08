@@ -1,32 +1,117 @@
+/*
+ * 接口管理（/-/interface/*）专用样式。
+ * 颜色全部走 body.portal-theme 提供的 --portal-* 令牌（自动适配暗色模式），
+ * 仅语义状态色在本文件内以 --im-* 变量定义，并在暗色模式下一处覆盖。
+ */
+
+/* ==========================================================================
+    1. 设计令牌与页面骨架
+   ========================================================================== */
+
 .interface-shell {
-    background: #f5f7fa;
+    /* 语义状态色（浅色）。徽章、语义图标共用。 */
+    --im-ok-bg: #e7f8ef;
+    --im-ok-fg: #168653;
+    --im-info-bg: #e8f3ff;
+    --im-info-fg: #1263b3;
+    --im-teal-bg: #e8f7f6;
+    --im-teal-fg: #087b74;
+    --im-warn-bg: #fdf2e0;
+    --im-warn-fg: #a75d09;
+    --im-danger-bg: #fff0f1;
+    --im-danger-fg: #c92e42;
+    --im-neutral-bg: #edf2f7;
+    --im-neutral-fg: #596475;
+    --im-rose-bg: #f5e9ed;
+    --im-rose-fg: #a13c57;
+
+    /* 工作台摘要卡强调色。 */
+    --im-accent-system: #0e9f9a;
+    --im-accent-system-bg: #e4f6f4;
+    --im-accent-application: #2563d9;
+    --im-accent-application-bg: #eaf1fe;
+    --im-accent-snapshot: #7c5cd6;
+    --im-accent-snapshot-bg: #f0ecfb;
+    --im-accent-asset: #d97706;
+    --im-accent-asset-bg: #fbf0dd;
+
+    /* 操作列固定时的投影（暗色模式单独覆盖）。 */
+    --im-sticky-shadow: -3px 0 7px rgba(15, 23, 42, .07);
+    --im-popup-shadow: 0 12px 38px rgba(32, 60, 101, .11);
+
+    background: var(--portal-soft, #f7f9fc);
+    color: var(--portal-text, #25344b);
     min-height: calc(100vh - var(--navbar-height));
 }
 
+.dark-mode .interface-shell {
+    --im-ok-bg: #193e2e;
+    --im-ok-fg: #68d39d;
+    --im-info-bg: #173b57;
+    --im-info-fg: #6dbdff;
+    --im-teal-bg: #183e3c;
+    --im-teal-fg: #67d5cf;
+    --im-warn-bg: #4b3822;
+    --im-warn-fg: #f2b96f;
+    --im-danger-bg: #4d2530;
+    --im-danger-fg: #ff8c9c;
+    --im-neutral-bg: #343a42;
+    --im-neutral-fg: #c1c6cc;
+    --im-rose-bg: #4d2530;
+    --im-rose-fg: #ff8c9c;
+
+    --im-accent-system: #2dd4bf;
+    --im-accent-system-bg: #143b38;
+    --im-accent-application: #79adff;
+    --im-accent-application-bg: #1d3353;
+    --im-accent-snapshot: #b39dff;
+    --im-accent-snapshot-bg: #2d2847;
+    --im-accent-asset: #f2b96f;
+    --im-accent-asset-bg: #40311b;
+
+    --im-sticky-shadow: -3px 0 7px rgba(0, 0, 0, .35);
+    --im-popup-shadow: 0 12px 38px rgba(0, 0, 0, .45);
+}
+
+/* ==========================================================================
+    2. 页头与页签
+   ========================================================================== */
+
 .interface-header {
     align-items: stretch;
-    background: #fff;
-    border-bottom: 1px solid #e6e9ed;
+    background: var(--portal-surface, #fff);
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
     box-shadow: 0 1px 3px rgba(24, 39, 75, .04);
     display: flex;
-    min-height: 6.2rem;
-    overflow: hidden;
+    min-height: 6rem;
+    position: sticky;
+    /* .content-wrapper（halfmoon 布局的滚动容器）本身位于导航栏下方，因此 top 为 0。 */
+    top: 0;
+    z-index: 300;
 }
 
 .interface-title {
     align-items: center;
-    border-right: 1px solid #e6e9ed;
-    color: #171b24;
+    border-right: 1px solid var(--portal-line, #e5ebf2);
+    color: var(--portal-heading, #17283f);
     display: flex;
     flex: 0 0 auto;
-    font-size: 1.9rem;
+    font-size: 1.7rem;
     font-weight: 600;
     gap: 1rem;
     padding: 0 2.4rem;
 }
 
 .interface-title i {
-    color: #1683e3;
+    align-items: center;
+    background: var(--portal-selected, #eaf2ff);
+    border-radius: .8rem;
+    color: var(--portal-blue, #2563d9);
+    display: inline-flex;
+    font-size: 1.5rem;
+    height: 3.2rem;
+    justify-content: center;
+    width: 3.2rem;
 }
 
 .interface-tabs {
@@ -40,88 +125,118 @@
 
 .interface-tab {
     align-items: center;
-    border-bottom: 3px solid transparent;
-    color: #4f5968;
+    border-bottom: 2px solid transparent;
+    color: var(--portal-muted, #66778d);
     display: flex;
     flex: 0 0 auto;
-    font-size: 1.5rem;
-    padding: 0 2rem;
+    font-size: 1.35rem;
+    padding: 0 1.6rem;
     text-decoration: none;
     white-space: nowrap;
+    transition: background-color .15s ease, color .15s ease;
 }
 
 .interface-tab:hover,
 .interface-tab:focus {
-    background: #f5f9ff;
-    color: #1683e3;
+    background: var(--portal-hover, #eef3f9);
+    color: var(--portal-blue, #2563d9);
     text-decoration: none;
 }
 
+.interface-tab:focus-visible {
+    outline: 2px solid var(--portal-blue, #2563d9);
+    outline-offset: -2px;
+}
+
 .interface-tab.active {
-    background: #edf6ff;
-    border-bottom-color: #1683e3;
-    color: #1683e3;
-    font-weight: 500;
+    background: var(--portal-selected, #eaf2ff);
+    border-bottom-color: var(--portal-blue, #2563d9);
+    color: var(--portal-blue, #2563d9);
+    font-weight: 600;
 }
 
 .interface-main {
     padding: 3.2rem;
 }
 
+/* ==========================================================================
+    3. 工作台：统计卡片与最近活动
+   ========================================================================== */
+
 .dashboard-summary {
     display: grid;
-    gap: 2.4rem;
+    gap: 2rem;
     grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .summary-card,
 .activity-card {
-    background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: .6rem;
-    box-shadow: 0 4px 14px rgba(25, 39, 75, .06);
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1rem;
+    box-shadow: var(--portal-shadow, 0 4px 20px rgba(32, 60, 101, .03));
 }
 
 .summary-card {
     align-items: center;
     display: flex;
-    min-height: 13rem;
-    padding: 2.4rem 3rem;
+    gap: 1.6rem;
+    min-height: 11.6rem;
+    padding: 2rem 2.4rem;
 }
 
 .summary-icon {
     align-items: center;
+    background: var(--im-accent-bg, var(--portal-selected, #eaf2ff));
+    border-radius: 1.2rem;
+    color: var(--im-accent, var(--portal-blue, #2563d9));
     display: flex;
-    flex: 0 0 7rem;
-    font-size: 4.5rem;
+    flex: 0 0 5.6rem;
+    font-size: 2.4rem;
+    height: 5.6rem;
     justify-content: center;
 }
 
 .summary-copy {
-    align-items: flex-end;
+    align-items: flex-start;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    gap: .8rem;
+    gap: .6rem;
     min-width: 0;
 }
 
 .summary-copy span {
-    color: #77808e;
-    font-size: 1.7rem;
-    font-weight: 600;
+    color: var(--portal-muted, #66778d);
+    font-size: 1.35rem;
+    font-weight: 500;
 }
 
 .summary-copy strong {
-    color: #3c4655;
-    font-size: 2.7rem;
+    color: var(--portal-heading, #17283f);
+    font-size: 2.6rem;
     line-height: 1;
 }
 
-.summary-system .summary-icon { color: #16c6ba; }
-.summary-application .summary-icon { color: #14a5ed; }
-.summary-snapshot .summary-icon { color: #9a4ce0; }
-.summary-asset .summary-icon { color: #d5df00; }
+.summary-system {
+    --im-accent: var(--im-accent-system);
+    --im-accent-bg: var(--im-accent-system-bg);
+}
+
+.summary-application {
+    --im-accent: var(--im-accent-application);
+    --im-accent-bg: var(--im-accent-application-bg);
+}
+
+.summary-snapshot {
+    --im-accent: var(--im-accent-snapshot);
+    --im-accent-bg: var(--im-accent-snapshot-bg);
+}
+
+.summary-asset {
+    --im-accent: var(--im-accent-asset);
+    --im-accent-bg: var(--im-accent-asset-bg);
+}
 
 /* Workbench summary cards are links to their respective management tabs. */
 a.summary-card {
@@ -132,23 +247,23 @@ a.summary-card {
 
 a.summary-card:hover,
 a.summary-card:focus-visible {
-    border-color: #c9d2dd;
-    box-shadow: 0 8px 22px rgba(25, 39, 75, .12);
+    border-color: var(--portal-input-line, #ccd6e3);
+    box-shadow: var(--portal-popup-shadow, 0 12px 38px rgba(32, 60, 101, .11));
     transform: translateY(-2px);
 }
 
 .activity-card {
-    margin-top: 3.2rem;
-    max-width: 92rem;
+    margin-top: 2.4rem;
+    max-width: 110rem;
     overflow: hidden;
 }
 
 .activity-card h2 {
-    border-bottom: 1px solid #edf0f4;
-    color: #202733;
-    font-size: 1.7rem;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    color: var(--portal-heading, #17283f);
+    font-size: 1.6rem;
     margin: 0;
-    padding: 2rem 2.4rem;
+    padding: 1.8rem 2.4rem;
 }
 
 .activity-list {
@@ -157,16 +272,21 @@ a.summary-card:focus-visible {
 
 .activity-row {
     align-items: baseline;
-    color: #3c4655;
+    color: var(--portal-text, #25344b);
     display: grid;
-    font-size: 1.5rem;
-    gap: 1rem;
-    grid-template-columns: minmax(14rem, 1.2fr) minmax(12rem, 1fr) minmax(18rem, 2fr) 14rem;
+    font-size: 1.45rem;
+    gap: 1.2rem;
+    grid-template-columns: minmax(14rem, 1.1fr) minmax(10rem, .8fr) minmax(18rem, 2.2fr) minmax(12rem, 14rem);
     padding: 1.5rem 2.4rem;
+    transition: background-color .15s ease;
+}
+
+.activity-row:hover {
+    background: var(--portal-hover, #eef3f9);
 }
 
 .activity-row + .activity-row {
-    border-top: 1px solid #f0f2f5;
+    border-top: 1px solid var(--portal-line, #e5ebf2);
 }
 
 .activity-name,
@@ -178,69 +298,84 @@ a.summary-card:focus-visible {
 }
 
 .activity-date {
-    color: #7b8491;
+    color: var(--portal-muted, #66778d);
+    font-variant-numeric: tabular-nums;
     text-align: right;
 }
 
 .activity-state {
-    color: #7b8491;
+    color: var(--portal-muted, #66778d);
     padding: 3rem 2.4rem;
     text-align: center;
 }
 
+/* ==========================================================================
+    4. 管理卡片与二级页签
+   ========================================================================== */
+
 .management-card {
-    background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: .6rem;
-    box-shadow: 0 4px 14px rgba(25, 39, 75, .06);
-    min-height: 56rem;
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1rem;
+    box-shadow: var(--portal-shadow, 0 4px 20px rgba(32, 60, 101, .03));
+    min-height: 32rem;
 }
 
 .management-subtabs {
-    border-bottom: 1px solid #e6e9ed;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
     display: flex;
-    gap: 3.6rem;
-    min-height: 6.4rem;
+    gap: 3.2rem;
+    min-height: 6rem;
     padding: 0 2.8rem;
 }
 
 .management-subtab {
     align-items: center;
-    border-bottom: 3px solid transparent;
-    color: #5c6572;
+    border-bottom: 2px solid transparent;
+    color: var(--portal-muted, #66778d);
     display: flex;
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 500;
     padding: .2rem .2rem 0;
     text-decoration: none;
+    transition: color .15s ease;
 }
 
 .management-subtab:hover,
 .management-subtab:focus,
 .management-subtab.active {
-    color: #1683e3;
+    color: var(--portal-blue, #2563d9);
     text-decoration: none;
 }
 
+.management-subtab:focus-visible {
+    outline: 2px solid var(--portal-blue, #2563d9);
+    outline-offset: 2px;
+}
+
 .management-subtab.active {
-    border-bottom-color: #1683e3;
+    border-bottom-color: var(--portal-blue, #2563d9);
 }
 
 .management-panel {
-    padding: 1.6rem 2.8rem 3rem;
+    padding: 1.6rem 2.8rem 2.8rem;
 }
+
+/* ==========================================================================
+    5. 操作反馈（固定于右上角的提示条）
+   ========================================================================== */
 
 .system-feedback,
 .dashboard-error {
+    box-shadow: var(--portal-popup-shadow, 0 12px 38px rgba(32, 60, 101, .11));
     margin: 0;
     max-width: 38rem;
     min-width: 24rem;
     padding: 1rem 3.4rem 1rem 2rem;
     position: fixed;
     right: 1.6rem;
-    top: calc(var(--navbar-height, 5rem) + 1.2rem);
+    top: calc(var(--navbar-height, 6rem) + 1.2rem);
     z-index: 1200;
-    box-shadow: 0 8px 24px rgba(25, 39, 75, .16);
 }
 
 .system-feedback[hidden],
@@ -265,29 +400,40 @@ a.summary-card:focus-visible {
     to   { opacity: 1; transform: translateX(0); }
 }
 
-.management-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    min-height: 5.8rem;
-}
+/* ==========================================================================
+    6. 工具栏与筛选行
+   ========================================================================== */
 
-.management-toolbar .btn {
-    align-self: center;
-}
-
-.scan-task-toolbar {
+.management-toolbar,
+.scan-task-toolbar,
+.application-snapshot-toolbar,
+.module-snapshot-toolbar,
+.asset-relation-toolbar,
+.api-gateway-toolbar,
+.audit-log-toolbar {
     align-items: center;
     display: flex;
-    gap: 1.6rem;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    min-height: 5.6rem;
+    padding-bottom: 1.6rem;
+}
+
+.management-toolbar {
+    justify-content: flex-end;
+}
+
+.scan-task-toolbar,
+.application-snapshot-toolbar {
     justify-content: space-between;
-    min-height: 5.8rem;
 }
 
 .scan-application-filter {
     align-items: center;
     display: flex;
+    flex: 0 1 26rem;
     gap: .8rem;
-    max-width: 32rem;
+    min-width: 0;
     width: 100%;
 }
 
@@ -307,79 +453,6 @@ a.summary-card:focus-visible {
     display: none;
 }
 
-.system-table-wrap {
-    overflow-x: auto;
-}
-
-.scan-task-table-wrap {
-    border: 1px solid #e5e8ec;
-    overflow-x: auto;
-}
-
-.scan-task-table {
-    min-width: 190rem;
-}
-
-.scan-task-table th,
-.scan-task-table td {
-    border-bottom: 0;
-    border-left: 0;
-    max-width: 18rem;
-}
-
-.scan-task-table th:last-child,
-.scan-task-table td:last-child {
-    border-right: 0;
-}
-
-.scan-task-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.scan-task-table .scan-task-actions-column,
-.scan-task-table td:last-child {
-    background: #fff;
-    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
-    min-width: 30rem;
-    max-width: none;
-    position: sticky;
-    right: 0;
-    width: 30rem;
-    z-index: 2;
-}
-
-.scan-task-table .scan-task-actions-column {
-    background: #f7f8fa;
-    z-index: 3;
-}
-
-.scan-task-status {
-    border-radius: 1rem;
-    display: inline-block;
-    font-size: 1.3rem;
-    line-height: 2rem;
-    padding: 0 .9rem;
-}
-
-.scan-task-status.init { background: #edf2f7; color: #596475; }
-.scan-task-status.running { background: #e8f3ff; color: #1376c5; }
-.scan-task-status.success { background: #e7f8ef; color: #168653; }
-.scan-task-status.fail { background: #fff0f1; color: #c92e42; }
-
-.scan-task-action-loading i {
-    margin-right: .4rem;
-}
-
-.application-snapshot-toolbar {
-    align-items: center;
-    display: flex;
-    gap: 1.6rem;
-    justify-content: space-between;
-    min-height: 5.8rem;
-}
-
 .application-snapshot-filters {
     align-items: center;
     display: flex;
@@ -389,19 +462,25 @@ a.summary-card:focus-visible {
 }
 
 .application-snapshot-app-filter {
-    flex: 0 1 32rem;
+    flex: 0 1 26rem;
 }
 
 #application-snapshot-app-clear[hidden] {
     display: none;
 }
 
-.application-snapshot-version-filter {
-    flex: 0 1 28rem;
+.application-snapshot-version-filter,
+.module-snapshot-id-filter,
+.asset-relation-search-filter {
+    flex: 0 1 22rem;
     position: relative;
 }
 
-.application-snapshot-version-filter .form-control {
+.application-snapshot-version-filter .form-control,
+.module-snapshot-id-filter .form-control,
+.asset-relation-search-filter .form-control,
+.api-gateway-name-filter .form-control,
+.audit-log-operator-filter .form-control {
     margin: 0;
     padding-right: 4.4rem;
     width: 100%;
@@ -411,9 +490,9 @@ a.summary-card:focus-visible {
     align-items: center;
     background: transparent;
     border: 0;
-    border-radius: 0 .4rem .4rem 0;
+    border-radius: 0 .6rem .6rem 0;
     bottom: 0;
-    color: #8a94a3;
+    color: var(--portal-muted, #66778d);
     cursor: pointer;
     display: flex;
     font-size: 1.4rem;
@@ -428,156 +507,34 @@ a.summary-card:focus-visible {
 }
 
 .interface-inline-search-button:hover {
-    background: #edf6ff;
-    color: #1683e3;
+    background: var(--portal-hover, #eef3f9);
+    color: var(--portal-blue, #2563d9);
 }
 
 .interface-inline-search-button:focus-visible {
-    box-shadow: inset 0 0 0 2px rgba(22, 131, 227, .35);
-    color: #1683e3;
-    outline: 0;
-}
-
-.application-snapshot-table-wrap {
-    border: 1px solid #e5e8ec;
-    overflow-x: auto;
-}
-
-.application-snapshot-table {
-    min-width: 180rem;
-}
-
-.application-snapshot-table th,
-.application-snapshot-table td {
-    border-bottom: 0;
-    border-left: 0;
-}
-
-.application-snapshot-table th:last-child,
-.application-snapshot-table td:last-child {
-    border-right: 0;
-}
-
-.application-snapshot-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.application-snapshot-table th:nth-child(1) { width: 16rem; }
-.application-snapshot-table th:nth-child(2) { width: 14rem; }
-.application-snapshot-table th:nth-child(3) { width: 9rem; }
-.application-snapshot-table th:nth-child(4) { width: 24rem; }
-.application-snapshot-table th:nth-child(5) { width: 26rem; }
-.application-snapshot-table th:nth-child(6) { width: 26rem; }
-.application-snapshot-table th:nth-child(7) { width: 13rem; }
-.application-snapshot-table th:nth-child(8) { width: 15rem; }
-.application-snapshot-table th:nth-child(9) { width: 16rem; }
-
-.application-snapshot-table .application-snapshot-actions-column,
-.application-snapshot-table td:last-child {
-    background: #fff;
-    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
-    min-width: 20rem;
-    position: sticky;
-    right: 0;
-    width: 20rem;
-    z-index: 2;
-}
-
-.application-snapshot-table .application-snapshot-actions-column {
-    background: #f7f8fa;
-    z-index: 3;
+    box-shadow: inset 0 0 0 2px var(--portal-selected, #eaf2ff);
+    color: var(--portal-blue, #2563d9);
+    outline: 2px solid var(--portal-blue, #2563d9);
+    outline-offset: -2px;
 }
 
 .module-snapshot-toolbar {
-    align-items: center;
-    display: flex;
     gap: 1.2rem;
-    min-height: 5.8rem;
 }
 
 .module-snapshot-app-filter {
-    flex: 0 1 32rem;
+    flex: 0 1 26rem;
 }
 
 #module-snapshot-app-clear[hidden] {
     display: none;
 }
 
-.module-snapshot-id-filter {
-    flex: 0 1 28rem;
-    position: relative;
-}
-
-.module-snapshot-id-filter .form-control {
-    margin: 0;
-    padding-right: 4.4rem;
-    width: 100%;
-}
-
-.module-snapshot-table-wrap {
-    border: 1px solid #e5e8ec;
-    height: clamp(32rem, calc(100vh - 34rem), 58rem);
-    overflow: auto;
-}
-
-.module-snapshot-table {
-    min-width: 126rem;
-}
-
-.module-snapshot-table th,
-.module-snapshot-table td {
-    border-bottom: 0;
-    border-left: 0;
-}
-
-.module-snapshot-table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.module-snapshot-table th:last-child,
-.module-snapshot-table td:last-child {
-    border-right: 0;
-}
-
-.module-snapshot-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.module-snapshot-table th:nth-child(1) { width: 20rem; }
-.module-snapshot-table th:nth-child(2) { width: 18rem; }
-.module-snapshot-table th:nth-child(3) { width: 22rem; }
-.module-snapshot-table th:nth-child(4) { width: 24rem; }
-.module-snapshot-table th:nth-child(5) { width: 30rem; }
-.module-snapshot-table th:nth-child(6) { width: 18rem; }
-
-.module-snapshot-table .module-snapshot-actions-column,
-.module-snapshot-table td:last-child {
-    background: #fff;
-    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
-    min-width: 16rem;
-    position: sticky;
-    right: 0;
-    width: 16rem;
-    z-index: 2;
-}
-
-.module-snapshot-table .module-snapshot-actions-column {
-    background: #f7f8fa;
-    top: 0;
-    z-index: 3;
-}
-
 .transaction-asset-filters {
     display: grid;
-    gap: 1.8rem 1.4rem;
-    grid-template-columns: repeat(5, minmax(15rem, 1fr));
-    padding: .6rem 0 2.4rem;
+    gap: 1.6rem 1.4rem;
+    grid-template-columns: repeat(5, minmax(14rem, 1fr));
+    padding: .4rem 0 2.2rem;
 }
 
 .transaction-asset-filter {
@@ -586,11 +543,11 @@ a.summary-card:focus-visible {
 }
 
 .transaction-asset-filter label {
-    color: #4a5360;
+    color: var(--portal-muted, #66778d);
     display: block;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-weight: 500;
-    margin-bottom: .8rem;
+    margin-bottom: .6rem;
 }
 
 .transaction-asset-filter .form-control {
@@ -615,255 +572,13 @@ a.summary-card:focus-visible {
     width: 3rem;
 }
 
-.transaction-asset-table-wrap {
-    border: 1px solid #e5e8ec;
-    height: clamp(32rem, calc(100vh - 46rem), 58rem);
-    overflow: auto;
-}
-
-.transaction-asset-table {
-    min-width: 150rem;
-}
-
-.transaction-asset-table th,
-.transaction-asset-table td {
-    border-bottom: 0;
-    border-left: 0;
-}
-
-.transaction-asset-table th:last-child,
-.transaction-asset-table td:last-child {
-    border-right: 0;
-}
-
-.transaction-asset-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.transaction-asset-table th:nth-child(1) { width: 22rem; }
-.transaction-asset-table th:nth-child(2) { width: 24rem; }
-.transaction-asset-table th:nth-child(3) { width: 12rem; }
-.transaction-asset-table th:nth-child(4) { width: 24rem; }
-.transaction-asset-table th:nth-child(5) { width: 20rem; }
-.transaction-asset-table th:nth-child(6) { width: 12rem; }
-.transaction-asset-table th:nth-child(7) { width: 14rem; }
-
-.transaction-asset-table .transaction-asset-actions-column,
-.transaction-asset-table td:last-child {
-    min-width: 13rem;
-    width: 13rem;
-}
-
-.transaction-asset-status {
-    border-radius: 1rem;
-    display: inline-block;
-    font-size: 1.3rem;
-    line-height: 2rem;
-    padding: 0 .9rem;
-}
-
-.transaction-asset-status.draft { background: #edf2f7; color: #596475; }
-.transaction-asset-status.identified { background: #e8f3ff; color: #1376c5; }
-.transaction-asset-status.confirmed { background: #e9f8f1; color: #168153; }
-.transaction-asset-status.published { background: #e8f7f6; color: #087b74; }
-.transaction-asset-status.deprecated { background: #fff2e2; color: #a75d09; }
-.transaction-asset-status.offline { background: #f5e9ed; color: #a13c57; }
-
-.transaction-asset-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 1.4rem;
-}
-
-.transaction-asset-back {
-    align-self: flex-start;
-    color: #1683e3;
-    font-size: 1.4rem;
-    text-decoration: none;
-}
-
-.transaction-asset-back:hover,
-.transaction-asset-back:focus {
-    text-decoration: underline;
-}
-
-.transaction-asset-detail-card {
-    background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: .6rem;
-    box-shadow: 0 4px 14px rgba(25, 39, 75, .06);
-    overflow: hidden;
-}
-
-.transaction-asset-detail-card h2 {
-    border-bottom: 1px solid #edf0f4;
-    color: #202733;
-    font-size: 1.6rem;
-    margin: 0;
-    padding: 1.8rem 2rem;
-}
-
-.transaction-asset-basic-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin: 0;
-    padding: 2rem;
-}
-
-.transaction-asset-basic-grid > div {
-    border: 1px solid #e5e8ec;
-    display: grid;
-    grid-template-columns: minmax(9rem, .7fr) minmax(12rem, 1.3fr);
-    margin: -1px 0 0 -1px;
-    min-width: 0;
-}
-
-.transaction-asset-basic-grid dt,
-.transaction-asset-basic-grid dd {
-    margin: 0;
-    min-width: 0;
-    padding: 1.3rem 1.4rem;
-}
-
-.transaction-asset-basic-grid dt {
-    background: #f7f8fa;
-    color: #687280;
-    font-weight: 500;
-}
-
-.transaction-asset-basic-grid dd {
-    color: #3c4655;
-    overflow-wrap: anywhere;
-}
-
-.transaction-asset-basic-grid .transaction-asset-source {
-    grid-column: span 2;
-}
-
-.transaction-asset-field-tabs {
-    border-bottom: 1px solid #e5e8ec;
-    display: flex;
-    gap: 2.6rem;
-    padding: 0 2rem;
-}
-
-.transaction-asset-field-tab {
-    background: transparent;
-    border: 0;
-    border-bottom: 3px solid transparent;
-    color: #657080;
-    cursor: pointer;
-    font: inherit;
-    padding: 1.5rem .2rem 1.2rem;
-}
-
-.transaction-asset-field-tab:hover,
-.transaction-asset-field-tab:focus,
-.transaction-asset-field-tab.active {
-    color: #1683e3;
-    outline: 0;
-}
-
-.transaction-asset-field-tab.active {
-    border-bottom-color: #1683e3;
-    font-weight: 600;
-}
-
-.transaction-asset-field-table-wrap {
-    max-height: 42rem;
-    overflow: auto;
-    padding: 1.4rem 2rem 2rem;
-}
-
-.transaction-asset-field-table {
-    min-width: 72rem;
-}
-
-.transaction-asset-field-table th:last-child {
-    box-shadow: none;
-    right: auto;
-}
-
-.transaction-asset-field-table td:last-child {
-    box-shadow: none;
-    position: static;
-}
-
-.transaction-asset-detail-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
 .asset-relation-toolbar {
-    align-items: center;
-    display: flex;
-    min-height: 5.8rem;
-}
-
-.asset-relation-search-filter {
-    flex: 0 1 32rem;
-    position: relative;
-}
-
-.asset-relation-search-filter .form-control {
-    margin: 0;
-    padding-right: 4.4rem;
-    width: 100%;
-}
-
-.asset-relation-table-wrap {
-    border: 1px solid #e5e8ec;
-    height: clamp(32rem, calc(100vh - 34rem), 58rem);
-    overflow: auto;
-}
-
-.asset-relation-table {
-    min-width: 126rem;
-}
-
-.asset-relation-table th,
-.asset-relation-table td {
-    border-bottom: 0;
-    border-left: 0;
-}
-
-.asset-relation-table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.asset-relation-table th:last-child,
-.asset-relation-table td:last-child {
-    border-right: 0;
-    box-shadow: none;
-}
-
-.asset-relation-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.asset-relation-table th:nth-child(1) { width: 18rem; }
-.asset-relation-table th:nth-child(2) { width: 22rem; }
-.asset-relation-table th:nth-child(3) { width: 22rem; }
-.asset-relation-table th:nth-child(4) { width: 10rem; }
-.asset-relation-table th:nth-child(5) { width: 22rem; }
-.asset-relation-table th:nth-child(6) { width: 32rem; }
-
-.api-gateway-toolbar {
-    align-items: center;
-    display: flex;
     gap: 1.2rem;
-    min-height: 5.8rem;
 }
 
 .api-gateway-code-filter,
 .api-gateway-name-filter {
-    flex: 0 1 28rem;
+    flex: 0 1 22rem;
 }
 
 .api-gateway-name-filter {
@@ -877,64 +592,16 @@ a.summary-card:focus-visible {
     width: 100%;
 }
 
-.api-gateway-name-filter .form-control {
-    padding-right: 4.4rem;
-}
-
 .api-gateway-status-filter {
-    flex: 0 1 22rem;
-}
-
-.api-gateway-table-wrap {
-    border: 1px solid #e5e8ec;
-    height: clamp(32rem, calc(100vh - 34rem), 58rem);
-    overflow: auto;
-}
-
-.api-gateway-table {
-    min-width: 90rem;
-    /* Column widths are not draggable on this page; fixed layout splits
-       the three columns equally. */
-    table-layout: fixed;
-}
-
-.api-gateway-table th,
-.api-gateway-table td {
-    border-bottom: 0;
-    border-left: 0;
-}
-
-.api-gateway-table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.api-gateway-table th:last-child,
-.api-gateway-table td:last-child {
-    border-right: 0;
-    box-shadow: none;
-}
-
-.api-gateway-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.audit-log-toolbar {
-    align-items: center;
-    display: flex;
-    gap: 1.2rem;
-    min-height: 5.8rem;
+    flex: 0 1 18rem;
 }
 
 .audit-log-type-filter {
-    flex: 0 1 24rem;
+    flex: 0 1 20rem;
 }
 
 .audit-log-operator-filter {
-    flex: 0 1 28rem;
+    flex: 0 1 22rem;
     position: relative;
 }
 
@@ -945,19 +612,15 @@ a.summary-card:focus-visible {
     width: 100%;
 }
 
-.audit-log-operator-filter .form-control {
-    padding-right: 4.4rem;
-}
-
 .audit-log-date-filter {
     align-items: center;
     display: flex;
-    flex: 0 1 50rem;
+    flex: 0 1 46rem;
     gap: .8rem;
 }
 
 .audit-log-date-filter span {
-    color: #68717d;
+    color: var(--portal-muted, #66778d);
     flex: 0 0 auto;
 }
 
@@ -966,418 +629,14 @@ a.summary-card:focus-visible {
     white-space: nowrap;
 }
 
-.audit-log-table-wrap {
-    border: 1px solid #e5e8ec;
-    height: clamp(32rem, calc(100vh - 34rem), 58rem);
-    overflow: auto;
-}
-
-.audit-log-table {
-    min-width: 112rem;
-}
-
-.audit-log-table th,
-.audit-log-table td {
-    border-bottom: 0;
-    border-left: 0;
-}
-
-.audit-log-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.audit-log-table th:nth-child(1) { width: 7rem; }
-.audit-log-table th:nth-child(2) { width: 22rem; }
-.audit-log-table th:nth-child(3) { width: 30rem; }
-.audit-log-table th:nth-child(4) { width: 20rem; }
-.audit-log-table th:nth-child(5) { width: 23rem; }
-
-.audit-log-table .audit-log-selection-column,
-.audit-log-table td:first-child {
-    text-align: center;
-}
-
-.audit-log-table input[type="checkbox"] {
-    accent-color: #1683e3;
-    cursor: pointer;
-    height: 1.6rem;
-    margin: 0;
-    width: 1.6rem;
-}
-
-.audit-log-table .audit-log-actions-column,
-.audit-log-table td:last-child {
-    min-width: 12rem;
-    width: 12rem;
-}
-
-.audit-log-confirm-backdrop {
-    align-items: center;
-    background: rgba(16, 22, 29, .58);
-    display: flex;
-    inset: 0;
-    justify-content: center;
-    padding: 2rem;
-    position: fixed;
-    z-index: 1300;
-}
-
-.audit-log-confirm-backdrop[hidden] {
-    display: none;
-}
-
-.audit-log-confirm-dialog {
-    background: #fff;
-    border: 1px solid #e1e5ea;
-    border-radius: .8rem;
-    box-shadow: 0 18px 50px rgba(10, 20, 35, .24);
-    display: grid;
-    gap: 1.4rem;
-    grid-template-columns: 4rem minmax(0, 1fr);
-    max-width: 46rem;
-    padding: 2.4rem;
-    width: 100%;
-}
-
-.audit-log-confirm-icon {
-    align-items: center;
-    background: #fff3e4;
-    border-radius: 50%;
-    color: #d97706;
-    display: flex;
-    font-size: 1.8rem;
-    height: 4rem;
-    justify-content: center;
-    width: 4rem;
-}
-
-.audit-log-confirm-copy h2 {
-    color: #202733;
-    font-size: 1.8rem;
-    margin: .2rem 0 .7rem;
-}
-
-.audit-log-confirm-copy p {
-    color: #68717d;
-    font-size: 1.45rem;
-    margin: 0;
-}
-
-.audit-log-confirm-actions {
-    display: flex;
-    gap: 1rem;
-    grid-column: 1 / -1;
-    justify-content: flex-end;
-    margin-top: .6rem;
-}
-
-.version-comparison-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.6rem;
-}
-
-.version-comparison-filter-card,
-.version-comparison-summary-card,
-.version-comparison-detail-card {
-    background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: .6rem;
-    box-shadow: 0 4px 14px rgba(25, 39, 75, .06);
-}
-
-.version-comparison-filter-card h1 {
-    border-bottom: 1px solid #e6e9ed;
-    color: #202733;
-    font-size: 1.7rem;
-    margin: 0;
-    padding: 2rem 2.6rem;
-}
-
-.version-comparison-filter-card .system-feedback {
-    margin: 1.6rem 2.6rem 0;
-}
-
-.version-comparison-application-row,
-.version-comparison-snapshot-field {
-    align-items: center;
-    display: grid;
-    gap: 1.4rem;
-    grid-template-columns: 5rem minmax(0, 1fr);
-}
-
-.version-comparison-application-row {
-    padding: 1.8rem 2.6rem 1rem;
-}
-
-.version-comparison-snapshot-grid {
-    display: grid;
-    gap: 2.4rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 1rem 2.6rem 2.4rem;
-}
-
-.version-comparison-application-row label,
-.version-comparison-snapshot-field label {
-    color: #596474;
-    font-size: 1.5rem;
-    margin: 0;
-}
-
-.version-comparison-application-row .form-control,
-.version-comparison-snapshot-field .form-control {
-    margin: 0;
-    width: 100%;
-}
-
-.version-comparison-summary-grid {
-    display: grid;
-    gap: 1.6rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.version-comparison-summary-card {
-    display: flex;
-    flex-direction: column;
-    gap: .8rem;
-    min-height: 9rem;
-    padding: 1.8rem 2.6rem;
-}
-
-.version-comparison-summary-card span {
-    color: #596474;
-    font-size: 1.5rem;
-    font-weight: 600;
-}
-
-.version-comparison-summary-card strong {
-    color: #202733;
-    font-size: 2.4rem;
-}
-
-.version-comparison-detail-card {
-    margin-top: 1.6rem;
-    overflow: hidden;
-}
-
-.version-comparison-detail-header {
-    align-items: center;
-    border-bottom: 1px solid #e6e9ed;
-    display: flex;
-    justify-content: space-between;
-    padding: 1.8rem 2.6rem;
-}
-
-.version-comparison-detail-header h2 {
-    color: #202733;
-    font-size: 1.7rem;
-    margin: 0 0 .5rem;
-}
-
-.version-comparison-detail-header p {
-    color: #7b8491;
-    margin: 0;
-}
-
-.version-comparison-change-total {
-    background: #edf6ff;
-    border-radius: 1.2rem;
-    color: #1683e3;
-    padding: .3rem 1rem;
-    white-space: nowrap;
-}
-
-.version-comparison-change-list {
-    max-height: clamp(30rem, calc(100vh - 46rem), 52rem);
-    overflow: auto;
-}
-
-.version-comparison-change-item {
-    align-items: center;
-    background: #fff;
-    border: 0;
-    border-bottom: 1px solid #edf0f4;
-    color: inherit;
-    cursor: pointer;
-    display: grid;
-    font: inherit;
-    gap: 1.8rem;
-    grid-template-columns: 17rem minmax(0, 1fr) 2rem;
-    padding: 1.6rem 2.6rem;
-    text-align: left;
-    transition: background-color .15s ease;
-    width: 100%;
-}
-
-.version-comparison-change-item:last-child {
-    border-bottom: 0;
-}
-
-.version-comparison-change-item:hover,
-.version-comparison-change-item:focus-visible {
-    background: #f7fbff;
-    outline: 0;
-}
-
-.version-comparison-change-meta {
-    align-items: center;
-    display: flex;
-    gap: .8rem;
-}
-
-.version-comparison-change-type,
-.version-comparison-dimension {
-    border-radius: 1rem;
-    display: inline-block;
-    font-size: 1.25rem;
-    line-height: 2rem;
-    padding: 0 .8rem;
-    white-space: nowrap;
-}
-
-.version-comparison-change-type.added { background: #e7f8ef; color: #168653; }
-.version-comparison-change-type.modified { background: #fff3e4; color: #b86400; }
-.version-comparison-change-type.deleted { background: #fff0f1; color: #c92e42; }
-.version-comparison-dimension { background: #edf2f7; color: #596475; }
-
-.version-comparison-change-copy {
-    display: flex;
-    flex-direction: column;
-    gap: .4rem;
-    min-width: 0;
-}
-
-.version-comparison-change-copy strong,
-.version-comparison-change-copy small {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.version-comparison-change-copy strong {
-    color: #303946;
-    font-size: 1.5rem;
-    font-weight: 500;
-}
-
-.version-comparison-change-copy small,
-.version-comparison-change-item > i {
-    color: #8a94a3;
-}
-
-.version-comparison-empty {
-    color: #7b8491;
-    min-height: 11rem;
-    padding: 4.5rem 2rem;
-    text-align: center;
-}
-
-.version-comparison-detail-backdrop {
-    align-items: center;
-    background: rgba(16, 22, 29, .58);
-    display: flex;
-    inset: 0;
-    justify-content: center;
-    padding: 2rem;
-    position: fixed;
-    z-index: 1300;
-}
-
-.version-comparison-detail-backdrop[hidden] {
-    display: none;
-}
-
-.version-comparison-detail-dialog {
-    background: #fff;
-    border: 1px solid #e1e5ea;
-    border-radius: .8rem;
-    box-shadow: 0 18px 50px rgba(10, 20, 35, .24);
-    max-height: calc(100vh - 4rem);
-    max-width: 104rem;
-    overflow: auto;
-    width: 100%;
-}
-
-.version-comparison-detail-dialog > header {
-    align-items: flex-start;
-    border-bottom: 1px solid #e6e9ed;
-    display: flex;
-    justify-content: space-between;
-    padding: 2rem 2.4rem;
-}
-
-.version-comparison-detail-dialog h2 {
-    color: #202733;
-    font-size: 1.8rem;
-    margin: 0 0 .5rem;
-}
-
-.version-comparison-detail-dialog header p {
-    color: #7b8491;
-    margin: 0;
-}
-
-.version-comparison-detail-columns {
-    display: grid;
-    gap: 1.6rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 2.4rem;
-}
-
-.version-comparison-side {
-    border: 1px solid #e5e8ec;
-    border-radius: .6rem;
-    overflow: hidden;
-}
-
-.version-comparison-side h3 {
-    background: #f7f8fa;
-    border-bottom: 1px solid #e5e8ec;
-    color: #46505e;
-    font-size: 1.5rem;
-    margin: 0;
-    padding: 1.4rem 1.6rem;
-}
-
-.version-comparison-side.before-side h3 i { color: #c92e42; }
-.version-comparison-side.after-side h3 i { color: #168653; }
-
-.version-comparison-side dl {
-    display: grid;
-    grid-template-columns: 12rem minmax(0, 1fr);
-    margin: 0;
-}
-
-.version-comparison-side dt,
-.version-comparison-side dd {
-    border-bottom: 1px solid #edf0f4;
-    margin: 0;
-    min-height: 5rem;
-    padding: 1.4rem 1.6rem;
-}
-
-.version-comparison-side dt {
-    background: #fafbfc;
-    color: #68717d;
-    font-weight: 500;
-}
-
-.version-comparison-side dd {
-    color: #303946;
-    overflow-wrap: anywhere;
-}
-
-.version-comparison-side dt:last-of-type,
-.version-comparison-side dd:last-of-type {
-    border-bottom: 0;
-}
+/* ==========================================================================
+    7. 表格（通用 .system-table 与各页宽度）
+   ========================================================================== */
 
 .system-table {
     border-collapse: collapse;
-    color: #3c4655;
-    font-size: 1.5rem;
+    color: var(--portal-text, #25344b);
+    font-size: 1.45rem;
     min-width: 82rem;
     table-layout: fixed;
     width: 100%;
@@ -1385,20 +644,35 @@ a.summary-card:focus-visible {
 
 .system-table th,
 .system-table td {
-    border: 1px solid #e5e8ec;
-    padding: 1.6rem 1.4rem;
+    border: 0;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    padding: 1.4rem 1.4rem;
     text-align: left;
     vertical-align: middle;
 }
 
+.system-table th:not(:last-child),
+.system-table td:not(:last-child) {
+    border-right: 1px solid var(--portal-line, #e5ebf2);
+}
+
+/* 该规则形态被 tests/test_interface_management.py 断言，勿改动结构。 */
 .system-table th {
-    background: #f7f8fa;
-    color: #4a5360;
+    background: var(--portal-soft, #f7f9fc);
+    color: var(--portal-heading, #17283f);
     font-weight: 600;
     position: sticky;
     top: 0;
     white-space: nowrap;
     z-index: 3;
+}
+
+.system-table tbody tr {
+    transition: background-color .12s ease;
+}
+
+.system-table tbody tr:hover td {
+    background: var(--portal-hover, #eef3f9);
 }
 
 .table-column-resizer {
@@ -1426,7 +700,7 @@ a.summary-card:focus-visible {
 .table-column-resizer:hover::after,
 .table-column-resizer:focus::after,
 .table-column-resizer.is-dragging::after {
-    background: #1683e3;
+    background: var(--portal-blue, #2563d9);
 }
 
 .table-column-resizer:focus {
@@ -1449,21 +723,21 @@ a.summary-card:focus-visible {
 }
 
 .system-table td:last-child {
-    background: #fff;
-    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
+    background: var(--portal-surface, #fff);
+    box-shadow: var(--im-sticky-shadow);
     z-index: 2;
 }
 
 .system-table th:last-child {
-    background: #f7f8fa;
-    box-shadow: -3px 0 7px rgba(25, 39, 75, .06);
+    background: var(--portal-soft, #f7f9fc);
+    box-shadow: var(--im-sticky-shadow);
     z-index: 4;
 }
 
 .system-table-action {
     background: transparent;
     border: 0;
-    color: #1683e3;
+    color: var(--portal-blue, #2563d9);
     cursor: pointer;
     font: inherit;
     padding: .3rem .5rem;
@@ -1471,12 +745,22 @@ a.summary-card:focus-visible {
 
 .system-table-action:hover,
 .system-table-action:focus {
-    color: #086fc5;
+    color: var(--portal-blue-hover, #194fb4);
     text-decoration: underline;
 }
 
+.system-table-action:focus-visible {
+    outline: 2px solid var(--portal-blue, #2563d9);
+    outline-offset: 2px;
+}
+
 .system-table-action.delete {
-    color: #d83a4e;
+    color: var(--im-danger-fg, #c92e42);
+}
+
+.system-table-action.delete:hover,
+.system-table-action.delete:focus {
+    color: var(--im-danger-fg, #c92e42);
 }
 
 .system-table-action:disabled {
@@ -1486,106 +770,343 @@ a.summary-card:focus-visible {
 }
 
 .system-table-state {
-    color: #7b8491;
+    color: var(--portal-muted, #66778d);
+    font-size: 1.4rem;
     height: 9rem;
     text-align: center !important;
 }
 
-.system-status {
+.system-table-state i {
+    color: var(--portal-blue, #2563d9);
+    margin-right: .6rem;
+    opacity: .75;
+}
+
+/* —— 表格容器：统一边框、圆角与滚动高度，使 sticky 表头生效 —— */
+
+.system-table-wrap,
+.scan-task-table-wrap,
+.application-snapshot-table-wrap,
+.module-snapshot-table-wrap,
+.transaction-asset-table-wrap,
+.asset-relation-table-wrap,
+.api-gateway-table-wrap,
+.audit-log-table-wrap {
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1rem;
+    height: clamp(32rem, calc(100vh - 38rem), 58rem);
+    overflow: auto;
+}
+
+.scan-task-table {
+    min-width: 190rem;
+}
+
+.scan-task-table td {
+    max-width: 18rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scan-task-table .scan-task-actions-column,
+.scan-task-table td:last-child {
+    box-shadow: var(--im-sticky-shadow);
+    min-width: 30rem;
+    max-width: none;
+    width: 30rem;
+}
+
+.scan-task-action-loading i {
+    margin-right: .4rem;
+}
+
+.application-snapshot-table {
+    min-width: 180rem;
+}
+
+.application-snapshot-table td {
+    max-width: 18rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.application-snapshot-table th:nth-child(1) { width: 16rem; }
+.application-snapshot-table th:nth-child(2) { width: 14rem; }
+.application-snapshot-table th:nth-child(3) { width: 9rem; }
+.application-snapshot-table th:nth-child(4) { width: 24rem; }
+.application-snapshot-table th:nth-child(5) { width: 26rem; }
+.application-snapshot-table th:nth-child(6) { width: 26rem; }
+.application-snapshot-table th:nth-child(7) { width: 13rem; }
+.application-snapshot-table th:nth-child(8) { width: 15rem; }
+.application-snapshot-table th:nth-child(9) { width: 16rem; }
+
+.application-snapshot-table .application-snapshot-actions-column,
+.application-snapshot-table td:last-child {
+    box-shadow: var(--im-sticky-shadow);
+    min-width: 20rem;
+    width: 20rem;
+}
+
+.module-snapshot-table {
+    min-width: 126rem;
+}
+
+.module-snapshot-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.module-snapshot-table th:nth-child(1) { width: 20rem; }
+.module-snapshot-table th:nth-child(2) { width: 18rem; }
+.module-snapshot-table th:nth-child(3) { width: 22rem; }
+.module-snapshot-table th:nth-child(4) { width: 24rem; }
+.module-snapshot-table th:nth-child(5) { width: 30rem; }
+.module-snapshot-table th:nth-child(6) { width: 18rem; }
+
+.module-snapshot-table .module-snapshot-actions-column,
+.module-snapshot-table td:last-child {
+    box-shadow: var(--im-sticky-shadow);
+    min-width: 16rem;
+    width: 16rem;
+}
+
+.transaction-asset-table {
+    min-width: 150rem;
+}
+
+.transaction-asset-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.transaction-asset-table th:nth-child(1) { width: 22rem; }
+.transaction-asset-table th:nth-child(2) { width: 24rem; }
+.transaction-asset-table th:nth-child(3) { width: 12rem; }
+.transaction-asset-table th:nth-child(4) { width: 24rem; }
+.transaction-asset-table th:nth-child(5) { width: 20rem; }
+.transaction-asset-table th:nth-child(6) { width: 12rem; }
+.transaction-asset-table th:nth-child(7) { width: 14rem; }
+
+.transaction-asset-table .transaction-asset-actions-column,
+.transaction-asset-table td:last-child {
+    min-width: 13rem;
+    width: 13rem;
+}
+
+.asset-relation-table {
+    min-width: 126rem;
+}
+
+.asset-relation-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-relation-table th:nth-child(1) { width: 18rem; }
+.asset-relation-table th:nth-child(2) { width: 22rem; }
+.asset-relation-table th:nth-child(3) { width: 22rem; }
+.asset-relation-table th:nth-child(4) { width: 10rem; }
+.asset-relation-table th:nth-child(5) { width: 22rem; }
+.asset-relation-table th:nth-child(6) { width: 32rem; }
+
+.api-gateway-table {
+    min-width: 90rem;
+    /* Column widths are not draggable on this page; fixed layout splits
+       the three columns equally. */
+    table-layout: fixed;
+}
+
+.api-gateway-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.audit-log-table {
+    min-width: 112rem;
+}
+
+.audit-log-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.audit-log-table th:nth-child(1) { width: 7rem; }
+.audit-log-table th:nth-child(2) { width: 22rem; }
+.audit-log-table th:nth-child(3) { width: 30rem; }
+.audit-log-table th:nth-child(4) { width: 20rem; }
+.audit-log-table th:nth-child(5) { width: 23rem; }
+
+.audit-log-table .audit-log-selection-column,
+.audit-log-table td:first-child {
+    text-align: center;
+}
+
+.audit-log-table input[type="checkbox"] {
+    accent-color: var(--portal-blue, #2563d9);
+    cursor: pointer;
+    height: 1.6rem;
+    margin: 0;
+    width: 1.6rem;
+}
+
+.audit-log-table .audit-log-actions-column,
+.audit-log-table td:last-child {
+    min-width: 12rem;
+    width: 12rem;
+}
+
+/* API 网关与资产关系表的最后一列是数据列而非操作列，不做固定列。 */
+.api-gateway-table th:last-child,
+.api-gateway-table td:last-child,
+.asset-relation-table th:last-child,
+.asset-relation-table td:last-child {
+    background: transparent;
+    box-shadow: none;
+    position: static;
+}
+
+/* ==========================================================================
+    8. 状态徽章（各列表共用一套变量）
+   ========================================================================== */
+
+.system-status,
+.scan-task-status,
+.transaction-asset-status,
+.version-comparison-change-type,
+.version-comparison-dimension {
     border-radius: 1rem;
     display: inline-block;
     font-size: 1.3rem;
     line-height: 2rem;
     padding: 0 .9rem;
+    white-space: nowrap;
 }
 
-.system-status.active {
-    background: #e7f8ef;
-    color: #168653;
+.system-status.active,
+.scan-task-status.success,
+.transaction-asset-status.confirmed,
+.version-comparison-change-type.added {
+    background: var(--im-ok-bg);
+    color: var(--im-ok-fg);
 }
 
-.system-status.offline {
-    background: #f0f1f3;
-    color: #68717d;
+.system-status.info,
+.scan-task-status.running,
+.transaction-asset-status.identified {
+    background: var(--im-info-bg);
+    color: var(--im-info-fg);
 }
+
+.system-status.wait,
+.transaction-asset-status.published,
+.version-comparison-change-type.modified {
+    background: var(--im-teal-bg);
+    color: var(--im-teal-fg);
+}
+
+.transaction-asset-status.deprecated {
+    background: var(--im-warn-bg);
+    color: var(--im-warn-fg);
+}
+
+.system-status.warn {
+    background: var(--im-warn-bg);
+    color: var(--im-warn-fg);
+}
+
+.scan-task-status.fail,
+.version-comparison-change-type.deleted {
+    background: var(--im-danger-bg);
+    color: var(--im-danger-fg);
+}
+
+.system-status.offline,
+.scan-task-status.init,
+.transaction-asset-status.draft,
+.version-comparison-dimension {
+    background: var(--im-neutral-bg);
+    color: var(--im-neutral-fg);
+}
+
+.transaction-asset-status.offline {
+    background: var(--im-rose-bg);
+    color: var(--im-rose-fg);
+}
+
+/* ==========================================================================
+    9. 分页
+   ========================================================================== */
 
 .system-pagination {
     align-items: center;
-    color: #5c6572;
+    color: var(--portal-muted, #66778d);
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    font-size: 1.35rem;
+    gap: .8rem;
     justify-content: center;
-    padding: 2.2rem 0 0;
+    padding: 2rem 0 0;
 }
 
 .system-pagination .form-control {
-    height: 3.6rem;
+    height: 3.4rem;
     margin: 0;
     padding: .4rem .8rem;
     width: auto;
 }
 
-#system-page-size {
-    min-width: 10rem;
-}
-
-#application-page-size {
-    min-width: 10rem;
-}
-
-#scan-task-page-size {
-    min-width: 10rem;
-}
-
-#asset-relation-page-size {
-    min-width: 10rem;
-}
-
-#api-gateway-page-size {
-    min-width: 10rem;
-}
-
+#system-page-size,
+#application-page-size,
+#scan-task-page-size,
+#asset-relation-page-size,
+#api-gateway-page-size,
 #audit-log-page-size {
-    min-width: 10rem;
+    min-width: 9.6rem;
 }
 
-#system-page-jump {
-    text-align: center;
-    width: 6rem;
-}
-
-#application-page-jump {
-    text-align: center;
-    width: 6rem;
-}
-
-#scan-task-page-jump {
-    text-align: center;
-    width: 6rem;
-}
-
-#asset-relation-page-jump {
-    text-align: center;
-    width: 6rem;
-}
-
-#api-gateway-page-jump {
-    text-align: center;
-    width: 6rem;
-}
-
+#system-page-jump,
+#application-page-jump,
+#scan-task-page-jump,
+#asset-relation-page-jump,
+#api-gateway-page-jump,
 #audit-log-page-jump {
     text-align: center;
-    width: 6rem;
+    width: 6.4rem;
+}
+
+.system-pagination .btn-action {
+    align-items: center;
+    border-radius: .6rem;
+    display: inline-flex;
+    height: 3.2rem;
+    justify-content: center;
+    padding: 0;
+    width: 3.2rem;
+}
+
+.system-pagination .btn-action:disabled {
+    cursor: not-allowed;
+    opacity: .4;
 }
 
 .system-pagination .current-page {
-    color: #1683e3;
+    color: var(--portal-blue, #2563d9);
     font-weight: 600;
-    min-width: 2rem;
+    min-width: 2.4rem;
     text-align: center;
 }
+
+/* ==========================================================================
+    10. 侧滑抽屉与表单
+   ========================================================================== */
 
 .system-drawer-backdrop {
     background: rgba(16, 22, 29, .52);
@@ -1595,7 +1116,8 @@ a.summary-card:focus-visible {
 }
 
 .system-drawer {
-    background: #fff;
+    background: var(--portal-surface, #fff);
+    border-left: 1px solid var(--portal-line, #e5ebf2);
     bottom: 0;
     box-shadow: -8px 0 30px rgba(10, 20, 35, .18);
     display: none;
@@ -1603,7 +1125,7 @@ a.summary-card:focus-visible {
     position: fixed;
     right: 0;
     top: 0;
-    width: min(62vw, 112rem);
+    width: min(60rem, 94vw);
     z-index: 1210;
 }
 
@@ -1615,7 +1137,7 @@ body.system-drawer-open { overflow: hidden; }
 
 .system-drawer-header {
     align-items: center;
-    border-bottom: 1px solid #e6e9ed;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
     display: flex;
     height: 6.4rem;
     justify-content: space-between;
@@ -1623,8 +1145,8 @@ body.system-drawer-open { overflow: hidden; }
 }
 
 .system-drawer-header h2 {
-    color: #202733;
-    font-size: 1.9rem;
+    color: var(--portal-heading, #17283f);
+    font-size: 1.8rem;
     margin: 0;
 }
 
@@ -1638,7 +1160,7 @@ body.system-drawer-open { overflow: hidden; }
 
 .system-form .form-group {
     flex: 0 0 auto;
-    margin-bottom: 2.4rem;
+    margin-bottom: 2.2rem;
 }
 
 .system-form .form-control {
@@ -1681,11 +1203,11 @@ body.system-drawer-open { overflow: hidden; }
 
 #scan-task-file-name,
 .scan-field-help {
-    color: #77808e;
+    color: var(--portal-muted, #66778d);
 }
 
 #scan-task-file-name {
-    max-width: 55rem;
+    max-width: 42rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1693,8 +1215,8 @@ body.system-drawer-open { overflow: hidden; }
 
 .system-drawer-footer {
     align-items: center;
-    background: #fff;
-    border-top: 1px solid #e6e9ed;
+    background: var(--portal-surface, #fff);
+    border-top: 1px solid var(--portal-line, #e5ebf2);
     bottom: 0;
     display: flex;
     gap: 1.4rem;
@@ -1705,6 +1227,507 @@ body.system-drawer-open { overflow: hidden; }
     right: 0;
 }
 
+/* ==========================================================================
+    11. 确认弹窗（审计批量删除）与差异详情弹窗
+   ========================================================================== */
+
+.audit-log-confirm-backdrop,
+.version-comparison-detail-backdrop {
+    align-items: center;
+    background: rgba(16, 22, 29, .58);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 2rem;
+    position: fixed;
+    z-index: 1300;
+}
+
+.audit-log-confirm-backdrop[hidden],
+.version-comparison-detail-backdrop[hidden] {
+    display: none;
+}
+
+.audit-log-confirm-dialog,
+.version-comparison-detail-dialog {
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1.2rem;
+    box-shadow: var(--im-popup-shadow);
+}
+
+.audit-log-confirm-dialog {
+    display: grid;
+    gap: 1.4rem;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    max-width: 46rem;
+    padding: 2.4rem;
+    width: 100%;
+}
+
+.audit-log-confirm-icon {
+    align-items: center;
+    background: var(--im-warn-bg);
+    border-radius: 50%;
+    color: var(--im-warn-fg);
+    display: flex;
+    font-size: 1.8rem;
+    height: 4rem;
+    justify-content: center;
+    width: 4rem;
+}
+
+.audit-log-confirm-copy h2 {
+    color: var(--portal-heading, #17283f);
+    font-size: 1.8rem;
+    margin: .2rem 0 .7rem;
+}
+
+.audit-log-confirm-copy p {
+    color: var(--portal-muted, #66778d);
+    font-size: 1.45rem;
+    margin: 0;
+}
+
+.audit-log-confirm-actions {
+    display: flex;
+    gap: 1rem;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-top: .6rem;
+}
+
+.version-comparison-detail-dialog {
+    max-height: calc(100vh - 4rem);
+    max-width: 104rem;
+    overflow: auto;
+    width: 100%;
+}
+
+.version-comparison-detail-dialog > header {
+    align-items: flex-start;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    display: flex;
+    justify-content: space-between;
+    padding: 2rem 2.4rem;
+}
+
+.version-comparison-detail-dialog h2 {
+    color: var(--portal-heading, #17283f);
+    font-size: 1.8rem;
+    margin: 0 0 .5rem;
+}
+
+.version-comparison-detail-dialog header p {
+    color: var(--portal-muted, #66778d);
+    margin: 0;
+}
+
+.version-comparison-detail-columns {
+    display: grid;
+    gap: 1.6rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 2.4rem;
+}
+
+.version-comparison-side {
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: .8rem;
+    overflow: hidden;
+}
+
+.version-comparison-side h3 {
+    background: var(--portal-soft, #f7f9fc);
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    color: var(--portal-heading, #17283f);
+    font-size: 1.5rem;
+    margin: 0;
+    padding: 1.4rem 1.6rem;
+}
+
+.version-comparison-side.before-side h3 i { color: var(--im-danger-fg); }
+.version-comparison-side.after-side h3 i { color: var(--im-ok-fg); }
+
+.version-comparison-side dl {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 1fr);
+    margin: 0;
+}
+
+.version-comparison-side dt,
+.version-comparison-side dd {
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    margin: 0;
+    min-height: 5rem;
+    padding: 1.4rem 1.6rem;
+}
+
+.version-comparison-side dt {
+    background: var(--portal-soft, #f7f9fc);
+    color: var(--portal-muted, #66778d);
+    font-weight: 500;
+}
+
+.version-comparison-side dd {
+    color: var(--portal-text, #25344b);
+    overflow-wrap: anywhere;
+}
+
+.version-comparison-side dt:last-of-type,
+.version-comparison-side dd:last-of-type {
+    border-bottom: 0;
+}
+
+/* ==========================================================================
+    12. 版本对比页
+   ========================================================================== */
+
+.version-comparison-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+}
+
+.version-comparison-filter-card,
+.version-comparison-summary-card,
+.version-comparison-detail-card {
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1rem;
+    box-shadow: var(--portal-shadow, 0 4px 20px rgba(32, 60, 101, .03));
+}
+
+.version-comparison-filter-card h1 {
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    color: var(--portal-heading, #17283f);
+    font-size: 1.7rem;
+    margin: 0;
+    padding: 1.8rem 2.6rem;
+}
+
+.version-comparison-filter-card .system-feedback {
+    margin: 1.6rem 2.6rem 0;
+}
+
+.version-comparison-application-row,
+.version-comparison-snapshot-field {
+    align-items: center;
+    display: grid;
+    gap: 1.4rem;
+    grid-template-columns: 5rem minmax(0, 1fr);
+}
+
+.version-comparison-application-row {
+    padding: 1.8rem 2.6rem 1rem;
+}
+
+.version-comparison-application-row label,
+.version-comparison-snapshot-field label {
+    color: var(--portal-muted, #66778d);
+    font-size: 1.4rem;
+    margin: 0;
+}
+
+.version-comparison-application-row .form-control,
+.version-comparison-snapshot-field .form-control {
+    margin: 0;
+    width: 100%;
+}
+
+.version-comparison-snapshot-grid {
+    display: grid;
+    gap: 2.4rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 1rem 2.6rem 2.4rem;
+}
+
+.version-comparison-summary-grid {
+    display: grid;
+    gap: 1.6rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.version-comparison-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    min-height: 9rem;
+    padding: 1.8rem 2.6rem;
+}
+
+.version-comparison-summary-card span {
+    color: var(--portal-muted, #66778d);
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+
+.version-comparison-summary-card strong {
+    color: var(--portal-heading, #17283f);
+    font-size: 2.4rem;
+}
+
+.version-comparison-detail-card {
+    margin-top: 1.6rem;
+    overflow: hidden;
+}
+
+.version-comparison-detail-header {
+    align-items: center;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    display: flex;
+    justify-content: space-between;
+    padding: 1.8rem 2.6rem;
+}
+
+.version-comparison-detail-header h2 {
+    color: var(--portal-heading, #17283f);
+    font-size: 1.7rem;
+    margin: 0 0 .5rem;
+}
+
+.version-comparison-detail-header p {
+    color: var(--portal-muted, #66778d);
+    margin: 0;
+}
+
+.version-comparison-change-total {
+    background: var(--portal-selected, #eaf2ff);
+    border-radius: 1.2rem;
+    color: var(--portal-blue, #2563d9);
+    padding: .3rem 1rem;
+    white-space: nowrap;
+}
+
+.version-comparison-change-list {
+    max-height: clamp(30rem, calc(100vh - 46rem), 52rem);
+    overflow: auto;
+}
+
+.version-comparison-change-item {
+    align-items: center;
+    background: var(--portal-surface, #fff);
+    border: 0;
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    border-left: 3px solid transparent;
+    color: inherit;
+    cursor: pointer;
+    display: grid;
+    font: inherit;
+    gap: 1.8rem;
+    grid-template-columns: 17rem minmax(0, 1fr) 2rem;
+    padding: 1.6rem 2.6rem;
+    text-align: left;
+    transition: background-color .15s ease;
+    width: 100%;
+}
+
+.version-comparison-change-item:last-child {
+    border-bottom: 0;
+}
+
+.version-comparison-change-item:hover,
+.version-comparison-change-item:focus-visible {
+    background: var(--portal-hover, #eef3f9);
+    outline: 0;
+}
+
+.version-comparison-change-item:focus-visible {
+    outline: 2px solid var(--portal-blue, #2563d9);
+    outline-offset: -2px;
+}
+
+/* 依据条目内的变更类型着左侧色条（不支持 :has 的浏览器自动降级为无色条）。 */
+.version-comparison-change-item:has(.version-comparison-change-type.added) {
+    border-left-color: var(--im-ok-fg);
+}
+
+.version-comparison-change-item:has(.version-comparison-change-type.modified) {
+    border-left-color: var(--im-warn-fg);
+}
+
+.version-comparison-change-item:has(.version-comparison-change-type.deleted) {
+    border-left-color: var(--im-danger-fg);
+}
+
+.version-comparison-change-meta {
+    align-items: center;
+    display: flex;
+    gap: .8rem;
+}
+
+.version-comparison-change-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    min-width: 0;
+}
+
+.version-comparison-change-copy strong,
+.version-comparison-change-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.version-comparison-change-copy strong {
+    color: var(--portal-text, #25344b);
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.version-comparison-change-copy small,
+.version-comparison-change-item > i {
+    color: var(--portal-muted, #66778d);
+}
+
+.version-comparison-empty {
+    color: var(--portal-muted, #66778d);
+    min-height: 11rem;
+    padding: 4.5rem 2rem;
+    text-align: center;
+}
+
+/* ==========================================================================
+    13. 交易资产详情页
+   ========================================================================== */
+
+.transaction-asset-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+}
+
+.transaction-asset-back {
+    align-self: flex-start;
+    color: var(--portal-blue, #2563d9);
+    font-size: 1.4rem;
+    text-decoration: none;
+}
+
+.transaction-asset-back:hover,
+.transaction-asset-back:focus {
+    color: var(--portal-blue-hover, #194fb4);
+    text-decoration: underline;
+}
+
+.transaction-asset-detail-card {
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1rem;
+    box-shadow: var(--portal-shadow, 0 4px 20px rgba(32, 60, 101, .03));
+    overflow: hidden;
+}
+
+.transaction-asset-detail-card h2 {
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    color: var(--portal-heading, #17283f);
+    font-size: 1.6rem;
+    margin: 0;
+    padding: 1.8rem 2rem;
+}
+
+.transaction-asset-basic-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 2rem;
+}
+
+.transaction-asset-basic-grid > div {
+    border: 1px solid var(--portal-line, #e5ebf2);
+    display: grid;
+    grid-template-columns: minmax(9rem, .7fr) minmax(12rem, 1.3fr);
+    margin: -1px 0 0 -1px;
+    min-width: 0;
+}
+
+.transaction-asset-basic-grid dt,
+.transaction-asset-basic-grid dd {
+    margin: 0;
+    min-width: 0;
+    padding: 1.3rem 1.4rem;
+}
+
+.transaction-asset-basic-grid dt {
+    background: var(--portal-soft, #f7f9fc);
+    color: var(--portal-muted, #66778d);
+    font-size: 1.35rem;
+    font-weight: 500;
+}
+
+.transaction-asset-basic-grid dd {
+    color: var(--portal-text, #25344b);
+    overflow-wrap: anywhere;
+}
+
+.transaction-asset-basic-grid .transaction-asset-source {
+    grid-column: span 2;
+}
+
+.transaction-asset-field-tabs {
+    border-bottom: 1px solid var(--portal-line, #e5ebf2);
+    display: flex;
+    gap: 2.6rem;
+    padding: 0 2rem;
+}
+
+.transaction-asset-field-tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--portal-muted, #66778d);
+    cursor: pointer;
+    font: inherit;
+    padding: 1.5rem .2rem 1.2rem;
+    transition: color .15s ease;
+}
+
+.transaction-asset-field-tab:hover,
+.transaction-asset-field-tab:focus {
+    color: var(--portal-blue, #2563d9);
+}
+
+.transaction-asset-field-tab:focus-visible {
+    outline: 2px solid var(--portal-blue, #2563d9);
+    outline-offset: -2px;
+}
+
+.transaction-asset-field-tab.active {
+    border-bottom-color: var(--portal-blue, #2563d9);
+    color: var(--portal-blue, #2563d9);
+    font-weight: 600;
+    outline: 0;
+}
+
+.transaction-asset-field-table-wrap {
+    max-height: 42rem;
+    overflow: auto;
+    padding: 1.4rem 2rem 2rem;
+}
+
+.transaction-asset-field-table {
+    min-width: 72rem;
+}
+
+.transaction-asset-field-table th:last-child {
+    box-shadow: none;
+    right: auto;
+}
+
+.transaction-asset-field-table td:last-child {
+    box-shadow: none;
+    position: static;
+}
+
+.transaction-asset-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ==========================================================================
+    14. 占位页
+   ========================================================================== */
+
 .management-placeholder {
     border: 0;
     box-shadow: none;
@@ -1713,10 +1736,10 @@ body.system-drawer-open { overflow: hidden; }
 
 .interface-placeholder {
     align-items: center;
-    background: #fff;
-    border: 1px solid #edf0f4;
-    border-radius: .6rem;
-    box-shadow: 0 4px 14px rgba(25, 39, 75, .06);
+    background: var(--portal-surface, #fff);
+    border: 1px solid var(--portal-line, #e5ebf2);
+    border-radius: 1rem;
+    box-shadow: var(--portal-shadow, 0 4px 20px rgba(32, 60, 101, .03));
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1725,178 +1748,84 @@ body.system-drawer-open { overflow: hidden; }
 }
 
 .placeholder-icon {
-    color: #1683e3;
-    font-size: 4.5rem;
+    align-items: center;
+    background: var(--portal-selected, #eaf2ff);
+    border-radius: 50%;
+    color: var(--portal-blue, #2563d9);
+    display: inline-flex;
+    font-size: 2.4rem;
+    height: 6.4rem;
+    justify-content: center;
+    width: 6.4rem;
 }
 
 .interface-placeholder h1 {
-    color: #202733;
+    color: var(--portal-heading, #17283f);
     margin-top: 1.6rem;
 }
 
 .interface-placeholder p {
-    color: #77808e;
+    color: var(--portal-muted, #66778d);
     font-size: 1.6rem;
 }
 
-.dark-mode .interface-shell { background: #20252b; }
-.dark-mode .interface-header,
-.dark-mode .summary-card,
-.dark-mode .activity-card,
-.dark-mode .management-card,
-.dark-mode .interface-placeholder { background: #252b32; border-color: #343b44; }
-.dark-mode .interface-header { box-shadow: none; }
-.dark-mode .interface-title { border-color: #343b44; color: #f0f2f5; }
-.dark-mode .interface-tab { color: #c2c8d0; }
-.dark-mode .interface-tab:hover,
-.dark-mode .interface-tab:focus,
-.dark-mode .interface-tab.active { background: #26394a; color: #5eb6ff; }
-.dark-mode .activity-card h2 { border-color: #343b44; color: #f0f2f5; }
-.dark-mode .summary-copy span,
-.dark-mode .activity-date,
-.dark-mode .activity-state,
-.dark-mode .interface-placeholder p { color: #aab1ba; }
-.dark-mode .summary-copy strong,
-.dark-mode .activity-row,
-.dark-mode .interface-placeholder h1 { color: #eef1f4; }
-.dark-mode .activity-row + .activity-row { border-color: #343b44; }
-.dark-mode .management-subtabs,
-.dark-mode .system-table th,
-.dark-mode .system-table td,
-.dark-mode .system-drawer-header,
-.dark-mode .system-drawer-footer { border-color: #3a424c; }
-.dark-mode .management-subtab,
-.dark-mode .system-pagination { color: #b3bac4; }
-.dark-mode .management-subtab:hover,
-.dark-mode .management-subtab:focus,
-.dark-mode .management-subtab.active { color: #5eb6ff; }
-.dark-mode .system-table { color: #e4e7eb; }
-.dark-mode .system-table th { background: #20262d; color: #c7ccd3; }
-.dark-mode .system-table th:last-child { background: #20262d; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
-.dark-mode .system-table td:last-child { background: #252b32; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
-.dark-mode .table-column-resizer:hover::after,
-.dark-mode .table-column-resizer:focus::after,
-.dark-mode .table-column-resizer.is-dragging::after { background: #5eb6ff; }
-.dark-mode .scan-task-table-wrap { border-color: #3a424c; }
-.dark-mode .scan-task-table .scan-task-actions-column { background: #20262d; }
-.dark-mode .scan-task-table td:last-child { background: #252b32; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
-.dark-mode .application-snapshot-table-wrap { border-color: #3a424c; }
-.dark-mode .interface-inline-search-button { color: #929ba7; }
-.dark-mode .interface-inline-search-button:hover,
-.dark-mode .interface-inline-search-button:focus-visible { background: #26394a; color: #5eb6ff; }
-.dark-mode .application-snapshot-table .application-snapshot-actions-column { background: #20262d; }
-.dark-mode .application-snapshot-table td:last-child { background: #252b32; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
-.dark-mode .module-snapshot-table-wrap { border-color: #3a424c; }
-.dark-mode .module-snapshot-table .module-snapshot-actions-column { background: #20262d; }
-.dark-mode .module-snapshot-table td:last-child { background: #252b32; box-shadow: -3px 0 7px rgba(0, 0, 0, .18); }
-.dark-mode .transaction-asset-filter label { color: #c7ccd3; }
-.dark-mode .transaction-asset-table-wrap,
-.dark-mode .transaction-asset-basic-grid > div,
-.dark-mode .transaction-asset-field-tabs { border-color: #3a424c; }
-.dark-mode .transaction-asset-detail-card { background: #252b32; border-color: #343b44; box-shadow: none; }
-.dark-mode .transaction-asset-detail-card h2 { border-color: #343b44; color: #eef1f4; }
-.dark-mode .transaction-asset-basic-grid dt { background: #20262d; color: #b9c0c9; }
-.dark-mode .transaction-asset-basic-grid dd { color: #e4e7eb; }
-.dark-mode .transaction-asset-field-tab { color: #b3bac4; }
-.dark-mode .transaction-asset-field-tab:hover,
-.dark-mode .transaction-asset-field-tab:focus,
-.dark-mode .transaction-asset-field-tab.active { color: #5eb6ff; }
-.dark-mode .transaction-asset-field-table th:last-child,
-.dark-mode .transaction-asset-field-table td:last-child { box-shadow: none; }
-.dark-mode .transaction-asset-status.draft { background: #343a42; color: #c1c6cc; }
-.dark-mode .transaction-asset-status.identified { background: #173b57; color: #6dbdff; }
-.dark-mode .transaction-asset-status.confirmed { background: #193e2e; color: #68d39d; }
-.dark-mode .transaction-asset-status.published { background: #183e3c; color: #67d5cf; }
-.dark-mode .transaction-asset-status.deprecated { background: #4b3822; color: #f2b96f; }
-.dark-mode .transaction-asset-status.offline { background: #4d2530; color: #ff8c9c; }
-.dark-mode .asset-relation-table-wrap { border-color: #3a424c; }
-.dark-mode .asset-relation-table th:last-child,
-.dark-mode .asset-relation-table td:last-child { box-shadow: none; }
-.dark-mode .api-gateway-table-wrap { border-color: #3a424c; }
-.dark-mode .api-gateway-table th:last-child,
-.dark-mode .api-gateway-table td:last-child { box-shadow: none; }
-.dark-mode .audit-log-table-wrap { border-color: #3a424c; }
-.dark-mode .audit-log-date-filter span { color: #aab1ba; }
-.dark-mode .audit-log-confirm-dialog { background: #252b32; border-color: #3a424c; }
-.dark-mode .audit-log-confirm-copy h2 { color: #eef1f4; }
-.dark-mode .audit-log-confirm-copy p { color: #b3bac4; }
-.dark-mode .audit-log-confirm-icon { background: #4b3822; color: #f2b96f; }
-.dark-mode .version-comparison-filter-card,
-.dark-mode .version-comparison-summary-card,
-.dark-mode .version-comparison-detail-card,
-.dark-mode .version-comparison-detail-dialog { background: #252b32; border-color: #343b44; box-shadow: none; }
-.dark-mode .version-comparison-filter-card h1,
-.dark-mode .version-comparison-detail-header,
-.dark-mode .version-comparison-detail-dialog > header { border-color: #3a424c; }
-.dark-mode .version-comparison-filter-card h1,
-.dark-mode .version-comparison-summary-card strong,
-.dark-mode .version-comparison-detail-header h2,
-.dark-mode .version-comparison-detail-dialog h2 { color: #eef1f4; }
-.dark-mode .version-comparison-application-row label,
-.dark-mode .version-comparison-snapshot-field label,
-.dark-mode .version-comparison-summary-card span { color: #c7ccd3; }
-.dark-mode .version-comparison-detail-header p,
-.dark-mode .version-comparison-detail-dialog header p,
-.dark-mode .version-comparison-change-copy small,
-.dark-mode .version-comparison-change-item > i { color: #aab1ba; }
-.dark-mode .version-comparison-change-total { background: #26394a; color: #5eb6ff; }
-.dark-mode .version-comparison-change-item { background: #252b32; border-color: #343b44; }
-.dark-mode .version-comparison-change-item:hover,
-.dark-mode .version-comparison-change-item:focus-visible { background: #263139; }
-.dark-mode .version-comparison-change-copy strong { color: #e4e7eb; }
-.dark-mode .version-comparison-dimension { background: #343a42; color: #c1c6cc; }
-.dark-mode .version-comparison-change-type.added { background: #193e2e; color: #68d39d; }
-.dark-mode .version-comparison-change-type.modified { background: #4b3822; color: #f2b96f; }
-.dark-mode .version-comparison-change-type.deleted { background: #4d2530; color: #ff8c9c; }
-.dark-mode .version-comparison-side { border-color: #3a424c; }
-.dark-mode .version-comparison-side h3,
-.dark-mode .version-comparison-side dt { background: #20262d; color: #c7ccd3; }
-.dark-mode .version-comparison-side h3,
-.dark-mode .version-comparison-side dt,
-.dark-mode .version-comparison-side dd { border-color: #3a424c; }
-.dark-mode .version-comparison-side dd { color: #e4e7eb; }
-.dark-mode .scan-task-status.init { background: #343a42; color: #c1c6cc; }
-.dark-mode .scan-task-status.running { background: #173b57; color: #6dbdff; }
-.dark-mode .scan-task-status.success { background: #193e2e; color: #68d39d; }
-.dark-mode .scan-task-status.fail { background: #4d2530; color: #ff8c9c; }
-.dark-mode .system-status.active { background: #193e2e; color: #68d39d; }
-.dark-mode .system-status.offline { background: #343a42; color: #c1c6cc; }
-.dark-mode .system-drawer,
-.dark-mode .system-drawer-footer { background: #252b32; }
-.dark-mode .system-drawer-header h2 { color: #eef1f4; }
+/* ==========================================================================
+    15. 动效偏好
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    a.summary-card,
+    .activity-row,
+    .interface-tab,
+    .management-subtab,
+    .system-table tbody tr,
+    .system-table-action,
+    .interface-inline-search-button,
+    .transaction-asset-field-tab,
+    .version-comparison-change-item {
+        transition: none;
+    }
+
+    .system-feedback:not([hidden]),
+    .dashboard-error:not([hidden]) {
+        animation: none;
+    }
+}
+
+/* ==========================================================================
+    16. 响应式
+   ========================================================================== */
 
 @media (max-width: 1100px) {
     .dashboard-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .interface-title { padding: 0 1.6rem; }
-    .interface-tab { padding: 0 1.5rem; }
+    .interface-tab { padding: 0 1.4rem; }
     .transaction-asset-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .transaction-asset-basic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
     .interface-header { display: block; }
-    .interface-title { border-bottom: 1px solid #e6e9ed; border-right: 0; height: 5.2rem; }
+    .interface-title { border-bottom: 1px solid var(--portal-line, #e5ebf2); border-right: 0; height: 5.2rem; }
     .interface-tabs { height: 5.4rem; }
     .interface-main { padding: 1.6rem; }
     .dashboard-summary { gap: 1.6rem; grid-template-columns: 1fr; }
-    .summary-card { min-height: 10rem; padding: 1.8rem 2.2rem; }
+    .summary-card { min-height: 10rem; padding: 1.8rem 2rem; }
     .application-snapshot-toolbar,
     .application-snapshot-filters { align-items: stretch; flex-direction: column; }
     .application-snapshot-app-filter,
-    .application-snapshot-version-filter { flex-basis: auto; max-width: none; width: 100%; }
-    #application-snapshot-compare { align-self: flex-end; }
-    .module-snapshot-toolbar { align-items: stretch; flex-direction: column; }
+    .application-snapshot-version-filter,
     .module-snapshot-app-filter,
-    .module-snapshot-id-filter { flex-basis: auto; max-width: none; width: 100%; }
-    .asset-relation-search-filter { flex-basis: auto; max-width: none; width: 100%; }
-    .api-gateway-toolbar { align-items: stretch; flex-direction: column; }
+    .module-snapshot-id-filter,
+    .asset-relation-search-filter,
     .api-gateway-code-filter,
     .api-gateway-name-filter,
-    .api-gateway-status-filter { flex-basis: auto; max-width: none; width: 100%; }
-    .audit-log-toolbar { align-items: stretch; flex-direction: column; }
+    .api-gateway-status-filter,
     .audit-log-type-filter,
     .audit-log-operator-filter,
-    .audit-log-date-filter { flex-basis: auto; max-width: none; width: 100%; }
+    .audit-log-date-filter,
+    .scan-application-filter { flex-basis: auto; max-width: none; width: 100%; }
+    #application-snapshot-compare { align-self: flex-end; }
     .audit-log-batch-delete { align-self: flex-end; margin-left: 0; }
     .version-comparison-snapshot-grid,
     .version-comparison-summary-grid,
@@ -1911,11 +1840,10 @@ body.system-drawer-open { overflow: hidden; }
     .activity-card { margin-top: 1.6rem; }
     .activity-row { grid-template-columns: 1fr; }
     .activity-date { text-align: left; }
-    .management-card { min-height: 48rem; }
-    .management-subtabs { gap: 2.6rem; padding: 0 1.8rem; }
+    .management-card { min-height: 32rem; }
+    .management-subtabs { gap: 2.4rem; padding: 0 1.8rem; }
     .management-panel { padding: 1.2rem 1.6rem 2rem; }
-    .scan-task-toolbar { align-items: stretch; flex-direction: column; padding: .8rem 0 1.2rem; }
-    .scan-application-filter { max-width: none; }
+    .scan-task-toolbar { align-items: stretch; flex-direction: column; }
     .scan-task-toolbar > .btn { align-self: flex-end; }
     .system-pagination { justify-content: flex-start; }
     .system-drawer { width: 100%; }
@@ -1924,5 +1852,4 @@ body.system-drawer-open { overflow: hidden; }
     .application-field-full { grid-column: auto; }
     .system-drawer-header { padding: 0 1.8rem; }
     .system-drawer-footer { padding: 1.2rem 1.8rem; }
-    .dark-mode .interface-title { border-color: #343b44; }
 }
