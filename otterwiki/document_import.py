@@ -4,10 +4,11 @@
 
 from __future__ import annotations
 
+import importlib.util
+import inspect
 import os
 import shutil
 import stat
-import importlib.util
 import sys
 import tempfile
 import time
@@ -292,8 +293,19 @@ def _run_migration(
     try:
         with repo.config_writer() as config:
             config.set_value("receive", "denyCurrentBranch", "updateInstead")
+        # Some older base images contain an earlier copy of the migration
+        # helper without the optional ``progress`` argument.  A stale top-level
+        # ``scripts`` package can shadow the copy installed with OtterWiki.
+        # Keep imports from such images functional while the Docker build also
+        # removes the stale package below.
+        migration_parameters = inspect.signature(Migration).parameters
+        migration_kwargs = (
+            {"progress": progress}
+            if "progress" in migration_parameters
+            else {}
+        )
         migration = Migration(
-            source_root, stage_repo, True, False, progress=progress
+            source_root, stage_repo, True, False, **migration_kwargs
         )
         try:
             if progress:

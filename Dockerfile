@@ -38,8 +38,8 @@ USER root
 ARG GIT_TAG
 ENV GIT_TAG=$GIT_TAG
 WORKDIR /app
-# 先移除基础镜像的旧文件，避免 COPY 覆盖后残留旧依赖的元数据或旧静态资源。
-RUN rm -rf /opt/venv /app/otterwiki/static
+# 先移除基础镜像的旧文件，避免旧迁移脚本优先于本次 wheel 中的版本被加载。
+RUN rm -rf /opt/venv /app/otterwiki/static /app/scripts
 COPY --from=build-stage /opt/venv /opt/venv
 # Nginx 直接提供静态文件，使用本次源码中的版本。
 COPY otterwiki/static /app/otterwiki/static
@@ -49,6 +49,8 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/stop-supervisor.sh /etc/supervisor/stop-supervisor.sh
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod 755 /entrypoint.sh /etc/supervisor/stop-supervisor.sh
+# 在最终运行目录校验实际会加载本次 wheel 中的迁移脚本，而不是基础镜像残留。
+RUN /opt/venv/bin/python -c 'from inspect import signature; from scripts.migrate_apstack_docs import Migration; assert "progress" in signature(Migration).parameters'
 EXPOSE 80 8080
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 --start-period=30s \
     CMD curl -A "docker-healthcheck" -f http://localhost:8080/-/healthz || exit 1

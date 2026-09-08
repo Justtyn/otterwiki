@@ -117,6 +117,27 @@ def test_admission_idempotency_permissions_and_restore(
     assert admin_client.get("/apstack6").status_code == 200
 
 
+def test_submission_allows_repository_without_commits(
+    admin_client, app_with_user, tmp_path, held_task
+):
+    source = _write_apstack_source(tmp_path / "source")
+    empty_path = tmp_path / "empty-repository"
+    empty = git.Repo.init(empty_path)
+    old_path, old_repo = app_with_user.storage.path, app_with_user.storage.repo
+    app_with_user.storage.path = str(empty_path)
+    app_with_user.storage.repo = empty
+    try:
+        response = admin_client.post(URL, data=payload(source))
+        assert response.status_code == 202, response.text
+        args = held_task.pop()
+        assert args[-1]["old_commit"] is None
+        args[-2].release()
+    finally:
+        app_with_user.storage.path = old_path
+        app_with_user.storage.repo = old_repo
+        empty.close()
+
+
 def test_thread_start_failure_releases_everything(
     admin_client, app_with_user, tmp_path, monkeypatch
 ):
@@ -344,6 +365,41 @@ def test_checkpoint_recovery(point, tmp_path):
         {"REPOSITORY": str(target), "DOCUMENT_IMPORT_TASK_ROOT": str(root)}
     )
     assert blocked(root, target) == (point == "unknown")
+
+
+@pytest.mark.parametrize("point", ["before", "between"])
+def test_empty_repository_checkpoint_recovery(point, tmp_path):
+    target, backup, stage = (
+        tmp_path / name for name in ("repo", "backup", "stage")
+    )
+    git.Repo.init(target).close()
+    new = make_repo(stage, "new")
+    data = dict(
+        id="empty-checkpoint-test",
+        target=str(target),
+        backup=str(backup),
+        stage=str(stage),
+        old_commit=None,
+        commit=new,
+        phase="converting" if point == "before" else "switching",
+        status="running",
+        maintenance=True,
+    )
+    if point == "between":
+        os.replace(target, backup)
+    root = tmp_path / "tasks"
+    write_journal(root, data)
+
+    recover_before_storage(
+        {"REPOSITORY": str(target), "DOCUMENT_IMPORT_TASK_ROOT": str(root)}
+    )
+
+    result = json.loads((root / "empty-checkpoint-test.json").read_text())
+    assert result["status"] == "interrupted"
+    assert result["maintenance"] is False
+    assert repo_commit(target) is None
+    with git.Repo(target) as repo:
+        assert repo.git.status("--porcelain") == ""
 
 
 def test_cross_process_lock_and_request_timeout(tmp_path):

@@ -218,6 +218,25 @@ def repo_commit(path):
         return None
 
 
+def repo_matches_commit(path, expected):
+    """Return whether a valid repository matches a commit or an unborn HEAD."""
+    import git
+
+    try:
+        with git.Repo(path) as repo:
+            if repo.head.is_valid():
+                return (
+                    expected is not None
+                    and repo.head.commit.hexsha == expected
+                )
+            # A repository without commits has no HEAD object.  Status still
+            # validates that the worktree and index are readable.
+            repo.git.status("--porcelain")
+            return expected is None
+    except (OSError, ValueError, git.GitError):
+        return False
+
+
 def recover_journal(root, data):
     """调用方必须持有执行锁；恢复目录缺口，不自动重复导入。"""
     target = Path(data["target"])
@@ -225,13 +244,19 @@ def recover_journal(root, data):
     expected = data.get("commit")
     data["status"] = "interrupted"
     if data.get("phase") not in ("switching", "finishing", "succeeded") and (
-        data.get("old_commit") and repo_commit(target) == data["old_commit"]
+        "old_commit" in data
+        and repo_matches_commit(target, data["old_commit"])
     ):
         data["maintenance"] = False
         data["error"] = (
             "任务已中断，原仓库未替换；请重新选择导入源并确认后重试。"
         )
-    elif not target.exists() and backup and repo_commit(backup):
+    elif (
+        not target.exists()
+        and backup
+        and "old_commit" in data
+        and repo_matches_commit(backup, data["old_commit"])
+    ):
         os.replace(backup, target)
         data["maintenance"] = False
         data["error"] = (
@@ -242,7 +267,9 @@ def recover_journal(root, data):
         data["error"] = (
             "仓库已切换，但任务未完整结束。请核对文档、附件和草稿，勿直接重复导入。"
         )
-    elif repo_commit(target) and data.get("old_commit") == repo_commit(target):
+    elif "old_commit" in data and repo_matches_commit(
+        target, data["old_commit"]
+    ):
         data["maintenance"] = False
         data["error"] = "任务已中断，当前仍为原仓库；请核对后重新导入。"
     else:

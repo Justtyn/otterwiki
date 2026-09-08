@@ -123,6 +123,33 @@ def test_staging_repository_is_closed_before_it_is_moved(tmp_path):
     assert (moved / ".git").is_dir()
 
 
+def test_run_migration_supports_legacy_helper_without_progress(
+    tmp_path, monkeypatch
+):
+    import otterwiki.document_import as document_import
+
+    source = _write_apstack_source(tmp_path / "APStackDoc")
+    real_migration = document_import.Migration
+
+    class LegacyMigration(real_migration):
+        def __init__(self, source, target_repo, apply, refresh):
+            super().__init__(source, target_repo, apply, refresh)
+
+    monkeypatch.setattr(document_import, "Migration", LegacyMigration)
+
+    migration, verification, commit = document_import._run_migration(
+        source,
+        tmp_path / "legacy-stage",
+        ImportLimits(),
+        ("Test", "test@example.org"),
+        lambda *_args: None,
+    )
+
+    assert migration.stats.source_pages == 3
+    assert verification
+    assert commit
+
+
 def test_tree_removal_retries_after_windows_access_denied(
     tmp_path, monkeypatch
 ):
