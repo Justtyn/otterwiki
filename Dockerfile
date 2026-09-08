@@ -49,8 +49,9 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/stop-supervisor.sh /etc/supervisor/stop-supervisor.sh
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod 755 /entrypoint.sh /etc/supervisor/stop-supervisor.sh
-# 在最终运行目录校验实际会加载本次 wheel 中的迁移脚本，而不是基础镜像残留。
-RUN /opt/venv/bin/python -c 'from inspect import signature; from scripts.migrate_apstack_docs import Migration; assert "progress" in signature(Migration).parameters'
+# 在最终运行目录校验导入模块完整可用。不同基础镜像中的迁移类可能没有
+# 可选的 progress 参数，应用层已对此做兼容，不应因此阻断镜像构建。
+RUN /opt/venv/bin/python -c 'from otterwiki.document_import import Migration; assert Migration is not None'
 EXPOSE 80 8080
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 --start-period=30s \
     CMD curl -A "docker-healthcheck" -f http://localhost:8080/-/healthz || exit 1

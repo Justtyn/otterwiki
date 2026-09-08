@@ -283,6 +283,15 @@ def test_admin_document_import_page_is_available(admin_client):
     assert "pageWrapper.inert" not in page
 
 
+def test_legacy_document_import_is_hidden_from_settings_sidebar(admin_client):
+    response = admin_client.get("/-/settings")
+
+    assert response.status_code == 200
+    page = response.data.decode()
+    assert 'href="/-/admin/document_import"' not in page
+    assert "旧版 APStack 导入" not in page
+
+
 def test_document_import_page_rejects_non_admin(other_client):
     assert other_client.get("/-/admin/document_import").status_code == 403
     assert (
