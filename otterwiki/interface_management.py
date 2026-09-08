@@ -46,7 +46,7 @@ API_GATEWAY_ASSET_STATUSES = (
     "waitTest",
     "waitPublish",
 )
-PACKAGE_SOURCE_TYPES = ("LOCAL_FILE", "LOCAL_DIR", "MAVEN_REPO")
+PACKAGE_SOURCE_TYPES = ("LOCAL_FILE", "LOCAL_DIR", "MAVEN_REPO", "HTTP_URL")
 SCAN_TASK_STATUSES = ("INIT", "RUNNING", "SUCCESS", "FAIL")
 MAX_RESPONSE_SIZE = 2 * 1024 * 1024
 
@@ -260,6 +260,26 @@ def fetch_dashboard_summary() -> dict[str, Any]:
 
 def _text(value: Any, max_length: int = 500) -> str:
     return str(value or "")[:max_length]
+
+
+def _local_datetime(value: Any) -> str:
+    text = _text(value, 100).strip()
+    if not text:
+        return ""
+    if len(text) == 16 and text[10] == "T" and text[13] == ":":
+        return text + ":00"
+    return text
+
+
+def _first_value(containers, keys, max_length=500):
+    for container in containers:
+        if not isinstance(container, dict):
+            continue
+        for key in keys:
+            value = container.get(key)
+            if value not in (None, ""):
+                return _text(value, max_length)
+    return ""
 
 
 def normalise_system_page(payload: Any) -> dict[str, Any]:
@@ -679,6 +699,7 @@ def _normalise_diff_side(value: Any, dimension: str) -> dict[str, Any] | None:
             "interfaceType": _text(
                 source.get("interfaceType")
                 or source.get("apiType")
+                or source.get("apiKind")
                 or source.get("assetType")
                 or source.get("type"),
                 200,
@@ -687,6 +708,8 @@ def _normalise_diff_side(value: Any, dimension: str) -> dict[str, Any] | None:
                 source.get("xmlPath")
                 or source.get("sourceFile")
                 or source.get("sourceFilePath")
+                or source.get("sourcePath")
+                or source.get("sourceXpath")
                 or source.get("path"),
                 2000,
             ),
@@ -708,17 +731,29 @@ def _normalise_diff_side(value: Any, dimension: str) -> dict[str, Any] | None:
             "required": _diff_flag(
                 source.get("required")
                 if source.get("required") is not None
-                else source.get("isRequired")
+                else (
+                    source.get("isRequired")
+                    if source.get("isRequired") is not None
+                    else source.get("requiredFlag")
+                )
             ),
             "multiple": _diff_flag(
                 source.get("multiple")
                 if source.get("multiple") is not None
-                else source.get("isMultiple")
+                else (
+                    source.get("isMultiple")
+                    if source.get("isMultiple") is not None
+                    else source.get("multiFlag")
+                )
             ),
             "array": _diff_flag(
                 source.get("array")
                 if source.get("array") is not None
-                else source.get("isArray")
+                else (
+                    source.get("isArray")
+                    if source.get("isArray") is not None
+                    else source.get("arrayFlag")
+                )
             ),
         }
     return {"value": _relation_json_text(source)}
@@ -913,22 +948,37 @@ def normalise_asset_relation_page(payload: Any) -> dict[str, Any]:
             continue
         relation = item.get("relation")
         record = relation if isinstance(relation, dict) else item
+        src_asset = item.get("srcAsset")
+        src_asset = src_asset if isinstance(src_asset, dict) else None
+        target_asset = item.get("targetAsset")
+        target_asset = target_asset if isinstance(target_asset, dict) else None
         sequence = record.get("seqNo")
         if sequence is None:
             sequence = record.get("sequenceNo")
+        if sequence is None:
+            sequence = item.get("seqNo")
         records.append(
             {
                 "relType": _text(
                     record.get("relType") or record.get("relationType"), 200
                 ),
-                "srcAssetCode": _text(
-                    record.get("srcAssetCode")
-                    or record.get("sourceAssetCode"),
-                    500,
+                "srcAssetCode": _first_value(
+                    [item, src_asset, record],
+                    (
+                        "srcAssetCode",
+                        "sourceAssetCode",
+                        "srcAssetId",
+                        "assetCode",
+                    ),
                 ),
-                "targetAssetCode": _text(
-                    record.get("targetAssetCode") or record.get("targetCode"),
-                    500,
+                "targetAssetCode": _first_value(
+                    [item, target_asset, record],
+                    (
+                        "targetAssetCode",
+                        "targetCode",
+                        "targetAssetId",
+                        "assetCode",
+                    ),
                 ),
                 "seqNo": _text(sequence if sequence is not None else "", 100),
                 "matchRule": _text(
@@ -1106,18 +1156,50 @@ def _asset_field_group(
     keys: tuple[str, ...],
     kinds: tuple[str, ...],
 ) -> list[dict[str, str]]:
+    accepted = {kind.upper() for kind in kinds}
+
+    # 1. named field lists (legacy/alternate contract)
     for container in (source, basic):
         for key in keys:
             value = container.get(key)
             if isinstance(value, list):
                 return _normalise_asset_fields(value)
 
+    # 2. flat field records carrying a scope/direction discriminator
+    field_records = source.get("fieldRecords")
+    if not isinstance(field_records, list):
+        field_records = basic.get("fieldRecords")
+    if isinstance(field_records, list):
+        scoped = [
+            item
+            for item in field_records
+            if isinstance(item, dict)
+            and _text(item.get("fieldScope") or item.get("scope"), 50).upper()
+            in accepted
+        ]
+        if scoped:
+            return _normalise_asset_fields(scoped)
+
+    # 3. grouped map keyed by scope (backend: fields -> {input/output/property})
+    grouped = source.get("fields")
+    if not isinstance(grouped, dict):
+        grouped = basic.get("fields")
+    if isinstance(grouped, dict):
+        for key in keys:
+            value = grouped.get(key)
+            if isinstance(value, list):
+                return _normalise_asset_fields(value)
+        for kind in kinds:
+            value = grouped.get(kind.lower())
+            if isinstance(value, list):
+                return _normalise_asset_fields(value)
+
+    # 4. flat list with a direction/fieldKind/category discriminator
     all_fields = source.get("fields")
     if not isinstance(all_fields, list):
         all_fields = basic.get("fields")
     if not isinstance(all_fields, list):
         return []
-    accepted = {kind.upper() for kind in kinds}
     return _normalise_asset_fields(
         [
             item
@@ -1144,6 +1226,10 @@ def normalise_transaction_asset_detail(payload: Any) -> dict[str, Any]:
         raise InterfaceAPIError("交易资产详情数据格式不正确。")
     nested = source.get("basicInfo") or source.get("asset")
     basic = nested if isinstance(nested, dict) else source
+    application = source.get("application")
+    application = application if isinstance(application, dict) else {}
+    app_snapshot = source.get("appSnapshot")
+    app_snapshot = app_snapshot if isinstance(app_snapshot, dict) else {}
 
     return {
         "assetId": _text(basic.get("assetId") or basic.get("id"), 200),
@@ -1156,10 +1242,18 @@ def normalise_transaction_asset_detail(payload: Any) -> dict[str, Any]:
         "assetType": _text(basic.get("assetType"), 30),
         "moduleSnapshotId": _text(basic.get("moduleSnapshotId"), 200),
         "applicationName": _text(
-            basic.get("applicationName") or basic.get("appName"), 500
+            basic.get("applicationName")
+            or basic.get("appName")
+            or application.get("appName")
+            or application.get("appCode"),
+            500,
         ),
-        "appVersion": _text(basic.get("appVersion"), 500),
-        "revisionNo": _text(basic.get("revisionNo"), 100),
+        "appVersion": _text(
+            basic.get("appVersion") or app_snapshot.get("appVersion"), 500
+        ),
+        "revisionNo": _text(
+            basic.get("revisionNo") or app_snapshot.get("revisionNo"), 100
+        ),
         "sourceFile": _text(
             basic.get("sourceFile")
             or basic.get("sourceFilePath")
@@ -1328,8 +1422,8 @@ def validate_audit_log_query(
     filters = {
         "actionType": action_type,
         "operator": _text(payload.get("operator"), 300).strip(),
-        "startTime": _text(payload.get("startTime"), 100).strip(),
-        "endTime": _text(payload.get("endTime"), 100).strip(),
+        "startTime": _local_datetime(payload.get("startTime")),
+        "endTime": _local_datetime(payload.get("endTime")),
     }
     query.update({key: value for key, value in filters.items() if value})
     return query
@@ -1340,7 +1434,7 @@ def fetch_audit_logs(
 ) -> dict[str, Any]:
     query = validate_audit_log_query(payload, page_no, page_size)
     return normalise_audit_log_page(
-        request_api_json("POST", AUDIT_LOGS_PATH, json_body=query)
+        request_api_json("POST", AUDIT_LOGS_PATH, json_body={"request": query})
     )
 
 

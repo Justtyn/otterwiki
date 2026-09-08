@@ -748,7 +748,7 @@ def test_application_payload_rejects_invalid_package_source(create_app):
                 "systemId": "sys-1",
                 "appCode": "core",
                 "appName": "核心",
-                "packageSourceType": "HTTP_URL",
+                "packageSourceType": "UNKNOWN_TYPE",
             }
         )
     except interface_api.InterfaceAPIError as error:
@@ -928,22 +928,31 @@ def test_asset_relation_list_forwards_filter_and_normalises_nested_relation(
         return {
             "code": 200,
             "data": {
-                "list": [
+                "records": [
                     {
+                        "srcAsset": {
+                            "assetId": "a1",
+                            "assetCode": "DirectInnerTran",
+                        },
+                        "srcAssetCode": "DirectInnerTran",
+                        "seqNo": 1,
                         "relation": {
-                            "relationType": "TXS_CALL_APS",
-                            "sourceAssetCode": "DirectInnerTran",
-                            "targetAssetCode": "DirectInnerAps",
-                            "sequenceNo": 1,
-                            "matchRules": "service_name",
-                            "relationAttributes": {
-                                "serviceName": "DirectInnerAps"
-                            },
-                            "unused": "discard",
-                        }
+                            "relId": "rel-1",
+                            "srcAssetId": "a1",
+                            "targetAssetId": "a2",
+                            "relType": "TXS_CALL_APS",
+                            "seqNo": 1,
+                            "matchRule": "service_name",
+                            "relAttrsJson": {"serviceName": "DirectInnerAps"},
+                        },
+                        "targetAsset": {
+                            "assetId": "a2",
+                            "assetCode": "DirectInnerAps",
+                        },
+                        "targetAssetCode": "DirectInnerAps",
                     }
                 ],
-                "totalElements": 1,
+                "total": 1,
                 "pageNo": 2,
                 "pageSize": 20,
             },
@@ -1073,34 +1082,50 @@ def test_transaction_asset_detail_normalises_basic_info_and_fields(
         return {
             "code": 200,
             "data": {
-                "basicInfo": {
-                    "id": "asset 1",
+                "asset": {
+                    "assetId": "asset 1",
                     "assetCode": "paymentCreate",
                     "assetName": "支付交易创建",
                     "assetType": "TXS",
                     "moduleSnapshotId": "module-snap-1",
-                    "appName": "支付应用",
-                    "appVersion": "8.7.0.2-RC-prog",
-                    "revisionNo": 2,
-                    "sourceFilePath": "service/payment.xml",
+                    "sourceFile": "service/payment.xml",
                     "unused": "discard",
                 },
-                "inputParams": [
+                "application": {
+                    "appId": "app-1",
+                    "appName": "支付应用",
+                },
+                "appSnapshot": {
+                    "appSnapshotId": "app-snap-1",
+                    "appVersion": "8.7.0.2-RC-prog",
+                    "revisionNo": 2,
+                },
+                "fieldRecords": [
                     {
-                        "code": "account_no",
-                        "displayName": "账户号",
-                        "dataType": "String",
-                        "unused": "discard",
-                    }
-                ],
-                "outputFields": [
+                        "fieldScope": "INPUT",
+                        "fieldCode": "account_no",
+                        "fieldName": "账户号",
+                        "fieldType": "String",
+                    },
                     {
+                        "fieldScope": "OUTPUT",
                         "fieldCode": "result_code",
                         "fieldName": "结果码",
                         "fieldType": "String",
-                    }
+                    },
+                    {
+                        "fieldScope": "PROPERTY",
+                        "fieldCode": "attr_x",
+                        "fieldName": "属性X",
+                        "fieldType": "String",
+                    },
+                    {
+                        "fieldScope": "UNKNOWN",
+                        "fieldCode": "ignored",
+                        "fieldName": "忽略",
+                        "fieldType": "String",
+                    },
                 ],
-                "attributes": [],
             },
         }
 
@@ -1136,7 +1161,13 @@ def test_transaction_asset_detail_normalises_basic_info_and_fields(
                 "fieldType": "String",
             }
         ],
-        "propertyFields": [],
+        "propertyFields": [
+            {
+                "fieldCode": "attr_x",
+                "fieldName": "属性X",
+                "fieldType": "String",
+            }
+        ],
     }
 
 
@@ -1466,17 +1497,17 @@ def test_audit_log_list_posts_filters_and_normalises_fields(
         return {
             "code": 200,
             "data": {
-                "content": [
+                "records": [
                     {
-                        "auditLogId": "log-1",
+                        "logId": "log-1",
                         "actionType": "SYSTEM_DELETE",
                         "targetName": "测试系统",
                         "operator": "admin",
-                        "createTime": "2026-09-02T14:25:15",
+                        "createdAt": "2026-09-02T14:25:15",
                         "unused": "discard",
                     }
                 ],
-                "totalElements": 17,
+                "total": 17,
                 "pageNo": 2,
                 "pageSize": 20,
             },
@@ -1506,12 +1537,14 @@ def test_audit_log_list_posts_filters_and_normalises_fields(
             "/idp/api/audit/logs",
             None,
             {
-                "pageNo": 2,
-                "pageSize": 20,
-                "actionType": "SYSTEM_DELETE",
-                "operator": "admin",
-                "startTime": "2026-09-01T08:00",
-                "endTime": "2026-09-02T18:00",
+                "request": {
+                    "pageNo": 2,
+                    "pageSize": 20,
+                    "actionType": "SYSTEM_DELETE",
+                    "operator": "admin",
+                    "startTime": "2026-09-01T08:00:00",
+                    "endTime": "2026-09-02T18:00:00",
+                }
             },
         )
     ]
