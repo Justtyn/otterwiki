@@ -7,151 +7,150 @@
 {% endif %}
 {% endmacro %}
 
-{{ heading("Emphasis") }}
+{{ heading("强调") }}
 <div class="row mb-10">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact">**<strong>bold</strong>**
-*<em>italics</em>*
-~~<strike>strikethrough</strike>~~
-==<mark>mark</mark>==
+<pre class="block-compact">**<strong>粗体</strong>**
+*<em>斜体</em>*
+~~<strike>删除线</strike>~~
+==<mark>高亮</mark>==
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
-<strong>bold</strong><br/>
-<em>italics</em><br/>
-<strike>strikethrough</strike><br/>
-<mark>mark</mark>
+<strong>粗体</strong><br/>
+<em>斜体</em><br/>
+<strike>删除线</strike><br/>
+<mark>高亮</mark>
 </div>
 </div>
-You can use backslash escapes to generate literal characters that are used for formatting otherwise, e.g.
+可以使用反斜杠转义来输入原本用于格式化的字符本身，例如：
 <div class="row">
 <div class="col-md-6 col-sm-12">
 <pre class="block-compact">
-\*literal asterisks\*
+\*字面星号\*
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
-*literal asterisks*
+*字面星号*
 </div>
 </div>
 
-{{ heading("Paragraphs and Line Breaks") }}
-To create paragraphs, use a blank line to separate one or more lines of text.
-A single newline does <em>not</em> render as a line break: consecutive lines
-are joined into one paragraph. To force a line break, end a line with two or
-more spaces or with a backslash <code>\</code>.
+{{ heading("段落与换行") }}
+要创建段落，请用一个或多个空行将文本分隔开。
+单个换行符<em>不会</em>渲染为换行：相邻的行会被合并为同一个段落。
+若要强制换行，可以在行尾输入两个或更多空格，
+也可以使用反斜杠 <code>\</code>。
 <div class="row">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact">A single newline
-is joined into one paragraph.
+<pre class="block-compact">单个换行
+会被合并进同一个段落。
 
-Two trailing spaces&nbsp;&nbsp;
-force a line break.
+行尾两个空格&nbsp;&nbsp;
+会强制换行。
 
-A trailing backslash\
-forces a line break, too.</pre>
+行尾一个反斜杠\
+同样会强制换行。</pre>
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
-<p>A single newline is joined into one paragraph.</p>
-<p>Two trailing spaces<br/>force a line break.</p>
-<p>A trailing backslash<br/>forces a line break, too.</p>
+<p>单个换行会被合并进同一个段落。</p>
+<p>行尾两个空格<br/>会强制换行。</p>
+<p>行尾一个反斜杠<br/>同样会强制换行。</p>
 </div>
 </div>
-<p class="mt-0 pt-0"><em>Note: Trailing spaces are invisible in the editor,
-so the trailing backslash is often the more practical choice. See the
+<p class="mt-0 pt-0"><em>注意：行尾空格在编辑器中不可见，
+因此使用行尾反斜杠通常更为可靠。详见
 <a href="https://www.markdownguide.org/basic-syntax/#line-breaks">Markdown
-Guide</a> for details.</em></p>
+指南</a>。</em></p>
 
-{{ heading("Headings") }}
+{{ heading("标题") }}
 
 <div class="row align-bottom my-5">
-<div class="col-md-6 col-sm-12 align-bottom"><code># h1 - Large header</code></div>
-<div class="col-md-6 col-sm-12"><h1 class="p-0 m-0">h1 - Large Header</h1></div>
+<div class="col-md-6 col-sm-12 align-bottom"><code># h1 - 大标题</code></div>
+<div class="col-md-6 col-sm-12"><h1 class="p-0 m-0">h1 - 大标题</h1></div>
 </div>
 <div class="row align-bottom my-5">
-<div class="col-md-6 col-sm-12 align-bottom"><code>## h2 - Medium header</code></div>
-<div class="col-md-6 col-sm-12"><h2 class="p-0 m-0">h2 - Medium Header</h2></div>
+<div class="col-md-6 col-sm-12 align-bottom"><code>## h2 - 中标题</code></div>
+<div class="col-md-6 col-sm-12"><h2 class="p-0 m-0">h2 - 中标题</h2></div>
 </div>
 <div class="row align-bottom my-5">
-<div class="col-md-6 col-sm-12 align-bottom"><code>### h3 - Small header</code></div>
-<div class="col-md-6 col-sm-12"><h3 class="p-0 m-0">h3 - Small Header</h3></div>
+<div class="col-md-6 col-sm-12 align-bottom"><code>### h3 - 小标题</code></div>
+<div class="col-md-6 col-sm-12"><h3 class="p-0 m-0">h3 - 小标题</h3></div>
 </div>
 <div class="row align-bottom my-5">
-<div class="col-md-6 col-sm-12 align-bottom"><code>#### h4 - Tiny header</code></div>
-<div class="col-md-6 col-sm-12"><h4 class="p-0 m-0">h4 - Tiny Header</h4></div>
+<div class="col-md-6 col-sm-12 align-bottom"><code>#### h4 - 超小标题</code></div>
+<div class="col-md-6 col-sm-12"><h4 class="p-0 m-0">h4 - 超小标题</h4></div>
 </div>
-</table>
-{{ heading("Lists") }}
+{{ heading("列表") }}
 <div class="row">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact">- Generic list items
-- in an unordered list</pre>
+<pre class="block-compact">- 无序列表中的
+- 列表项</pre>
 </div>
 <div class="col-md-6 col-sm-12" style="padding-left:3rem;">
 <ul class="p-0 m-0">
-  <li class="p-0 m-0">Generic list items</li>
-  <li class="p-0 m-0">in a unordered list</li>
+  <li class="p-0 m-0">无序列表中的</li>
+  <li class="p-0 m-0">列表项</li>
 </ul>
 </div>
 </div>
 <br/>
 <div class="row">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact">1. List items
-2. in an ordered list
-3. numbered with numbers</pre>
+<pre class="block-compact">1. 有序列表中的
+2. 列表项
+3. 按数字编号</pre>
 </div>
 <div class="col-md-6 col-sm-12" style="padding-left:3rem;">
 <ol class="p-0 m-0">
-  <li class="p-0 m-0">List items</li>
-  <li class="p-0 m-0">in an ordered list</li>
-  <li class="p-0 m-0">numbered with numbers</li>
+  <li class="p-0 m-0">有序列表中的</li>
+  <li class="p-0 m-0">列表项</li>
+  <li class="p-0 m-0">按数字编号</li>
 </ol>
 </div>
 </div>
 <br/>
 <div class="row">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact">1. Numbered list with
-    - a nested
-    - unordered list
-2. inside</pre>
+<pre class="block-compact">1. 带嵌套
+    - 无序
+    - 子列表的
+2. 有序列表</pre>
 </div>
 <div class="col-md-6 col-sm-12" style="padding-left:3rem;">
 <ol class="p-0 m-0">
-  <li class="p-0 m-0">Numbered list with
+  <li class="p-0 m-0">带嵌套
     <ul class="p-0 pl-20 m-0">
-      <li class="p-0 m-0">a nested</li>
-      <li class="p-0 m-0">unordered list</li>
+      <li class="p-0 m-0">无序</li>
+      <li class="p-0 m-0">子列表的</li>
     </ul>
   </li>
-  <li class="p-0 m-0">inside</li>
+  <li class="p-0 m-0">有序列表</li>
 </ol>
 </div>
-<p class="mt-0 pt-0"><em>Note: To create nested sublists, they must be indented the same number of spaces that a paragraph would need to be in order to be included in the list item. In other words, sublist markers must match the indentation of the content of the outer list items.</em></p>
+<p class="mt-0 pt-0"><em>注意：要创建嵌套子列表，子列表必须像段落一样缩进才能被包含在外层列表项之内。换句话说，子列表的缩进必须与外层列表项内容的缩进对齐。</em></p>
 </div>
 <br/>
 <div class="row">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact">- First list
-- of items
-* Second list
-* of items</pre>
+<pre class="block-compact">- 第一个列表
+- 的列表项
+* 第二个列表
+* 的列表项</pre>
 </div>
 <div class="col-md-6 col-sm-12" style="padding-left:3rem;">
 <ul class="p-0">
-  <li class="p-0 m-0">First list</li>
-  <li class="p-0 m-0">of items</li>
+  <li class="p-0 m-0">第一个列表</li>
+  <li class="p-0 m-0">的列表项</li>
 </ul>
 <ul class="p-0 m-0">
-  <li class="p-0 m-0">Second list</li>
-  <li class="p-0 m-0">of items</li>
+  <li class="p-0 m-0">第二个列表</li>
+  <li class="p-0 m-0">的列表项</li>
 </ul>
 </div>
-<p class="mt-0 pt-0"><em>Note: A blank line between items of the same bullet type does not create two separate lists — it makes the list <strong>loose</strong>, wrapping every item in a <code>&lt;p&gt;</code> tag (this follows the CommonMark standard). To produce two separate lists, use a different bullet character for the second list (<code>-</code>, <code>*</code>, or <code>+</code> are all valid).</em></p>
+<p class="mt-0 pt-0"><em>注意：相同项目符号的列表项之间加一个空行并不会拆分成两个列表——它会让列表变成"宽松"（<strong>loose</strong>）列表，把每一项都包进 <code>&lt;p&gt;</code> 标签（这遵循 CommonMark 标准）。若要拆成两个列表，请为第二个列表换用不同的项目符号（<code>-</code>、<code>*</code> 或 <code>+</code> 均可）。</em></p>
 </div>
 
-{{ heading("Links") }}
+{{ heading("链接") }}
 <div class="row">
 <div class="col-md-6 col-sm-12">
 <pre class="block-compact text-wrap">[[WikiPage]]</pre>
@@ -164,13 +163,13 @@ Guide</a> for details.</em></p>
 <div class="row">
 <div class="col-md-6 col-sm-12">
 {% if config.WIKILINK_STYLE.upper() == "LINKTITLE" %}
-<pre class="block-compact text-wrap">[[WikiPage|Text to display]]</pre>
+<pre class="block-compact text-wrap">[[WikiPage|显示文本]]</pre>
 {% else %}
-<pre class="block-compact text-wrap">[[Text to display|WikiPage]]</pre>
+<pre class="block-compact text-wrap">[[显示文本|WikiPage]]</pre>
 {% endif %}
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
-  <a href="#">Text to display</a>
+  <a href="#">显示文本</a>
 </div>
 </div>
 
@@ -185,79 +184,79 @@ Guide</a> for details.</em></p>
 
 <div class="row">
 <div class="col-md-6 col-sm-12">
-<pre class="block-compact text-wrap">[Link with text](http://example.com)</pre>
+<pre class="block-compact text-wrap">[带文本的链接](http://example.com)</pre>
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
-  <a href="#">Link with text</a>
+  <a href="#">带文本的链接</a>
 </div>
 </div>
 {% if config.WIKILINK_STYLE.upper() == "LINKTITLE" %}
-<p><em>Note: WikiLink-Style is in compatibility mode.</em></p>
+<p><em>注意：WikiLink 风格目前处于兼容模式。</em></p>
 {% endif %}
 
-{{ heading("Quotes") }}
+{{ heading("引用") }}
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
-<pre class="block-compact">&gt; This is a quote.
-&gt; It can span multiple lines!
-&gt;&gt; And multiple levels.
-&gt;&gt; *<em>With markdown syntax.</em>*</pre>
+<pre class="block-compact">&gt; 这是一段引用。
+&gt; 可以跨越多行！
+&gt;&gt; 也可以多级嵌套。
+&gt;&gt; *<em>并支持 Markdown 语法。</em>*</pre>
 </div>
 <div class="col-md-6 col-sm-12 page p-5">
-<blockquote class="m-t-0" style="margin-block-start: 0"><p style="margin-block-start: 0">This is a quote.
-It can span multiple lines!</p>
-<blockquote style="margin-block-start: 0"><p style="margin-block-start: 0">And multiple levels.</br>
-<em>With markdown syntax.</em></p>
+<blockquote class="m-t-0" style="margin-block-start: 0"><p style="margin-block-start: 0">这是一段引用。
+可以跨越多行！</p>
+<blockquote style="margin-block-start: 0"><p style="margin-block-start: 0">也可以多级嵌套。</br>
+<em>并支持 Markdown 语法。</em></p>
 </blockquote>
 </blockquote>
 </div>
 </div>
 
-{{ heading("Images") }}
-<p>You can copy n paste images directly into the editor, they will be uploaded as attachments.</p>
+{{ heading("图片") }}
+<p>你可以直接把图片复制粘贴到编辑器中，它们会作为附件上传。</p>
 <pre class="block-compact">![](http://www.example.com/image.jpg)</pre>
-<p>Check the attachments of a page, there are links for copy'n'paste.</p>
+<p>在页面的附件列表中可以找到可直接复制粘贴的链接。</p>
 
-{{ heading("Tables") }}
+{{ heading("表格") }}
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
-<pre class="block-compact">| Column 1 | Column 2 | Column 3 |
+<pre class="block-compact">| 第 1 列 | 第 2 列 | 第 3 列 |
 | -------- | -------- | -------- |
-| John     | Doe      | Peach    |
-| Mary     | Smith    | Banana   |</pre>
+| 张三     | 李四     | 苹果     |
+| 王五     | 赵六     | 香蕉     |</pre>
 </div>
 <div class="col-md-6 col-sm-12 p-5 page">
 <table>
 <thead><tr>
-<th>Column 1</th>
-<th>Column 2</th>
-<th>Column 3</th>
+<th>第 1 列</th>
+<th>第 2 列</th>
+<th>第 3 列</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>John</td>
-<td>Doe</td>
-<td>Peach</td>
+<td>张三</td>
+<td>李四</td>
+<td>苹果</td>
 </tr>
 <tr>
-<td>Mary</td>
-<td>Smith</td>
-<td>Banana</td>
+<td>王五</td>
+<td>赵六</td>
+<td>香蕉</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
 
-{{ heading("Code") }}
+{{ heading("代码") }}
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
-<pre class="block-compact text-wrap">Inline code `int n = 1` with backticks.</pre></div>
+<pre class="block-compact text-wrap">行内代码：用反引号包裹 `int n = 1`。</pre></div>
 <div class="col-md-6 col-sm-12 p-5">
-Inline code <code>int n = 1</code> with backticks.
+行内代码 <code>int n = 1</code> 用反引号包裹。
 </div>
 </div>
 
@@ -265,16 +264,16 @@ Inline code <code>int n = 1</code> with backticks.
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre>```
-Code Blocks
+代码块
 ```</pre></div>
 <div class="col-md-6 col-sm-12 p-5">
-<pre>Code Blocks</pre>
+<pre>代码块</pre>
 </div>
 </div>
 
 
 <div class="row">
-To add syntax highlighting, specify a language next to the backticks before the fenced code block.
+若要为代码块启用语法高亮，请在围栏代码块的三个反引号后标注语言。
 </div>
 
 <div class="row">
@@ -294,7 +293,7 @@ print("Hello World!")
 </div>
 
 <div class="row">
-To enable line numbers in the code block, append an equal sign <code>=</code> to the language.
+若要在代码块中显示行号，请在语言名后追加一个等号 <code>=</code>。
 </div>
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
@@ -308,47 +307,47 @@ print("Hello Line Numbers!")
 </div>
 </div>
 
-{{ heading("Mathjax") }}
+{{ heading("数学公式") }}
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
-<pre class="block-compact text-wrap">Inline math: `$a^2+b^2=c^2$`</pre></div>
+<pre class="block-compact text-wrap">行内公式：`$a^2+b^2=c^2$`</pre></div>
 <div class="col-md-6 col-sm-12 p-5">
-Inline Math: \(a^2+b^2=c^2\)
+行内公式：\(a^2+b^2=c^2\)
 </div>
 </div>
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
   <pre class="block-compact">
-Math block:
+公式块：
 ```math
 a^2+b^2=c^2
 ```
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 p-5">
-Math block:</br>
+公式块：</br>
 \[a^2+b^2=c^2\]
 </div>
 </div>
 
-\(\TeX\) like syntax:
+类似 \(\TeX\) 的语法：
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre class="block-compact">
-Inline Math: $a^2+b^2=c^2$
+行内公式：$a^2+b^2=c^2$
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 p-5">
-Inline Math: \(a^2+b^2=c^2\)
+行内公式：\(a^2+b^2=c^2\)
 </div>
 </div>
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre class="block-compact">
-Equation:
+等式：
 $$a^2+b^2=c^2$$
 </pre>
 </div>
@@ -357,132 +356,132 @@ $$a^2+b^2=c^2$$
 </div>
 </div>
 
-{{ heading("Footnotes") }}
+{{ heading("脚注") }}
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre class="block-compact">
-Footnote identifiers[^1] are single characters
-or words[^bignote]. And can be referenced
-multiple[^1] times.
+脚注标识符[^1]可以是单个字符
+或单词[^bignote]，并且可以被
+多次[^1]引用。
 
-[^1]: Footnotes can be a single line.
+[^1]: 脚注可以只有一行。
 
-[^bignote]: Or more complex.
+[^bignote]: 也可以更复杂。
 
-    Indent paragraphs to include them
-    in the footnote.
+    缩进的段落会被包含
+    在脚注内容里。
 
-    Add as many paragraphs as you like.
+    想写多少段都可以。
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 p-5">
-Footnote identifiers<sup class="footnote-ref" id="fnref-1"><a href="#fn-1">1</a></sup> are single characters or words<sup class="footnote-ref" id="fnref-2"><a href="#fn-2">2</a></sup>. And can be referenced multiple<sup class="footnote-ref" id="fnref-1"><a href="#fn-1">1</a></sup> times.
+脚注标识符<sup class="footnote-ref" id="fnref-1"><a href="#fn-1">1</a></sup>可以是单个字符或单词<sup class="footnote-ref" id="fnref-2"><a href="#fn-2">2</a></sup>，并且可以被多次引用<sup class="footnote-ref" id="fnref-1"><a href="#fn-1">1</a></sup>。
 <hr/>
 <section class="footnotes">
 <ol>
-<li id="fn-1" style="font-size: 1.2rem;"><i class="fas fa-long-arrow-alt-up"></i> <a href="#fnref-1" class="footnote">a</a>, <a href="#fnref-3" class="footnote">b</a> Footnotes can be a single line.</li>
-<li id="fn-bignote" style="font-size: 1.2rem;"><a href="#fnref-2" class="footnote"><i class="fas fa-long-arrow-alt-up"></i></a><p style="display:inline; font-size: 1.2rem;"> Or more complex.</p>
-<p style="font-size: 1.2rem;">Indent paragraphs to include them
-in the footnote.</p>
-<p style="font-size: 1.2rem;">Add as many paragraphs as you like.</p></li>
+<li id="fn-1" style="font-size: 1.2rem;"><i class="fas fa-long-arrow-alt-up"></i> <a href="#fnref-1" class="footnote">a</a>, <a href="#fnref-3" class="footnote">b</a> 脚注可以只有一行。</li>
+<li id="fn-bignote" style="font-size: 1.2rem;"><a href="#fnref-2" class="footnote"><i class="fas fa-long-arrow-alt-up"></i></a><p style="display:inline; font-size: 1.2rem;"> 也可以更复杂。</p>
+<p style="font-size: 1.2rem;">缩进的段落会被包含
+在脚注内容里。</p>
+<p style="font-size: 1.2rem;">想写多少段都可以。</p></li>
 <li id="fn-x-clacks-overhead" style="font-size: 1.2rem;"><a href="#" class="footnote"><i class="fas fa-long-arrow-alt-up"></i></a> GNU Terry Pratchett.</li>
 </ol>
 </section>
 </div>
 </div> {# row #}
 
-{{ heading("Abbreviations") }}
+{{ heading("缩写") }}
 
-Defining abbreviations allows tooltips to display when hovering on those abbreviations
+定义缩写后，鼠标悬停在缩写上就会显示提示内容
 
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre>
-The HTML specification is maintained by the W3C.
+HTML 规范由 W3C 维护。
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium</pre></div>
 
 <div class="col-md-6 col-sm-12 p-5">
-<p>The <abbr title="Hyper Text Markup Language">HTML</abbr> specification
-is maintained by the <abbr title="World Wide Web Consortium">W3C</abbr>.</p>
+<p><abbr title="Hyper Text Markup Language">HTML</abbr> 规范
+由 <abbr title="World Wide Web Consortium">W3C</abbr> 维护。</p>
 </div>
 </div>
 
-{{ heading("Blocks") }}
+{{ heading("区块") }}
 
-These special blocks are not part of the markdown standard, but
-are helpful for structuring content.
+这些特殊区块并不属于 Markdown 标准，
+但对组织内容结构非常有帮助。
 
-<h4>Fancy blocks</h4>
+<h4>花哨区块</h4>
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre class="block-compact">
 ::: info
-# Head of the block.
-With _formatted_ content.
+# 区块的标题。
+带 _格式化_ 的内容。
 :::
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 p-5">
-<div class="alert alert-primary mb-10"><h4 class="alert-heading">Head of the block</h4>
-With <em>formatted</em> content.</div>
+<div class="alert alert-primary mb-10"><h4 class="alert-heading">区块的标题</h4>
+带 <em>格式化</em> 的内容。</div>
 </div>
 </div> {# row #}
-Block styles available: <span class="alert alert-primary text-monospace" style="padding: 0.2rem">info</span>, <span class="alert alert-success text-monospace" style="padding: 0.2rem">success</span>, <span class="alert alert-secondary text-monospace" style="padding: 0.2rem">warning</span>, <span class="alert alert-danger text-monospace" style="padding: 0.2rem">danger</span> and <span class="alert text-monospace" style="padding: 0.2rem">none</span>.
+可用的区块样式：<span class="alert alert-primary text-monospace" style="padding: 0.2rem">info</span>、<span class="alert alert-success text-monospace" style="padding: 0.2rem">success</span>、<span class="alert alert-secondary text-monospace" style="padding: 0.2rem">warning</span>、<span class="alert alert-danger text-monospace" style="padding: 0.2rem">danger</span> 和 <span class="alert text-monospace" style="padding: 0.2rem">none</span>。
 
-<h4>Spoiler blocks</h4>
+<h4>揭秘区块</h4>
 <div class="row my-20">
 <div class="col-md-6 col-sm-12">
 <pre class="block-compact">
-&gt;! Spoiler blocks reveal their
-&gt;! content on click on the icon.
+&gt;! 揭秘区块会在点击图标后
+&gt;! 显示其隐藏的内容。
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
 <div class="spoiler">
 <button class="spoiler-button" onclick="otterwiki.toggle_spoiler(this)"><i class="far fa-eye"></i></button>
-<p>Spoiler blocks reveal their
-content on click on the icon.</p>
+<p>揭秘区块会在点击图标后
+显示其隐藏的内容。</p>
 </div>
 </div>
 </div>
 
-<h4>Folded blocks</h4>
+<h4>折叠区块</h4>
 <div class="row my-20 h-100">
 <div class="col-md-6 col-sm-12">
 <pre class="block-compact">
-&gt;| # Headline is used as summary
-&gt;| with the details folded.
+&gt;| 标题行会作为摘要显示
+&gt;| 详情内容被折叠起来。
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 pl-5">
 <details class="collapse-panel">
 <summary class="collapse-header">
-Headline is used as summary
+标题行会作为摘要显示
 </summary>
-<div class="collapse-content"><p>with the details folded.</p></div></details>
+<div class="collapse-content"><p>详情内容被折叠起来。</p></div></details>
 </div>
 </div>
 
-<h4>Alerts</h4>
+<h4>提示区块</h4>
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre class="block-compact">
 &gt; [!NOTE]
-&gt; Useful for highlighting special
-&gt; information.
+&gt; 适合用来突出显示
+&gt; 特别重要的信息。
 </pre>
 </div>
 <div class="col-md-6 col-sm-12 p-5">
-<div class="quote-alert quote-alert-note" style="margin:0;"><div class="quote-alert-header"><i class="fas fa-info-circle"></i> Note</div><p>Useful for highlighting special information.</p></div>
+<div class="quote-alert quote-alert-note" style="margin:0;"><div class="quote-alert-header"><i class="fas fa-info-circle"></i> 注意</div><p>适合用来突出显示特别重要的信息。</p></div>
 </div>
 </div> {# row #}
-Alerts available: <code>[!NOTE]</code>, <code>[!TIP]</code>, <code>[!IMPORTANT]</code>, <code>[!WARNING]</code> and <code>[!CAUTION]</code>.
+可用的提示类型：<code>[!NOTE]</code>、<code>[!TIP]</code>、<code>[!IMPORTANT]</code>、<code>[!WARNING]</code> 和 <code>[!CAUTION]</code>。
 
-{{ heading("Diagrams") }}
+{{ heading("图表") }}
 
-Using <a href="https://mermaid.js.org/">Mermaid</a> you can create diagrams and visualizations in your wiki pages.
+借助 <a href="https://mermaid.js.org/">Mermaid</a>，你可以在 Wiki 页面中创建图表和可视化内容。
 <div class="row">
 <div class="col-md-6 col-sm-12 p-5">
 <pre class="block-compact">
@@ -505,25 +504,25 @@ flowchart LR
 </div>
 </div> {# row #}
 
-Mermaid support all kinds of diagrams: flowcharts, class diagrams, pie charts, mindmaps, etc. For more information see the <a href="https://mermaid.js.org/intro/syntax-reference.html">Mermaid Documentation</a>.
+Mermaid 支持多种图表类型：流程图、类图、饼图、思维导图等。更多信息请参阅 <a href="https://mermaid.js.org/intro/syntax-reference.html">Mermaid 文档</a>。
 
-{{ heading("Embeddings") }}
+{{ heading("嵌入") }}
 
-An Otter Wiki supports Embeddings which are beyond the official Markdown syntax.
+An Otter Wiki 支持超出官方 Markdown 语法之外的嵌入（Embeddings）功能。
 
 {%- if embedding_info %}
 <ul class="mt-10">
     {%- for ei in embedding_info%}
-    <li class="font-size-14"><code>{{ '{{' }}{{ei[0]}}{{ '}}' }}</code>: {{ei[1]}}</li>
+    <li class="font-size-14"><code>{{ '{{' }}{{ei[0]}}{{ '}}' }}</code>：{{ei[1]}}</li>
     {%-endfor%}
 </ul>
 {%- endif %}
 
-See the <a href="/-/help/plugins#syntaxembeddings">Syntax/Embedding Guide</a> for details.
+详见 <a href="/-/help/plugins#syntaxembeddings">语法/嵌入指南</a>。
 
-{{ heading("Remark") }}
-There's actually a lot more to Markdown than this. See the official
-<a href="http://daringfireball.net/projects/markdown/basics">introduction</a> and
-<a href="http://daringfireball.net/projects/markdown/syntax">syntax</a> for more information.
+{{ heading("备注") }}
+Markdown 的能力远不止这些。更多信息请参阅官方
+<a href="http://daringfireball.net/projects/markdown/basics">入门介绍</a> 和
+<a href="http://daringfireball.net/projects/markdown/syntax">语法文档</a>。
 
-Please Note: An Otter Wiki is not using the official implementation. This might lead to small differences in the little things.
+请注意：An Otter Wiki 使用的并非官方 Markdown 实现，细节上可能存在细微差异。

@@ -59,14 +59,14 @@ def test_unknownembedding():
 }}
 """
     html, _, _ = render.markdown(md)
-    assert "Unknown Embedding:" in html
+    assert "未知嵌入：" in html
     assert "UnknownEmbeddingAAA" in html
 
     md = """
 {{UnknownEmbeddingBBB}}
 """
     html, _, _ = render.markdown(md)
-    assert "Unknown Embedding:" in html
+    assert "未知嵌入：" in html
     assert "UnknownEmbeddingBBB" in html
 
 
@@ -467,7 +467,7 @@ def test_imageframe_src_missing_attachment(create_app):
     assert response.status_code == 200
     html = response.data.decode()
     assert 'missing.png' in html
-    assert 'not found' in html.lower() or 'error' in html.lower()
+    assert "未找到" in html
 
 
 DATATABLE_MD = """\
@@ -975,7 +975,7 @@ def test_datatable_csv_missing_file(create_app):
     response = client.get("/Csvpage_miss/view")
     assert response.status_code == 200
     html = response.data.decode()
-    assert "not found" in html
+    assert "未找到" in html
 
 
 def test_datatable_csv_quotechar_default(create_app):
@@ -1301,10 +1301,10 @@ def test_attachmentlist_format_details(create_app):
     assert table_div is not None
     contents = table_div.decode_contents()
     assert "data.txt" in contents
-    assert "Size" in contents
-    assert "Date" in contents
-    assert "Author" not in contents
-    assert "Comment" not in contents
+    assert "大小" in contents
+    assert "日期" in contents
+    assert "作者" not in contents
+    assert "备注" not in contents
 
 
 def test_infobox_alias():
@@ -1738,7 +1738,7 @@ def test_video_no_src():
 }}
 """
     html, _, _ = render.markdown(md)
-    assert "Error" in html
+    assert "错误" in html
     assert "Video" in html
     soup = BeautifulSoup(html, "html.parser")
     assert soup.find("video") is None
@@ -2149,7 +2149,7 @@ https://youtu.be/dQw4w9WgXcQ
 }}
 """
     html, _, _ = render.markdown(md)
-    assert "Cannot mix YouTube links and file sources" in html
+    assert "不能在同一个 Video 嵌入中混用" in html
 
 
 def test_video_youtube_mobile_url():

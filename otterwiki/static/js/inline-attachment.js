@@ -152,7 +152,7 @@
      * Text which will be inserted when dropping or pasting a file.
      * Acts as a placeholder which will be replaced when the file is done with uploading
      */
-    progressText: '![Uploading file...]()',
+    progressText: '![上传文件中...]()',
 
     /**
      * When a file has successfully been uploaded the progressText
@@ -164,7 +164,7 @@
     /**
      * Text which will be used when uploading has failed
      */
-    errorText: "Error uploading file",
+    errorText: "文件上传失败",
 
     /**
      * Extra parameters which will be send when uploading a file

@@ -56,7 +56,7 @@ mistune.helpers.LINK_TITLE_RE = re.compile(  # pyright: ignore
 
 
 def _pre_copy_to_clipboard_tag():
-    return f"""<div class="copy-to-clipboard-outer"><div class="copy-to-clipboard-inner"><button class="btn alt-dm btn-xsm copy-to-clipboard" type="button"  onclick="otterwiki.copy_to_clipboard(this);"><i class="fa fa-copy" aria-hidden="true" alt="Copy to clipboard""></i></button></div><pre class="copy-to-clipboard code">"""
+    return f"""<div class="copy-to-clipboard-outer"><div class="copy-to-clipboard-inner"><button class="btn alt-dm btn-xsm copy-to-clipboard" type="button"  onclick="otterwiki.copy_to_clipboard(this);"><i class="fa fa-copy" aria-hidden="true" alt="复制到剪贴板""></i></button></div><pre class="copy-to-clipboard code">"""
 
 
 class CodeHtmlFormatter(HtmlFormatter):

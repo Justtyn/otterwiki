@@ -360,7 +360,7 @@ def is_valid_name(
 
     # Check if name is None or empty
     if not name or name.strip() == "":
-        return False, "name cannot be empty"
+        return False, "姓名不能为空"
 
     # Trim whitespace
     name = name.strip()
@@ -369,10 +369,10 @@ def is_valid_name(
     if len(name) < min_length:
         return (
             False,
-            f"name must be at least {min_length} character(s) long",
+            f"姓名长度至少需要 {min_length} 个字符",
         )
     if len(name) > max_length:
-        return False, f"name cannot exceed {max_length} characters"
+        return False, f"姓名不能超过 {max_length} 个字符"
 
     # Normalize unicode characters
     name = unicodedata.normalize('NFC', name)
@@ -381,7 +381,7 @@ def is_valid_name(
     if any(unicodedata.category(char).startswith('C') for char in name):
         return (
             False,
-            f"name contains invisible or control characters",
+            f"姓名包含不可见或控制字符",
         )
 
     # Allow letters from any language, spaces, hyphens, apostrophes
@@ -391,29 +391,29 @@ def is_valid_name(
     if not regex.match(valid_chars, name, regex.UNICODE):
         return (
             False,
-            f"name can only contain letters, spaces, hyphens, apostrophes, and periods",
+            f"姓名只能包含字母、空格、连字符、撇号和句点",
         )
 
     # Check for reasonable spacing (no double spaces, etc.)
     if '  ' in name:
-        return False, f"name cannot contain consecutive spaces"
+        return False, f"姓名不能包含连续空格"
 
     # Check for reasonable use of special characters
     if re.search(r'[\'\-\.]{2,}', name):
         return (
             False,
-            f"name cannot contain consecutive special characters",
+            f"姓名不能包含连续的特殊字符",
         )
 
     # Check for names that are just special characters
     if regex.match(r'^[\s\'\-\.]+$', name):
-        return False, f"name must contain at least one letter"
+        return False, f"姓名必须至少包含一个字母"
 
     # Check for names that are suspiciously repetitive
     if re.search(r'(.)\1{4,}', name):
         return (
             False,
-            f"name contains too many consecutive repeated characters",
+            f"姓名包含过多连续重复字符",
         )
 
     # Check for common placeholder names
@@ -433,13 +433,13 @@ def is_valid_name(
         "unknown",
     ]
     if name.lower() in placeholder_names:
-        return False, f"name appears to be a placeholder"
+        return False, f"姓名似乎是占位符"
 
     # Check for names with excessive capitalization
     if name.isupper() and len(name) > 2:
-        return False, f"name should not be all uppercase"
+        return False, f"姓名不应全部为大写"
 
-    return True, f"name is valid"
+    return True, f"姓名有效"
 
 
 def unquote_git_path(s: str) -> str:

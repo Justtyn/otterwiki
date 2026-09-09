@@ -134,7 +134,7 @@ def health_check():
     try:
         Preferences.query.all()
     except:
-        msg += [f"DB Error: Unable to query Preferences from DB."]
+        msg += [f"数据库错误：无法从数据库读取偏好设置。"]
     if len(msg) == 0:
         return True, ["ok"]
     return False, msg
@@ -490,17 +490,17 @@ def send_repository_error_notification(
             )
             return
 
-        subject = f"OtterWiki Repository Error - {operation_type} Failed"
+        subject = f"OtterWiki 仓库错误 - {operation_type} 失败"
 
         # Create email body
         body_lines = [
-            f"A repository operation has failed in your OtterWiki instance.",
+            f"你的 OtterWiki 实例中有一个仓库操作执行失败。",
             f"",
-            f"Operation: {operation_type}",
-            f"Remote URL: {remote_url}",
-            f"Error: {error_message}",
+            f"操作类型：{operation_type}",
+            f"远程地址：{remote_url}",
+            f"错误信息：{error_message}",
             f"",
-            f"Please check your repository configuration and git output.",
+            f"请检查你的仓库配置和 git 输出。",
         ]
 
         text_body = "\n".join(body_lines)

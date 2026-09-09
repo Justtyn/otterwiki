@@ -59,8 +59,8 @@ class DatatableEmbedding:
     def info(self):
         return (
             "DataTable",
-            "Renders sort-, search and pageable tables.",
-            "Syntax/Embeddings",
+            "渲染可排序、可搜索、可分页的表格。",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -68,26 +68,23 @@ class DatatableEmbedding:
         if category != self.info()[2]:
             return None
         return (
-            "Embeddings are additions to the standard markdown syntax"
-            " in An Otter Wiki. They provide capabilities beyond basic"
-            " markdown, such as special layout elements, enhanced"
-            " features, and entirely new functionality."
+            "嵌入（Embeddings）是对 An Otter Wiki 标准 Markdown 语法的扩展，"
+            "提供基础 Markdown 之外的能力，例如特殊的排版元素、"
+            "增强功能以及全新的特性。"
             " <br/><span class=\"text-secondary-dm bg-secondary-lm\">"
-            "Embeddings are an experimental feature and subject to"
-            " change.</span>\n\n"
-            "<h4>Usage</h4>\n\n"
-            "An embedding starts with <code>{{"
-            "<em>EmbeddingName</em></code> and ends with"
-            " <code>}}</code>. Between the opening and closing"
-            " braces you can pass **options** and **args**.\n\n"
-            "**Options** are key-value pairs separated by"
-            " `|` in the form"
-            " `|key=value`. "
-            "Each option starts with a `|` followed by"
-            " the key, an `=` and the value.\n\n"
-            "**Args** are any remaining lines that are not options."
-            " They form the body content of the embedding and can"
-            " contain regular markdown.\n\n"
+            "嵌入属于实验性功能，可能会随版本变化。</span>\n\n"
+            "<h4>用法</h4>\n\n"
+            "嵌入以 <code>{{"
+            "<em>嵌入名称</em></code> 开始，以"
+            " <code>}}</code> 结束。在前后大括号之间可以传入"
+            " **options（选项）** 和 **args（参数）**。\n\n"
+            "**选项**是以 `|` 分隔的键值对，"
+            "形式为 `|key=value`。"
+            "每个选项以 `|` 开头，后跟"
+            " 键名、`=` 和对应的值。\n\n"
+            "**参数**是除选项之外的其余行，"
+            "构成嵌入的内容主体，"
+            "可以包含普通 Markdown。\n\n"
             "```\n"
             "{{EmbeddingName\n"
             "|option1=value1\n"
@@ -95,10 +92,10 @@ class DatatableEmbedding:
             "args content (markdown)\n"
             "}}\n"
             "```\n"
-            "**Escaping:** Use <code>\\\\|</code> to include a"
-            " literal <code>|</code> in a key, value, or args."
-            " Use <code>\\\\=</code> to include a literal"
-            " <code>=</code> in a key.\n\n"
+            "**转义：**如需在键名、值或参数中包含字面意义的"
+            " <code>|</code>，请使用 <code>\\\\|</code>；"
+            "如需包含字面意义的 <code>=</code>，请使用"
+            " <code>\\\\=</code>。\n\n"
         )
 
     @hookimpl
@@ -108,7 +105,7 @@ class DatatableEmbedding:
 
         return """
 <div class="row mb-10">
-The DataTable Embedding is for turning markdown tables into datatables that can be paginated, search and sorted.
+DataTable 嵌入可以把 Markdown 表格转换成支持分页、搜索和排序的数据表格。
 <div class="col-md-8 col-sm-12">
 
 ```
@@ -155,7 +152,7 @@ The DataTable Embedding is for turning markdown tables into datatables that can 
 </div></div>
 
 <div class="row mb-10">
-CSV attachments can also be rendered as datatables:
+CSV 附件也可以渲染为数据表格：
 <div class="col-md-8 col-sm-12">
 
 ```
@@ -172,14 +169,14 @@ CSV attachments can also be rendered as datatables:
 
 </div><div class="col-md-4 col-sm-12 pl-20">
 
-Options specific to CSV:
-- `src`: filename of a CSV attachment on the page
-- `delimiter` field delimiter, default `;`
-- `quotechar` character used to quote fields, default `"`
-- `header` use first row as column headers (default `true`)
-- `columns` comma-separated list of columns to include, given as 1-based indices (`1` = first column) or header names
-- `column0` same as `columns`, but using 0-based indices (`0` = first column); ignored if `columns` is set
-- `headers` comma-separated list of column header labels (overrides CSV headers)
+CSV 专用选项：
+- `src`：页面中某个 CSV 附件的文件名
+- `delimiter`：字段分隔符，默认为 `;`
+- `quotechar`：字段引号字符，默认为 `"`
+- `header`：是否把第一行作为列标题（默认 `true`）
+- `columns`：要包含的列，以逗号分隔，可用从 1 开始的序号（`1` = 第一列）或列标题名
+- `column0`：与 `columns` 相同，但使用从 0 开始的序号（`0` = 第一列）；设置了 `columns` 时忽略此项
+- `headers`：以逗号分隔的列标题名称列表（覆盖 CSV 自带的标题）
 
 </div></div>
 """
@@ -211,8 +208,7 @@ Options specific to CSV:
         # component can only be an attempt to escape the repository.
         if '..' in src.replace('\\', '/').split('/'):
             raise ValueError(
-                f'datatable: invalid src "{src}", path traversal is not'
-                ' allowed.'
+                f'datatable：无效的 src "{src}"，' '不允许路径穿越。'
             )
 
         delimiter = args.options.get(
@@ -232,21 +228,21 @@ Options specific to CSV:
             parts = src.lstrip("/").rsplit("/", 1)
             if len(parts) != 2:
                 raise ValueError(
-                    f'datatable: invalid absolute src "{src}",'
-                    f' expected /pagepath/filename.'
+                    f'datatable：无效的绝对路径 src "{src}"，'
+                    f'应为 /页面路径/文件名。'
                 )
             att_pagepath, att_filename = parts
         else:
             # relative: attachment on the current page
             page = getattr(self, 'page', None)
             if page is None:
-                raise ValueError('no page context available.')
+                raise ValueError('当前没有可用的页面上下文。')
             att_pagepath = page.pagepath
             att_filename = src
 
         attachment = Attachment(att_pagepath, att_filename)
         if not attachment.exists():
-            raise ValueError(f'csv attachment "{src}" not found.')
+            raise ValueError(f'未找到 CSV 附件 "{src}"。')
         with open(attachment.abspath, 'r', encoding='utf-8', newline='') as f:
             content = f.read()
 
@@ -393,11 +389,27 @@ Options specific to CSV:
             jsoptions = [
                 f"perPageSelect: ["
                 + ",".join(
-                    f"[\"{perPageSelect[k]}\", {k}]"
+                    f'["{("全部" if perPageSelect[k] == "All" else perPageSelect[k])}", {k}]'
                     for k in sorted(perPageSelect.keys())
                 )
                 + "]"
             ]
+            # inject Chinese labels for the vendored simple-datatables UI
+            jsoptions.append(
+                "labels: "
+                + json.dumps(
+                    {
+                        "placeholder": "搜索…",
+                        "searchTitle": "在表格中搜索",
+                        "perPage": "条/页",
+                        "noRows": "没有数据",
+                        "noResults": "没有匹配的结果",
+                        "info": "显示第 {start} - {end} 条，共 {rows} 条",
+                        "pageTitle": "第 {page} 页",
+                    },
+                    ensure_ascii=False,
+                )
+            )
             for bool_option in self.bool_options:
                 if options.get(bool_option.lower(), None):
                     value = (
@@ -438,8 +450,8 @@ class ImageFrameEmbedding:
     def info(self):
         return (
             "ImageFrame",
-            "Render an image/images in a framed box next to the main content.",
-            "Syntax/Embeddings",
+            "在正文旁边以带边框的盒子展示一张或多张图片。",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -449,7 +461,7 @@ class ImageFrameEmbedding:
 
         return """
 <div class="row mb-10">
-Display images in frames on the wiki page.
+在 Wiki 页面中以边框盒子展示图片。
 </div><div class="row mb-10">
 
 <div class="col-md-8 col-sm-12">
@@ -466,7 +478,7 @@ Display images in frames on the wiki page.
 }}
 ```
 
-Use `|src=` to embed an attachment directly, with an optional `|alt=` text:
+可使用 `|src=` 直接嵌入附件，并可用可选的 `|alt=` 提供替代文字：
 
 ```
 {{ImageFrame
@@ -581,8 +593,8 @@ div.imageframe {
                     parts = src.lstrip("/").rsplit("/", 1)
                     if len(parts) != 2:
                         raise ValueError(
-                            f'ImageFrame: invalid absolute src "{src}",'
-                            f' expected /pagepath/filename.'
+                            f'ImageFrame：无效的绝对路径 src "{src}"，'
+                            f'应为 /页面路径/文件名。'
                         )
                     att_pagepath, att_filename = parts
                 else:
@@ -590,15 +602,13 @@ div.imageframe {
                     page = getattr(self, 'page', None)
                     if page is None:
                         raise ValueError(
-                            "ImageFrame |src= requires a page context."
+                            "ImageFrame 的 |src= 需要页面上下文。"
                         )
                     att_pagepath = page.pagepath
                     att_filename = src
                 attachment = Attachment(att_pagepath, att_filename)
                 if not attachment.exists():
-                    raise ValueError(
-                        f'ImageFrame: attachment "{src}" not found.'
-                    )
+                    raise ValueError(f'ImageFrame：未找到附件 "{src}"。')
                 alt = alt or mistune.escape(att_filename)
                 img_url = attachment.get_url()
             safe_img_url = _safe_attr_url(img_url)
@@ -631,8 +641,8 @@ class VideoEmbedding:
     def info(self):
         return (
             "Video",
-            "Embed a video from an url or an attachment",
-            "Syntax/Embeddings",
+            "通过链接或附件嵌入视频",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -641,8 +651,8 @@ class VideoEmbedding:
             return None
 
         return """<div class="row mb-10">
-Embed a video player that supports video and audio playback in your document,
-or embed a YouTube video by providing a YouTube URL.
+在文档中嵌入支持视频和音频播放的播放器，
+也可以通过提供 YouTube 链接嵌入 YouTube 视频。
 <div class="col-md-8 col-sm-12">
 
 ```
@@ -657,7 +667,7 @@ or embed a YouTube video by providing a YouTube URL.
 }}
 ```
 
-YouTube URLs (`youtube.com/watch?v=…` or `youtu.be/…`) are rendered as embedded iframes:
+YouTube 链接（`youtube.com/watch?v=…` 或 `youtu.be/…`）会渲染为内嵌的 iframe：
 
 ```
 {{Video
@@ -731,13 +741,13 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
         src = [s.strip() for s in src if s.strip()]
 
         if len(src) < 1:
-            raise ValueError("No src given.")
+            raise ValueError("未提供视频来源（src）。")
 
         yt_sources = [s for s in src if self._get_youtube_id(s)]
         file_sources = [s for s in src if not self._get_youtube_id(s)]
         if yt_sources and file_sources:
             raise ValueError(
-                "Cannot mix YouTube links and file sources in the same Video embedding."
+                "不能在同一个 Video 嵌入中混用 YouTube 链接和文件来源。"
             )
 
         # Build YouTube embed query params from options
@@ -763,7 +773,7 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
                 html_parts.append(
                     f'<iframe width="{width}" height="315"'
                     f' src="https://www.youtube.com/embed/{yt_id}{qs}"'
-                    f' title="YouTube video player" frameborder="0"'
+                    f' title="YouTube 视频播放器" frameborder="0"'
                     f' allow="accelerometer; autoplay; clipboard-write;'
                     f' encrypted-media; gyroscope; picture-in-picture; web-share"'
                     f' referrerpolicy="strict-origin-when-cross-origin"'
@@ -781,7 +791,7 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
             html_parts.append(
                 f'<video width="{width}" {" ".join(flags)}>\n'
                 f'{video_sources}\n'
-                f'Your browser does not support the video tag.\n'
+                f'你的浏览器不支持 video 标签。\n'
                 f'</video>'
             )
 
@@ -793,8 +803,8 @@ class InfoBoxEmbedding:
     def info(self):
         return (
             "InfoBox",
-            "Render structured information next to the main content in a standardized way",
-            "Syntax/Embeddings",
+            "以标准化的方式在正文旁边展示结构化信息",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -804,7 +814,7 @@ class InfoBoxEmbedding:
 
         return """
 <div class="row mb-10">
-An element for displaying structured data in a document.
+用于在文档中展示结构化数据的元素。
 <div class="col-md-8 col-sm-12">
 
 ````
@@ -827,8 +837,8 @@ markdown=True
 }}
 ````
 
-Note: On small screens the box automatically expands to full width regardless of the `width` option.
-The optional `|style=` allows additional inline CSS overrides.
+注意：在小屏幕上，无论 `width` 选项如何设置，盒子都会自动扩展为全宽。
+可选的 `|style=` 允许附加内联 CSS 覆盖。
 
 </div><div class="col-md-4 col-sm-12" style="padding-top:5px;">
 
@@ -971,8 +981,8 @@ class AttachmentListEmbedding:
     def info(self):
         return (
             "AttachmentList",
-            "Render the attachments to the current page as table.",
-            "Syntax/Embeddings",
+            "把当前页面的附件渲染为表格。",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -1026,16 +1036,16 @@ class AttachmentListEmbedding:
 
         # build header and rows depending on format
         if fmt == 'minimal':
-            header = f'<th>Attachment</th>'
+            header = f'<th>附件</th>'
         elif fmt == 'details':
-            header = f'<th>Filename</th><th>Size</th><th>Date</th>'
+            header = f'<th>文件名</th><th>大小</th><th>日期</th>'
         else:  # full
             header = (
-                f'<th>Attachment</th>'
-                f'<th>Size</th>'
-                f'<th>Date</th>'
-                f'<th>Author</th>'
-                f'<th>Comment</th>'
+                f'<th>附件</th>'
+                f'<th>大小</th>'
+                f'<th>日期</th>'
+                f'<th>作者</th>'
+                f'<th>备注</th>'
             )
 
         if show_icons:
@@ -1140,8 +1150,8 @@ class PageIndexEmbedding:
     def info(self):
         return (
             "PageIndex",
-            "Render a page index listing all pages below the" " current page.",
-            "Syntax/Embeddings",
+            "渲染一个页面索引，列出当前页面之下的所有页面。",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -1155,8 +1165,8 @@ class PageIndexEmbedding:
 
         return """
 <div class="row mb-10">
-Display a page index listing pages below the current page,
-optionally filtered by a glob pattern.
+展示一个页面索引，列出当前页面之下的页面，
+可选用 glob 模式进行过滤。
 <div class="col-md-8 col-sm-12">
 
 ```
@@ -1168,11 +1178,11 @@ optionally filtered by a glob pattern.
 }}
 ```
 
-Options:
-- `src`: glob pattern to filter pages by title (default `*`, matches all pages)
-- `style`: `pageindex` for the default letter-grouped layout, `list` for a plain unordered list (default `pageindex`)
-- `toc`: show page headings (default `false`; for `style=list` headings are rendered as nested sublists)
-- `toggle`: show the toggle for the page headings (default `true`, ignored for `style=list`)
+选项：
+- `src`：按页面标题过滤页面的 glob 模式（默认 `*`，匹配所有页面）
+- `style`：`pageindex` 为默认的按字母分组布局，`list` 为普通无序列表（默认 `pageindex`）
+- `toc`：是否显示页面标题（默认 `false`；`style=list` 时标题渲染为嵌套子列表）
+- `toggle`：是否显示页面标题的折叠开关（默认 `true`，`style=list` 时忽略）
 
 </div>
 <div class="col-md-4 col-sm-12">
@@ -1261,8 +1271,8 @@ class FigureEmbedding:
     def info(self):
         return (
             "Figure",
-            "Wrap content in a figure with an optional caption.",
-            "Syntax/Embeddings",
+            "把内容包装进可附标题的图示（figure）容器。",
+            "Syntax/Embeddings（语法/嵌入）",
         )
 
     @hookimpl
@@ -1272,8 +1282,8 @@ class FigureEmbedding:
 
         return """
 <div class="row mb-10">
-A container for emphasizing content blocks (code, tables, images, etc.)
-with an optional caption — similar to a LaTeX figure.
+用于强调内容块（代码、表格、图片等）的容器，
+可附可选标题 —— 类似 LaTeX 的 figure。
 <div class="col">
 
 ````

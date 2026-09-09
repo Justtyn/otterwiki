@@ -26,7 +26,7 @@ def test_preferences_testmail(app_with_user, admin_client):
         )
         assert rv.status_code == 200
         assert len(outbox) == 1
-        assert "test mail" in outbox[0].subject.lower()
+        assert "测试邮件" in outbox[0].subject
         assert "mail@example.org" in outbox[0].recipients
 
     with app_with_user.test_mail.record_messages() as outbox:
@@ -40,7 +40,7 @@ def test_preferences_testmail(app_with_user, admin_client):
         )
         assert rv.status_code == 200
         assert len(outbox) == 1
-        assert "test mail" in outbox[0].subject.lower()
+        assert "测试邮件" in outbox[0].subject
         assert "mail2@example.org" in outbox[0].recipients
 
     with app_with_user.test_mail.record_messages() as outbox:
@@ -54,7 +54,7 @@ def test_preferences_testmail(app_with_user, admin_client):
         )
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert "invalid email address" in html.lower()
+        assert "无效的电子邮箱地址" in html
 
 
 def test_update_preferences(app_with_user, admin_client):
@@ -224,10 +224,10 @@ def test_update_mail_preferences_errors(app_with_user, admin_client):
     assert rv.status_code == 200
     html = rv.data.decode()
     # check messages
-    assert "is not a valid email address" in html.lower()
+    assert "不是有效的电子邮箱地址" in html
     # and that the setting was not applied
     assert app_with_user.config['MAIL_DEFAULT_SENDER'] != wrong_sender
-    assert "mail port must be a valid port" in html.lower()
+    assert "邮件端口必须是有效端口号" in html
     assert app_with_user.config['MAIL_PORT'] != wrong_port
 
     # post empty values
@@ -240,10 +240,10 @@ def test_update_mail_preferences_errors(app_with_user, admin_client):
     assert rv.status_code == 200
     html = rv.data.decode()
     # MAIL_PORT can be empty
-    assert "mail port must be a valid port" not in html.lower()
+    assert "邮件端口必须是有效端口号" not in html
     # check required values
-    assert "is not a valid email address" in html.lower()
-    assert "mail server must not be empty" in html.lower()
+    assert "不是有效的电子邮箱地址" in html
+    assert "邮件服务器不能为空" in html
 
     # post wrong port
     rv = admin_client.post(
@@ -257,7 +257,7 @@ def test_update_mail_preferences_errors(app_with_user, admin_client):
     assert rv.status_code == 200
     html = rv.data.decode()
     # MAIL_PORT can be empty
-    assert "mail port must be a valid port" in html.lower()
+    assert "邮件端口必须是有效端口号" in html
 
 
 def test_preferences_403(app_with_user, other_client):
@@ -456,7 +456,7 @@ def test_user_edit(app_with_user, admin_client):
         "/-/user/1", data={"delete": True}, follow_redirects=True
     )
     assert rv.status_code == 200
-    assert "Unable to delete yourself" in rv.data.decode()
+    assert "无法删除当前登录的账户" in rv.data.decode()
 
     from otterwiki.auth import SimpleAuth, db
 
@@ -491,7 +491,7 @@ def test_user_edit(app_with_user, admin_client):
         follow_redirects=True,
     )
     # check error message
-    assert "User name must not be empty" in rv.data.decode()
+    assert "用户名不能为空" in rv.data.decode()
     user = SimpleAuth.User.query.filter_by(id=user.id).first()
     # assert name has not been changed
     assert user and user.name == "b"
@@ -501,29 +501,29 @@ def test_user_edit(app_with_user, admin_client):
         data={"name": "b", "email": "@b.org"},
         follow_redirects=True,
     )
-    assert "is not a valid email address" in rv.data.decode()
+    assert "不是有效的电子邮箱地址" in rv.data.decode()
     user = SimpleAuth.User.query.filter_by(id=user.id).first()
     assert user and user.email == "b@b.org"
     # test flags
     for value, label in [
-        ("is_admin", "admin"),
-        ("is_approved", "approved"),
-        ("allow_read", "read"),
-        ("allow_write", "write"),
-        ("allow_upload", "upload"),
+        ("is_admin", "管理员"),
+        ("is_approved", "已批准"),
+        ("allow_read", "读取"),
+        ("allow_write", "写入"),
+        ("allow_upload", "上传"),
     ]:
         rv = admin_client.post(
             f"/-/user/{user.id}",
             data={"name": "b", "email": "b@b.org", f"{value}": "True"},
             follow_redirects=True,
         )
-        assert f"Added {label} flag" in rv.data.decode()
+        assert f"添加“{label}”标记" in rv.data.decode()
         rv = admin_client.post(
             f"/-/user/{user.id}",
             data={"name": "b", "email": "b@b.org", f"{value}": ""},
             follow_redirects=True,
         )
-        assert f"Removed {label} flag" in rv.data.decode()
+        assert f"移除“{label}”标记" in rv.data.decode()
     # delete user
     rv = admin_client.post(
         f"/-/user/{user.id}", data={"delete": True}, follow_redirects=True
@@ -600,10 +600,7 @@ def test_user_management(app_with_user, admin_client):
     soup = BeautifulSoup(rv.data.decode(), "html.parser")
     scripts = soup.find_all("script", type="text/javascript")
     assert scripts
-    assert any(
-        r"You can\u0026#39;t remove all admins" in script.text
-        for script in scripts
-    )
+    assert any("不能移除所有管理员" in script.text for script in scripts)
 
     # test prevention of removing all approved users
     rv = admin_client.post(
@@ -618,10 +615,7 @@ def test_user_management(app_with_user, admin_client):
     soup = BeautifulSoup(rv.data.decode(), "html.parser")
     scripts = soup.find_all("script", type="text/javascript")
     assert scripts
-    assert any(
-        r"You can\u0026#39;t disable all users" in script.text
-        for script in scripts
-    )
+    assert any("不能停用所有用户" in script.text for script in scripts)
 
     # test approved flag
     rv = admin_client.post(
@@ -732,5 +726,5 @@ def test_user_add(app_with_user, admin_client):
     )
     assert rv.status_code == 200
     # check for toast
-    assert "User with this email exists" in rv.data.decode()
-    assert "Name must not be empty" in rv.data.decode()
+    assert "已存在使用该邮箱的用户" in rv.data.decode()
+    assert "姓名不能为空" in rv.data.decode()

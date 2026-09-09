@@ -44,8 +44,8 @@ class TestHousekeepingEmptyPages:
         )
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert empty_pagepath in html or "Page is empty" in html
-        assert header_pagepath in html or "Header only" in html
+        assert empty_pagepath in html or "页面为空" in html
+        assert header_pagepath in html or "仅标题" in html
 
     def test_housekeeping_clean_empty_pages(self, app_with_user, admin_client):
         """Test cleaning empty pages."""
@@ -109,8 +109,8 @@ class TestHousekeepingEmptyPages:
 
         if pagepath in html:
             assert (
-                "Header only" not in html
-                or pagepath not in html.split("Header only")[0].split("<")[-1]
+                "仅标题" not in html
+                or pagepath not in html.split("仅标题")[0].split("<")[-1]
             )
 
     def test_housekeeping_empty_pages_permissions(

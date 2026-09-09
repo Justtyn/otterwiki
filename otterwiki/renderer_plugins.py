@@ -1123,11 +1123,11 @@ class mistunePluginEmbeddings:
             )
         except Exception as e:
             # render exceptions in the output
-            output = f"<p class=\"text-danger\"><tt>{embedding_name}</tt> Error: {e}</p>"
+            output = f"<p class=\"text-danger\"><tt>{embedding_name}</tt> 错误：{e}</p>"
 
         if output is None:
             # no ouput means either no embedding has been found or nothing was rendered.
-            output = f"<p class=\"text-danger\">Unknown Embedding:&nbsp;<tt>{embedding_name}</tt></p>"
+            output = f"<p class=\"text-danger\">未知嵌入：&nbsp;<tt>{embedding_name}</tt></p>"
 
         if cursor:
             return cursormagicword + output

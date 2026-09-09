@@ -120,7 +120,7 @@
   <input name="name" type="text" class="form-control" id="name" value="{{current_user.name if current_user.name}}" {% if
     not auth_supported_features['editing'] %}disabled{% endif %}>
     <div class="form-text-plain">
-      请注意，修改姓名不会更改已有编辑历史中的署名。
+      修改姓名不会更改已有编辑历史中的署名。
     </div>
   </div>
   <div class="settings-actions">

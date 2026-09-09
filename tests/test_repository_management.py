@@ -127,7 +127,7 @@ class TestGitRemotePush:
         assert rv.status_code == 200
 
         html = rv.data.decode()
-        assert "Repository Management Preferences updated" in html
+        assert "仓库管理偏好设置已更新" in html
 
         # Check settings were saved
         assert app_with_user.config['GIT_REMOTE_PUSH_ENABLED'] == True
@@ -231,10 +231,7 @@ class TestGitRemotePush:
 
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert (
-            "SSH Remote URL is required when enabling automatic pushing"
-            in html
-        )
+        assert "启用自动推送时必须填写 SSH 远程地址" in html
 
         # Feature should remain disabled
         assert app_with_user.config['GIT_REMOTE_PUSH_ENABLED'] == False
@@ -295,7 +292,7 @@ class TestGitRemotePull:
         assert rv.status_code == 200
 
         html = rv.data.decode()
-        assert "Repository Management Preferences updated" in html
+        assert "仓库管理偏好设置已更新" in html
 
         # Check settings were saved
         assert app_with_user.config['GIT_REMOTE_PULL_ENABLED'] == True
@@ -323,10 +320,7 @@ class TestGitRemotePull:
 
         assert rv.status_code == 200
         html = rv.data.decode()
-        assert (
-            "SSH Remote URL is required when enabling automatic pulling"
-            in html
-        )
+        assert "启用自动拉取时必须填写 SSH 远程地址" in html
 
         # Feature should remain disabled
         assert app_with_user.config['GIT_REMOTE_PULL_ENABLED'] == False
@@ -471,7 +465,7 @@ class TestGitActionButtons:
         assert rv.status_code == 200
 
         html = rv.data.decode()
-        assert "Push Results" in html
+        assert "Push 结果" in html
         assert "Everything up-to-date" in html
 
         mock_push.assert_called_with(test_data['remote_url'], "", force=False)
@@ -495,7 +489,7 @@ class TestGitActionButtons:
         assert rv.status_code == 200
 
         html = rv.data.decode()
-        assert "Force Push Results" in html
+        assert "Force Push 结果" in html
         assert "Force push completed" in html
 
         mock_push.assert_called_with(test_data['remote_url'], "", force=True)
@@ -519,7 +513,7 @@ class TestGitActionButtons:
         assert rv.status_code == 200
 
         html = rv.data.decode()
-        assert "Pull Results" in html
+        assert "Pull 结果" in html
         assert "Already up to date." in html
 
         mock_pull.assert_called_with(test_data['remote_url'], "")
@@ -543,7 +537,7 @@ class TestGitActionButtons:
         assert rv.status_code == 200
 
         html = rv.data.decode()
-        assert "Reset To Remote Results" in html
+        assert "Reset To Remote 结果" in html
         assert "HEAD is now at" in html
 
         mock_reset.assert_called_with(test_data['remote_url'], "")
@@ -606,8 +600,8 @@ class TestGitActionButtons:
             follow_redirects=True,
         )
         html = rv.data.decode()
-        assert "Push Results" in html
-        assert "Push functionality is not enabled" in html
+        assert "Push 结果" in html
+        assert "推送功能未启用" in html
 
         # Test pull button when disabled
         rv = admin_client.post(
@@ -616,8 +610,8 @@ class TestGitActionButtons:
             follow_redirects=True,
         )
         html = rv.data.decode()
-        assert "Pull Results" in html
-        assert "Pull functionality is not enabled" in html
+        assert "Pull 结果" in html
+        assert "拉取功能未启用" in html
 
         # Test reset remote button when disabled
         rv = admin_client.post(
@@ -626,8 +620,8 @@ class TestGitActionButtons:
             follow_redirects=True,
         )
         html = rv.data.decode()
-        assert "Reset To Remote Results" in html
-        assert "Pull functionality is not enabled" in html
+        assert "Reset To Remote 结果" in html
+        assert "拉取功能未启用" in html
 
     @patch('otterwiki.repomgmt.get_repo_manager')
     def test_unavailable_repo_manager_handling(
@@ -646,8 +640,8 @@ class TestGitActionButtons:
             follow_redirects=True,
         )
         html = rv.data.decode()
-        assert "Push Results" in html
-        assert "Repository manager not available" in html
+        assert "Push 结果" in html
+        assert "仓库管理器不可用" in html
 
     def test_force_push_confirmation_dialog(
         self, app_with_user, admin_client, test_data
@@ -734,7 +728,7 @@ class TestRepositoryErrorNotifications:
 
             assert (
                 call_args[1]['subject']
-                == "OtterWiki Repository Error - Auto Push Failed"
+                == "OtterWiki 仓库错误 - Auto Push 失败"
             )
             assert call_args[1]['recipients'] == [
                 'admin1@example.com',
@@ -773,7 +767,7 @@ class TestRepositoryErrorNotifications:
 
             assert (
                 call_args[1]['subject']
-                == "OtterWiki Repository Error - Auto Pull Failed"
+                == "OtterWiki 仓库错误 - Auto Pull 失败"
             )
             assert "Auto Pull" in call_args[1]['text_body']
             assert (
@@ -808,7 +802,7 @@ class TestRepositoryErrorNotifications:
 
             assert (
                 call_args[1]['subject']
-                == "OtterWiki Repository Error - Auto Push Failed"
+                == "OtterWiki 仓库错误 - Auto Push 失败"
             )
             assert "Network timeout" in call_args[1]['text_body']
 
@@ -1317,7 +1311,7 @@ class TestWebhookHashBackwardCompatibility:
 
         # Check legacy warning text is present
         html_text = soup.get_text()
-        assert 'legacy hash' in html_text.lower()
+        assert "旧版哈希" in html_text
 
         # Clean up: disable pull
         rv = admin_client.post(

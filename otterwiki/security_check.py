@@ -149,9 +149,8 @@ def _is_loopback_host():
 
 
 _LOOPBACK_NOTE = (
-    " <em>Severity reduced because the wiki was accessed via a loopback "
-    "host; if this server is reachable from elsewhere, treat this as "
-    "critical.</em>"
+    " <em>由于本次访问来自回环地址，严重级别已降低；"
+    "若此服务器可从其他网络访问，请按严重问题处理。</em>"
 )
 
 
@@ -166,22 +165,21 @@ def check_anonymous_write_access():
     if app.config.get("WRITE_ACCESS", "").upper() == "ANONYMOUS":
         loopback = _is_loopback_host()
         description = (
-            "Anonymous users have write access to your wiki, allowing anyone "
-            "to create or edit pages without logging in. Unless this is "
-            "intentional, it is a significant security risk. "
-            'This can be changed on the <a href="/-/admin/permissions_and_registration">'
-            "Permissions and Registration</a> page."
+            "匿名用户拥有你的 Wiki 的写权限，任何人都无需登录即可创建或编辑页面。"
+            "如果这不是有意为之，则存在重大安全风险。"
+            '可在<a href="/-/admin/permissions_and_registration">'
+            "权限与注册</a>页面修改此设置。"
         )
         if loopback:
             description += _LOOPBACK_NOTE
         return SecurityCheckResult(
-            issue="Anonymous users can edit the wiki",
+            issue="匿名用户可以编辑 Wiki",
             description=description,
             severity="MEDIUM" if loopback else "CRITICAL",
         )
     return SecurityCheckResult(
-        issue="Anonymous write access is disabled",
-        description="Write access requires an authenticated account.",
+        issue="匿名写权限已关闭",
+        description="写入内容需要先登录账户。",
         passed=True,
     )
 
@@ -192,22 +190,21 @@ def check_anonymous_upload_access():
     if app.config.get("ATTACHMENT_ACCESS", "").upper() == "ANONYMOUS":
         loopback = _is_loopback_host()
         description = (
-            "Anonymous users have file upload access to your wiki, allowing "
-            "anyone to upload files without logging in. Unless this is "
-            "intentional, it is a significant security risk. "
-            'This can be changed on the <a href="/-/admin/permissions_and_registration">'
-            "Permissions and Registration</a> page."
+            "匿名用户拥有你的 Wiki 的附件上传权限，任何人都无需登录即可上传文件。"
+            "如果这不是有意为之，则存在重大安全风险。"
+            '可在<a href="/-/admin/permissions_and_registration">'
+            "权限与注册</a>页面修改此设置。"
         )
         if loopback:
             description += _LOOPBACK_NOTE
         return SecurityCheckResult(
-            issue="Anonymous users can upload files",
+            issue="匿名用户可以上传文件",
             description=description,
             severity="MEDIUM" if loopback else "CRITICAL",
         )
     return SecurityCheckResult(
-        issue="Anonymous upload access is disabled",
-        description="Attachment uploads require an authenticated account.",
+        issue="匿名上传权限已关闭",
+        description="上传附件需要先登录账户。",
         passed=True,
     )
 
@@ -217,20 +214,20 @@ def check_server_name_not_set():
     """Check if SERVER_NAME is configured."""
     if not app.config.get("SERVER_NAME"):
         return SecurityCheckResult(
-            issue="Server name not configured",
+            issue="未配置站点名称",
             description=(
-                "The <code>SERVER_NAME</code> configuration variable is not set. "
-                "This may lead to issues depending on your reverse proxy configuration. "
-                'See <a href="https://flask.palletsprojects.com/en/stable/config/#SERVER_NAME">'
-                "Flask documentation</a> for details. "
-                'This can be changed on the <a href="/-/admin">'
-                "Application Preferences</a> page."
+                "尚未设置 <code>SERVER_NAME</code> 配置项。"
+                "视反向代理配置而定，这可能引发问题。"
+                '详情参见 <a href="https://flask.palletsprojects.com/en/stable/config/#SERVER_NAME">'
+                "Flask 文档</a>。"
+                '可在<a href="/-/admin">'
+                "应用偏好设置</a>页面修改此设置。"
             ),
             severity="NOTICE",
         )
     return SecurityCheckResult(
-        issue="Server name is configured",
-        description="The <code>SERVER_NAME</code> configuration variable is set.",
+        issue="站点名称已配置",
+        description="已设置 <code>SERVER_NAME</code> 配置项。",
         passed=True,
     )
 
@@ -244,23 +241,19 @@ def check_open_registrations():
         and app.config.get("AUTO_APPROVAL", True)
     ):
         return SecurityCheckResult(
-            issue="Fully open registrations",
+            issue="注册完全开放",
             description=(
-                "Your wiki allows unlimited registrations without requiring "
-                "email confirmation or manual approval. This means anyone can "
-                "create accounts without restrictions, potentially flooding the "
-                "wiki with spam users. "
-                'This can be changed on the <a href="/-/admin/permissions_and_registration">'
-                "Permissions and Registration</a> page."
+                "你的 Wiki 允许无限注册，且无需邮箱确认或人工批准。"
+                "这意味着任何人都可以不受限制地创建账户，"
+                "可能被垃圾用户灌水。"
+                '可在<a href="/-/admin/permissions_and_registration">'
+                "权限与注册</a>页面修改此设置。"
             ),
             severity="HIGH",
         )
     return SecurityCheckResult(
-        issue="Registrations are restricted",
-        description=(
-            "New registrations are disabled or require email confirmation "
-            "or manual approval."
-        ),
+        issue="注册已受限制",
+        description=("新用户注册已禁用，或需要邮箱确认/人工批准。"),
         passed=True,
     )
 
@@ -272,13 +265,12 @@ def check_plugins_active():
     if plugin_info:
         plugin_names = [dist.project_name for _, dist in plugin_info]
         return SecurityCheckResult(
-            issue="Plugins are active",
+            issue="插件已启用",
             description=(
-                "You are using wiki plugins. Note that there are "
-                "little to no restrictions on what a plugin can do, and "
-                "third-party plugins are not reviewed for security by an Otterwiki "
-                "developers. Your active plugins: "
-                f"<strong>{', '.join(plugin_names)}</strong>."
+                "你正在使用 Wiki 插件。请注意，插件的能力几乎不受限制，"
+                "第三方插件也不会经过 OtterWiki 开发者的安全审查。"
+                "当前启用的插件："
+                f"<strong>{', '.join(plugin_names)}</strong>。"
             ),
             severity="NOTICE",
         )
@@ -296,11 +288,10 @@ def check_custom_css():
                 content = f.read()
             if _has_css_rules(content):
                 return SecurityCheckResult(
-                    issue="Custom CSS is being used",
+                    issue="正在使用自定义 CSS",
                     description=(
-                        "You have custom CSS rules defined in "
-                        "<code>custom.css</code>. If this is intentional, "
-                        "this notice can be ignored."
+                        "你在 <code>custom.css</code> 中定义了自定义 CSS 规则。"
+                        "如果这是有意为之，可忽略此提示。"
                     ),
                     severity="NOTICE",
                 )
@@ -320,11 +311,10 @@ def check_custom_js():
                 content = f.read()
             if _has_js_code(content):
                 return SecurityCheckResult(
-                    issue="Custom JavaScript is being used",
+                    issue="正在使用自定义 JavaScript",
                     description=(
-                        "You have custom JavaScript code defined in "
-                        "<code>custom.js</code>. If this is intentional, "
-                        "this notice can be ignored."
+                        "你在 <code>custom.js</code> 中定义了自定义 JavaScript 代码。"
+                        "如果这是有意为之，可忽略此提示。"
                     ),
                     severity="NOTICE",
                 )
@@ -367,11 +357,11 @@ def check_custom_html():
 
     if findings:
         return SecurityCheckResult(
-            issue="Custom HTML is being used",
+            issue="正在使用自定义 HTML",
             description=(
-                "You have custom HTML defined in: <strong>"
-                + ", ".join(findings)
-                + "</strong>. If this is intentional, this notice can be ignored."
+                "你在以下位置定义了自定义 HTML：<strong>"
+                + "、".join(findings)
+                + "</strong>。如果这是有意为之，可忽略此提示。"
             ),
             severity="NOTICE",
         )
@@ -383,12 +373,11 @@ def check_html_whitelist():
     """Check if RENDERER_HTML_ALLOWLIST is configured."""
     if not empty(app.config.get("RENDERER_HTML_ALLOWLIST", "")):
         return SecurityCheckResult(
-            issue="Custom HTML allowlist is configured",
+            issue="已配置自定义 HTML 白名单",
             description=(
-                "Your <code>RENDERER_HTML_ALLOWLIST</code> is not empty, which "
-                "allows potentially unsafe additional HTML tags and attributes "
-                "in wiki content. If this is intentional, this notice can be "
-                "ignored."
+                "<code>RENDERER_HTML_ALLOWLIST</code> 不为空，"
+                "这允许在 Wiki 内容中使用可能不安全的额外 HTML 标签和属性。"
+                "如果这是有意为之，可忽略此提示。"
             ),
             severity="NOTICE",
         )
@@ -415,24 +404,24 @@ def check_reverse_proxy():
         return None
 
     issues = []
-    issue_title = "Misconfigured reverse proxy"
+    issue_title = "反向代理配置有误"
 
     # non-private IP with no proxy headers
     if not is_private and not has_proxy_headers:
-        issue_title = "Missing or misconfigured reverse proxy"
+        issue_title = "缺少反向代理或配置有误"
         issues.append(
-            "Your wiki is directly accessible from the internet without a "
-            "reverse proxy or the reverse proxy is misconfigured. "
-            "This is not recommended as it exposes the "
-            "application server directly."
+            "你的 Wiki 似乎未经过反向代理就直接暴露在互联网上，"
+            "或反向代理配置有误。"
+            "这种做法会让应用服务器直接对外暴露，"
+            "不建议使用。"
         )
 
     # X-Forwarded-For present but X-Forwarded-Proto missing
     if has_forwarded_for and not has_forwarded_proto:
         issues.append(
-            "<code>X-Forwarded-For</code> is present but "
-            "<code>X-Forwarded-Proto</code> is not, so the wiki cannot "
-            "determine the original protocol."
+            "请求头中存在 <code>X-Forwarded-For</code> 但缺少 "
+            "<code>X-Forwarded-Proto</code>，导致 Wiki 无法"
+            "判断原始协议。"
         )
 
     if issues:
@@ -449,20 +438,19 @@ def check_reverse_proxy():
         return SecurityCheckResult(
             issue=issue_title,
             description=(
-                "Your wiki does not appear to be running behind a properly "
-                "configured reverse proxy:"
+                "你的 Wiki 似乎没有运行在配置正确的反向代理之后："
                 f"<ul>{issues_list}</ul>"
-                "Please consult the documentation for "
+                "请参阅文档中的"
                 '<a href="https://otterwiki.com/Installation#reverse-proxy">'
-                "example reverse proxy configurations</a> and "
+                "反向代理配置示例</a>和"
                 '<a href="https://otterwiki.com/Configuration#reverse-proxy-and-ips">'
-                "required wiki parameters</a>."
+                "所需的 Wiki 参数</a>。"
             ),
             severity=severity,
         )
 
     return SecurityCheckResult(
-        issue="Reverse proxy looks correctly configured",
-        description="Proxy headers appear consistent.",
+        issue="反向代理配置正常",
+        description="代理请求头看起来一致。",
         passed=True,
     )

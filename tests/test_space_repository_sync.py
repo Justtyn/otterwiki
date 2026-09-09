@@ -259,7 +259,7 @@ def test_import_refreshes_request_repository_metadata(
         time.sleep(0.01)
     page = admin_client.get("/home")
     assert page.status_code == 200
-    assert b"Not under version control" not in page.data
+    assert "未纳入版本控制".encode() not in page.data
     source.close()
     bare.close()
 

@@ -5,9 +5,9 @@
 <div class="card mx-auto mx-lg-20">
   <h2 class="card-title">
     {% if user.id %}
-    Edit User
+    编辑用户
     {% else %}
-    Add User
+    添加用户
     {% endif %}
   </h2>
     <form action="{{ url_for("user", uid=user.id) }}" method="POST" class="form-inline">
@@ -34,20 +34,20 @@
     {%
       for label, name, value, note, new_row in [
         (
-          "eMail confirmed","email_confirmed",
+          "已确认邮箱","email_confirmed",
           user.email_confirmed,
-          "If not set, users have to confirm their email address to login." if config.EMAIL_NEEDS_CONFIRMATION else "User don't need to confirm their eMail address.",
+          "未勾选时，用户需要先确认电子邮箱才能登录。" if config.EMAIL_NEEDS_CONFIRMATION else "当前无需确认电子邮箱。",
           False
         ),
         (
-          "Approved","is_approved",user.is_approved,
-          "Auto approval is enabled." if config.AUTO_APPROVAL else "This flag has to be set by an admin.",
+          "已批准","is_approved",user.is_approved,
+          "当前已启用自动批准。" if config.AUTO_APPROVAL else "该标记需要由管理员设置。",
           True
         ),
-        ("Read","allow_read",user.allow_read,"", False),
-        ("Write","allow_write",user.allow_write,"", False),
-        ("Upload","allow_upload",user.allow_upload,"", True),
-        ("Admin","is_admin",user.is_admin,"Users flagged as admins always have <strong>all</strong> the permissions.", False),
+        ("读取","allow_read",user.allow_read,"", False),
+        ("写入","allow_write",user.allow_write,"", False),
+        ("上传","allow_upload",user.allow_upload,"", True),
+        ("管理员","is_admin",user.is_admin,"标记为管理员的用户始终拥有<strong>全部</strong>权限。", False),
       ]
     %}
     <div class="col-sm-4 pr-5">

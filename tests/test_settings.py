@@ -131,6 +131,4 @@ def test_settings_change_password(app_with_user, test_client):
         follow_redirects=True,
     )
     assert 200 == rv.status_code
-    assert (
-        'The password must be at least 8 characters long.' in rv.data.decode()
-    )
+    assert "密码长度不能少于 8 个字符。" in rv.data.decode()

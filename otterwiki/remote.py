@@ -31,7 +31,7 @@ class GitHttpServer:
     def check_if_enabled(self):
         # FIXME
         if not app.config["GIT_WEB_SERVER"]:
-            abort(404, "Feature GITHTTPSERVER not enabled.")
+            abort(404, "GITHTTPSERVER 功能未启用。")
 
     @staticmethod
     def _has_space_read(user):
@@ -58,7 +58,7 @@ class GitHttpServer:
                 abort(
                     401,
                     response=Response(
-                        'Please authenticate with your OtterWiki email address and password.',
+                        '请使用你的 OtterWiki 电子邮箱和密码进行认证。',
                         401,
                         {'WWW-Authenticate': 'Basic realm="Login Required"'},
                     ),

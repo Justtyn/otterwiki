@@ -205,25 +205,28 @@ def help(topic=None):
         toc = [
             (None, '', 2, s, s.lower())
             for s in [
-                'Emphasis',
-                'Headings',
-                'Lists',
-                'Links',
-                'Quotes',
-                'Images',
-                'Tables',
-                'Code',
-                'Mathjax',
-                'Footnotes',
-                'Abbreviations',
-                'Blocks',
-                'Diagrams',
+                '强调',
+                '段落与换行',
+                '标题',
+                '列表',
+                '链接',
+                '引用',
+                '图片',
+                '表格',
+                '代码',
+                '数学公式',
+                '脚注',
+                '缩写',
+                '区块',
+                '图表',
+                '嵌入',
+                '备注',
             ]
         ]
         # embeddings info
 
         embedding_info = otterwiki.pluginmgmt.collect_plugin_info(
-            category="Syntax/Embeddings"
+            category="Syntax/Embeddings（语法/嵌入）"
         )
         return render_template(
             "help_syntax.html",
@@ -1652,7 +1655,7 @@ def inline_attachment(pagepath):
     p = Page(pagepath)
     return p.upload_attachments(
         files=request.files.getlist("file"),
-        message="Uploaded via inline attachment",
+        message="通过编辑器内联上传附件",
         filename=None,
         author=otterwiki.auth.get_author(),
         inline=True,
@@ -1740,12 +1743,10 @@ def pull_webhook(webhook_hash):
     success = repo_manager.auto_pull_webhook() if repo_manager else False
 
     if success:
-        return jsonify(
-            {"status": "success", "message": "Pull triggered successfully"}
-        )
+        return jsonify({"status": "success", "message": "拉取任务已触发"})
     else:
         return (
-            jsonify({"status": "error", "message": "Failed to trigger pull"}),
+            jsonify({"status": "error", "message": "触发拉取失败"}),
             500,
         )
 

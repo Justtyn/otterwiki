@@ -228,7 +228,7 @@ def test_page_view_permissions(
     app_with_permissions.config["READ_ACCESS"] = "ADMIN"
     rv = other_client.get(url_for(fun, path="Home"), follow_redirects=True)
     assert "There is no place like Home." not in rv.data.decode()
-    assert "You are logged in but lack READ permissions." in rv.data.decode()
+    assert "你已登录但没有读取权限" in rv.data.decode()
 
 
 def test_page_view_login_next_redirect(app_with_permissions, anon_client):
@@ -505,7 +505,7 @@ def test_permissions_per_user(app_with_permissions, test_client, anon_client):
     )
 
     assert "登录成功" in rv.data.decode()
-    assert "You are logged in but lack READ permissions." in rv.data.decode()
+    assert "你已登录但没有读取权限" in rv.data.decode()
     assert "There is no place like Home." not in rv.data.decode()
     # grant the user read_access
     from otterwiki.auth import SimpleAuth, db
@@ -572,7 +572,7 @@ def test_lost_password_mail(app_with_user, test_client, req_ctx):
         )
         assert rv.status_code == 200
         assert len(outbox) == 1
-        assert "Password Recovery" in outbox[0].subject
+        assert "密码找回" in outbox[0].subject
         assert "/-/recover_password/" in outbox[0].body
         assert "mail@example.org" in outbox[0].recipients
         # find token
@@ -606,10 +606,7 @@ def test_lost_password_form_address(app_with_user, test_client):
         },
         follow_redirects=True,
     )
-    assert (
-        "If this email is registered, you will receive a password reset link."
-        in rv.data.decode()
-    )
+    assert "如果该邮箱已注册，你将收到一封密码重置邮件。" in rv.data.decode()
 
 
 def test_lost_password_invalid_token(app_with_user, test_client):
@@ -744,7 +741,7 @@ def test_register_and_confirm(app_with_user, test_client, req_ctx):
 
         # check mail
         assert len(outbox) == 1
-        assert "confirm" in outbox[0].subject.lower()
+        assert "确认" in outbox[0].subject
         assert "/-/confirm_email/" in outbox[0].body
         assert email in outbox[0].recipients
         # find token
@@ -814,10 +811,7 @@ def test_register_errors(app_with_user, test_client, req_ctx):
         follow_redirects=True,
     )
     assert rv.status_code == 200
-    assert (
-        "name can only contain letters, spaces, hyphens, apostrophes, and periods"
-        in rv.data.decode()
-    )
+    assert "姓名只能包含字母、空格、连字符、撇号和句点" in rv.data.decode()
     assert "account has been created" not in rv.data.decode()
     assert "account is waiting for approval" not in rv.data.decode()
     # empty name
@@ -909,7 +903,7 @@ def test_user_with_empty_password_issues_204_205(app_with_user, test_client):
         )
         assert rv.status_code == 200
         assert len(outbox) == 1
-        assert "Password Recovery" in outbox[0].subject
+        assert "密码找回" in outbox[0].subject
         assert "/-/recover_password/" in outbox[0].body
         assert email in outbox[0].recipients
         # find token

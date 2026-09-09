@@ -158,7 +158,7 @@ class SimpleAuth:
                 return self.login_form(
                     email=email,
                     remember=remember,
-                    message="Your email address has not been confirmed.",
+                    message="你的电子邮箱地址尚未确认。",
                     confirmation_url=url_for(
                         "request_confirmation_link", email=email
                     ),
@@ -194,7 +194,7 @@ class SimpleAuth:
                     f"User has deprecated password hash: {user.email}"
                 )
                 toast(
-                    "Please update your password in Settings. The hashing method used is deprecated.",
+                    "密码哈希算法已弃用，请前往设置页更新你的密码。",
                     "warning",
                 )
             else:
@@ -233,7 +233,7 @@ class SimpleAuth:
             abort(404)
         token = serialize(email, salt="confirm-email")
         # generate mail
-        subject = "Request confirmation - {} - An Otter Wiki".format(
+        subject = "邮箱确认请求 - {} - An Otter Wiki".format(
             app.config["SITE_NAME"]
         )
         text_body = render_template(
@@ -246,11 +246,7 @@ class SimpleAuth:
         # send mail
         send_mail(subject=subject, recipients=[email], text_body=text_body)
         # notify user
-        toast(
-            "A request for confirmation has been sent to {}. Please check your mailbox.".format(
-                email
-            )
-        )
+        toast("确认请求已发送至 {}，请查收邮件。".format(email))
 
     def handle_request_confirmation(self, email):
         self.request_confirmation(email)
@@ -329,7 +325,7 @@ class SimpleAuth:
             email=email,
             url=url_for("settings", _external=True),
         )
-        subject = "New Account Registration - {} - An Otter Wiki".format(
+        subject = "新用户注册 - {} - An Otter Wiki".format(
             app.config["SITE_NAME"]
         )
         send_mail(
@@ -377,7 +373,7 @@ class SimpleAuth:
         elif name is None or len(name) < 1:
             toast("请输入姓名。", "error")
         elif not name_check[0]:
-            toast(f"Error: Your {name_check[1]}", "error")
+            toast(f"错误：{name_check[1]}", "error")
         elif password1 != password2:
             toast("两次输入的密码不一致。", "error")
         elif password1 is None or len(password1) < 8:
@@ -439,9 +435,7 @@ class SimpleAuth:
             if form.get("password1") != form.get("password2"):
                 toast("两次输入的密码不一致。", "error")
             elif len(form.get("password1")) < 8:
-                toast(
-                    "The password must be at least 8 characters long.", "error"
-                )
+                toast("密码长度不能少于 8 个字符。", "error")
             else:
                 # update password
                 current_user.password_hash = generate_password_hash(
@@ -467,9 +461,7 @@ class SimpleAuth:
             toast("电子邮箱地址无效。", "error")
         elif user is None:
             # do not leak whether email is registered
-            toast(
-                "If this email is registered, you will receive a password reset link."
-            )
+            toast("如果该邮箱已注册，你将收到一封密码重置邮件。")
         else:
             # recovery process
             token = serialize(
@@ -480,7 +472,7 @@ class SimpleAuth:
                 salt="lost-password-email",
             )
             # generate mail
-            subject = "Password Recovery - {} - An Otter Wiki".format(
+            subject = "密码找回 - {} - An Otter Wiki".format(
                 app.config["SITE_NAME"]
             )
             text_body = render_template(
@@ -494,9 +486,7 @@ class SimpleAuth:
             # log recovery attempt
             app.logger.info("auth: Password recovery for: {}".format(email))
             # notify user
-            toast(
-                "If this email is registered, you will receive a password reset link."
-            )
+            toast("如果该邮箱已注册，你将收到一封密码重置邮件。")
         return self.lost_password_form()
 
     def handle_recover_password_token(self, token):
@@ -821,7 +811,7 @@ def register_form(*args, **kwargs):
 def handle_register(*args, **kwargs):
     if app.config['DISABLE_REGISTRATION']:
         # Bad Request
-        return abort(400, "Registration is disabled.")
+        return abort(400, "注册功能已禁用。")
 
     return auth_manager.handle_register(*args, **kwargs)
 

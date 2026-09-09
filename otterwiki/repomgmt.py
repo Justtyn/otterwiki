@@ -116,7 +116,7 @@ class RepositoryManager:
         Returns (success, output) tuple.
         """
         if not remote_url:
-            return False, "No remote URL provided"
+            return False, "未提供远程仓库地址"
 
         from otterwiki.server import app
         from otterwiki.import_runtime import repository_operation
@@ -136,7 +136,7 @@ class RepositoryManager:
                     current_branch = self.storage.repo.active_branch.name
                 except TypeError:
                     # if there is no current branch we should probably just stop
-                    return False, "No active branch found"
+                    return False, "未找到活动分支"
 
                 action_type = "Force push" if force else "Push"
                 app.logger.info(
@@ -156,7 +156,9 @@ class RepositoryManager:
                     app.logger.info(
                         f"[RepositoryManager] {action_type} result: {result}"
                     )
-                return True, result or f"{action_type} completed successfully"
+                return True, result or (
+                    "强制推送完成" if force else "推送完成"
+                )
 
             except Exception as e:
                 try:
@@ -179,7 +181,7 @@ class RepositoryManager:
         Returns (success, output) tuple.
         """
         if not remote_url:
-            return False, "No remote URL provided"
+            return False, "未提供远程仓库地址"
 
         from otterwiki.server import app
         from otterwiki.import_runtime import repository_operation
@@ -199,7 +201,7 @@ class RepositoryManager:
                     current_branch = self.storage.repo.active_branch.name
                 except TypeError:
                     # if there is no current branch we should probably just stop
-                    return False, "No active branch found"
+                    return False, "未找到活动分支"
 
                 app.logger.info(
                     f"[RepositoryManager] Pulling from remote: {remote_url}"
@@ -212,7 +214,7 @@ class RepositoryManager:
 
                 self.storage.notify_repository_changed_from_external()
 
-                return True, result or "Pull completed successfully"
+                return True, result or "拉取完成"
 
             except Exception as e:
                 try:
@@ -236,7 +238,7 @@ class RepositoryManager:
         Returns (success, output) tuple.
         """
         if not remote_url:
-            return False, "No remote URL provided"
+            return False, "未提供远程仓库地址"
 
         from otterwiki.server import app
         from otterwiki.import_runtime import repository_operation
@@ -256,7 +258,7 @@ class RepositoryManager:
                     current_branch = self.storage.repo.active_branch.name
                 except TypeError:
                     # if there is no current branch we should probably just stop
-                    return False, "No active branch found"
+                    return False, "未找到活动分支"
 
                 app.logger.info(
                     f"[RepositoryManager] Fetching from remote for hard reset: {remote_url}"
@@ -283,7 +285,7 @@ class RepositoryManager:
 
                 return (
                     True,
-                    reset_result or "Hard reset completed successfully",
+                    reset_result or "硬重置完成",
                 )
 
             except Exception as e:

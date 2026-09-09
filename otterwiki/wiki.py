@@ -223,13 +223,13 @@ class Changelog:
     def revert(self, revision, message, author):
         if not has_permission("WRITE"):
             abort(403)
-        toast_message = "Reverted commit {}.".format(revision)
+        toast_message = "已回滚提交 {}。".format(revision)
         if empty(message):
             message = toast_message
         try:
             storage.revert(revision, message=message, author=author)
         except StorageError as e:
-            toast("Error: Unable to revert {}.".format(revision), "error")
+            toast("错误：无法回滚提交 {}。".format(revision), "error")
             app.logger.error(f"Unable to revert {revision}: {e}")
         else:
             toast(toast_message)
@@ -279,7 +279,7 @@ class Changelog:
         # Wiki Core information
         fg.title(app.config["SITE_NAME"] or "An Otter Wiki" + " -  Changelog")
         fg.description(
-            app.config["SITE_DESCRIPTION"] or "All recent changes to the wiki"
+            app.config["SITE_DESCRIPTION"] or "此 Wiki 的所有最近变更"
         )
         # Logo
         if app.config["SITE_LOGO"] and app.config["SITE_LOGO"].startswith("/"):
@@ -460,7 +460,7 @@ class Page:
             response404 = make_response(
                 render_template(
                     "page404.html",
-                    title="{} - not found".format(self.pagename_full),
+                    title="{} - 未找到页面".format(self.pagename_full),
                     pagename=self.pagename_full,
                     pagepath=self.pagepath,
                 ),
@@ -515,17 +515,11 @@ class Page:
         # handle permissions
         if not has_permission("READ"):
             if current_user.is_authenticated and not current_user.is_approved:
-                toast(
-                    "You lack the permissions to access this wiki. Please wait for approval."
-                )
+                toast("你没有访问此 Wiki 的权限，请等待管理员批准。")
             elif current_user.is_authenticated and current_user.is_approved:
-                toast(
-                    "You are logged in but lack READ permissions. Please wait for an administrator to grant access."
-                )
+                toast("你已登录但没有读取权限，请等待管理员授予访问权限。")
             else:
-                toast(
-                    "You lack the permissions to access this wiki. Please login."
-                )
+                toast("你没有访问此 Wiki 的权限，请先登录。")
             return login_redirect()
         # handle case that page doesn't exists
         self.exists_or_404()
@@ -560,8 +554,8 @@ class Page:
         danger_alert = False
         if not self.metadata:
             danger_alert = [
-                "Not under version control",
-                f"""This page was loaded from the repository but is not added under git version control. Make a commit on the <a href="/{self.pagepath}/edit" class="alert-link">Edit page</a> to add it.""",
+                "未纳入版本控制",
+                f"""此页面虽已从仓库加载，但尚未加入 git 版本控制。请在<a href="/{self.pagepath}/edit" class="alert-link">编辑页面</a>中提交一次以纳入管理。""",
             ]
 
         # send context of the page rendered to plugins
@@ -786,7 +780,9 @@ class Page:
             )
         )
         # collect embedding_info to display in the markdown syntax help
-        embedding_info = collect_plugin_info(category="Syntax/Embeddings")
+        embedding_info = collect_plugin_info(
+            category="Syntax/Embeddings（语法/嵌入）"
+        )
 
         return render_template(
             "editor.html",
@@ -1102,13 +1098,11 @@ class Page:
         elif get_pagename(new_pagename, full=True) == self.pagepath:
             toast("新旧名称相同。", "error")
         elif Page(new_pagename).exists:
-            toast(
-                f"Unable to rename: {new_pagename} already exists.", "warning"
-            )
+            toast(f"无法重命名：{new_pagename} 已存在。", "warning")
         else:
             # rename
             if empty(message):
-                message = "Renamed {} to {}.".format(
+                message = "将 {} 重命名为 {}。".format(
                     self.pagename, new_pagename
                 )
             try:
@@ -1274,11 +1268,11 @@ class Page:
             last_uploaded_filename = fn
         if len(to_commit) > 0:
             if filename is None:
-                toastmsg = "Added attachment(s): {}.".format(
+                toastmsg = "添加附件：{}。".format(
                     ", ".join([c.filename for c in to_commit])
                 )
             else:
-                toastmsg = "Updated attachment: {}.".format(
+                toastmsg = "更新附件：{}。".format(
                     ", ".join([c.filename for c in to_commit])
                 )
             # default message
@@ -1443,9 +1437,9 @@ class Attachment:
             != storage_root
         ):
             raise StorageError(
-                "Invalid attachment path "
-                f"'{os.path.join(pagepath, filename)}': path traversal "
-                "outside the repository is not allowed."
+                "无效的附件路径 "
+                f"'{os.path.join(pagepath, filename)}'："
+                "不允许越过仓库目录进行路径穿越。"
             )
         self.mimetype = guess_mimetype(self.filepath)
         try:
@@ -1536,7 +1530,9 @@ class Attachment:
     def rename(self, new_filename, message, author):
         if not has_permission("UPLOAD"):
             abort(403)
-        toast_message = "Renamed {} to {}".format(self.filename, new_filename)
+        toast_message = "将附件 {} 重命名为 {}。".format(
+            self.filename, new_filename
+        )
         new_filepath = os.path.join(self.directory, new_filename)
         if empty(message):
             message = toast_message
@@ -1545,7 +1541,7 @@ class Attachment:
                 self.filepath, new_filepath, message=message, author=author
             )
         except StorageError:
-            toast("重命名失败", "error")
+            toast("重命名失败。", "error")
             return redirect(url_for("attachments", pagepath=self.pagepath))
         toast(toast_message)
         return redirect(
@@ -1559,14 +1555,14 @@ class Attachment:
     def delete(self, message, author):
         if not has_permission("WRITE"):
             abort(403)
-        toast_message = "Deleted {}".format(self.filename)
+        toast_message = "附件 {} 已删除。".format(self.filename)
         if empty(message):
             message = toast_message
         try:
             storage.delete(self.filepath, message=message, author=author)
             toast(toast_message)
         except StorageError:
-            toast("删除失败", "error")
+            toast("删除失败。", "error")
         return redirect(url_for("attachments", pagepath=self.pagepath))
 
     def edit(self):
@@ -1746,7 +1742,7 @@ class Search:
                 self.re = regex.compile(self.needle, regex.IGNORECASE)
             self.rei = regex.compile(self.needle, regex.IGNORECASE)
         except Exception as e:
-            toast("Error in search term: {}".format(e), "error")
+            toast("搜索表达式有误：{}".format(e), "error")
             return
 
     def search(self):
@@ -1899,7 +1895,7 @@ class Search:
         )
         if _regex_timed_out:
             toast(
-                "Search regex timed out. Results may be incomplete.",
+                "搜索正则执行超时，结果可能不完整。",
                 "warning",
             )
 

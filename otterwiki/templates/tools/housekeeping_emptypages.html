@@ -2,8 +2,8 @@
 <input type="hidden" name="task" value="emptypages">
 {% if stats and pages %}
 <div class="mb-20">
-<p> To keep your wiki clean, please review the following {{pages|length}} potentially empty page{{pages|length|pluralize("s")}}.
-{{stats.pages}} page{{stats.pages|pluralize("s")}} were checked in {{stats.duration}}.
+<p>为保持 Wiki 内容整洁，请检查以下 {{pages|length}} 个可能为空的页面。
+已在 {{stats.duration}} 内检查 {{stats.pages}} 个页面。
 </p>
 <input class="btn btn-primary" type="submit" name="refresh" value="刷新"/>
 <input class="btn btn-danger" type="submit" name="clean" value="删除所选页面"/>
@@ -50,7 +50,7 @@
 </div>
 {% else %}
 {% if stats %}
-<p>No empty pages found. Checked {{stats.pages}} page{{stats.pages|pluralize("s")}} in {{stats.duration}}.</p>
+<p>未发现空页面。已在 {{stats.duration}} 内检查 {{stats.pages}} 个页面。</p>
 {% else %}
 <p>开始分析以查找可能为空的页面。</p>
 {% endif %}

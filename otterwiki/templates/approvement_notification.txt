@@ -1,7 +1,7 @@
-Hello {{name}},
+{{name}}，你好：
 
-Your account at {{sitename}} (An Otter Wiki) has been approved.
+你在 {{sitename}}（An Otter Wiki）的账户已获批准。
 
-You can log in here: {{url}}
+你可以在这里登录：{{url}}
 
-Cheers!
+祝好！

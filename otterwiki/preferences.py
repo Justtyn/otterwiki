@@ -82,9 +82,7 @@ def handle_mail_preferences(form):
     error = 0
     if not is_valid_email(form.get("mail_sender") or ""):
         toast(
-            "'{}' is not a valid email address.".format(
-                form.get("mail_sender")
-            ),
+            "“{}”不是有效的电子邮箱地址。".format(form.get("mail_sender")),
             "error",
         )
         error += 1
@@ -93,7 +91,7 @@ def handle_mail_preferences(form):
             "MAIL_DEFAULT_SENDER", form.get("mail_sender").strip()
         )
     if empty(form.get("mail_server")):
-        toast("Mail Server must not be empty.", "error")
+        toast("邮件服务器不能为空。", "error")
         error += 1
     else:
         _update_preference("MAIL_SERVER", form.get("mail_server").strip())
@@ -105,7 +103,7 @@ def handle_mail_preferences(form):
         else:
             mail_port = ""
     except (ValueError, TypeError) as e:
-        toast("Mail port must be a valid port.", "error")
+        toast("邮件端口必须是有效端口号。", "error")
         error += 1
     else:
         _update_preference("MAIL_PORT", mail_port)
@@ -124,7 +122,7 @@ def handle_mail_preferences(form):
         _update_preference("MAIL_USE_TLS", "False")
         _update_preference("MAIL_USE_SSL", "True")
     if error < 1:
-        toast("Mail Preferences updated.")
+        toast("邮件偏好设置已更新。")
 
     db.session.commit()
     update_app_config()
@@ -207,9 +205,7 @@ def handle_sidebar_preferences(form):
     _update_preference("SIDEBAR_SHORTCUTS", " ".join(sidebar_shortcuts))
 
     if not re.match(r"^(|\d+)$", form.get("sidebar_menutree_maxdepth", "")):
-        toast(
-            "Invalid value: SIDEBAR_MENUTREE_MAXDEPTH must be an integer or empty"
-        )
+        toast("无效的值：SIDEBAR_MENUTREE_MAXDEPTH 必须为整数或留空")
         return redirect(url_for("admin_sidebar_preferences"))
     else:
         _update_preference(
@@ -229,7 +225,7 @@ def handle_sidebar_preferences(form):
     # commit changes to the database
     db.session.commit()
     update_app_config()
-    toast("Sidebar Preferences updated.")
+    toast("侧边栏偏好设置已更新。")
     return redirect(url_for("admin_sidebar_preferences"))
 
 
@@ -254,7 +250,7 @@ def handle_app_preferences(form):
     home_page = form.get("home_page", "").strip()
     if home_page and home_page.endswith(".md"):
         toast(
-            "Custom home page path should not include the .md extension.",
+            "自定义首页路径不应包含 .md 扩展名。",
             "error",
         )
         return redirect(url_for("admin"))
@@ -270,7 +266,7 @@ def handle_app_preferences(form):
     # commit changes to the database
     db.session.commit()
     update_app_config()
-    toast("Application Preferences updated.")
+    toast("应用偏好设置已更新。")
     return redirect(url_for("admin"))
 
 
@@ -305,7 +301,7 @@ def handle_content_and_editing(form):
     # commit changes to the database
     db.session.commit()
     update_app_config()
-    toast("Content and Editing Preferences updated.")
+    toast("内容与编辑偏好设置已更新。")
     return redirect(url_for("admin_content_and_editing"))
 
 
@@ -384,7 +380,7 @@ def handle_repository_management(form):
             _update_preference_if_changed("GIT_REMOTE_PUSH_PRIVATE_KEY", "")
             _update_preference_if_changed("GIT_REMOTE_PUSH_URL", "")
             toast(
-                "SSH Remote URL is required when enabling automatic pushing.",
+                "启用自动推送时必须填写 SSH 远程地址。",
                 "error",
             )
         else:
@@ -414,7 +410,7 @@ def handle_repository_management(form):
             _update_preference_if_changed("GIT_REMOTE_PULL_PRIVATE_KEY", "")
             _update_preference_if_changed("GIT_REMOTE_PULL_URL", "")
             toast(
-                "SSH Remote URL is required when enabling automatic pulling.",
+                "启用自动拉取时必须填写 SSH 远程地址。",
                 "error",
             )
         else:
@@ -449,7 +445,7 @@ def handle_repository_management(form):
     db.session.commit()
     update_app_config()
 
-    toast("Repository Management Preferences updated.")
+    toast("仓库管理偏好设置已更新。")
     return redirect(url_for("admin_repository_management"))
 
 
@@ -462,7 +458,7 @@ def _handle_git_push():
         return {
             "action": "push",
             "success": False,
-            "output": "Push functionality is not enabled",
+            "output": "推送功能未启用",
         }
 
     remote_url = app.config.get('GIT_REMOTE_PUSH_URL')
@@ -473,7 +469,7 @@ def _handle_git_push():
         return {
             "action": "push",
             "success": False,
-            "output": "Repository manager not available",
+            "output": "仓库管理器不可用",
         }
 
     success, output = repo_manager.push_to_remote(
@@ -491,7 +487,7 @@ def _handle_git_force_push():
         return {
             "action": "force push",
             "success": False,
-            "output": "Push functionality is not enabled",
+            "output": "推送功能未启用",
         }
 
     remote_url = app.config.get('GIT_REMOTE_PUSH_URL')
@@ -502,7 +498,7 @@ def _handle_git_force_push():
         return {
             "action": "force push",
             "success": False,
-            "output": "Repository manager not available",
+            "output": "仓库管理器不可用",
         }
 
     success, output = repo_manager.push_to_remote(
@@ -520,7 +516,7 @@ def _handle_git_pull():
         return {
             "action": "pull",
             "success": False,
-            "output": "Pull functionality is not enabled",
+            "output": "拉取功能未启用",
         }
 
     remote_url = app.config.get('GIT_REMOTE_PULL_URL')
@@ -531,7 +527,7 @@ def _handle_git_pull():
         return {
             "action": "pull",
             "success": False,
-            "output": "Repository manager not available",
+            "output": "仓库管理器不可用",
         }
 
     success, output = repo_manager.pull_from_remote(remote_url, private_key)
@@ -547,7 +543,7 @@ def _handle_git_reset_remote():
         return {
             "action": "reset to remote",
             "success": False,
-            "output": "Pull functionality is not enabled",
+            "output": "拉取功能未启用",
         }
 
     remote_url = app.config.get('GIT_REMOTE_PULL_URL')
@@ -558,7 +554,7 @@ def _handle_git_reset_remote():
         return {
             "action": "reset to remote",
             "success": False,
-            "output": "Repository manager not available",
+            "output": "仓库管理器不可用",
         }
 
     success, output = repo_manager.reset_to_remote(remote_url, private_key)
@@ -574,18 +570,18 @@ def handle_test_mail_preferences(form):
         recipient = current_user.email
     # check if mail is valid
     if is_valid_email(recipient):
-        body = """OtterWiki Test Mail"""
-        subject = "OtterWiki Test Mail"
+        body = """OtterWiki 测试邮件"""
+        subject = "OtterWiki 测试邮件"
         try:
             send_mail(
                 subject, [recipient], body, _async=False, raise_on_error=True
             )
         except Exception as e:
-            toast("Error: {}".format(e), "error")
+            toast("错误：{}".format(e), "error")
         else:
-            toast("Testmail sent to {}.".format(recipient))
+            toast("测试邮件已发送至 {}。".format(recipient))
     else:
-        toast("Invalid email address: {}".format(recipient), "error")
+        toast("无效的电子邮箱地址：{}".format(recipient), "error")
     return redirect(url_for("admin_mail_preferences"))
 
 
@@ -612,7 +608,7 @@ def handle_permissions_and_registration(form):
     # commit changes to the database
     db.session.commit()
     update_app_config()
-    toast("Preferences updated.")
+    toast("偏好设置已更新。")
     return redirect(url_for("admin_permissions_and_registration"))
 
 
@@ -623,7 +619,7 @@ def send_approvement_mail(user):
         name=user.name,
         url=url_for("login", _external=True),
     )
-    subject = "Your account has been approved - {} - An Otter Wiki".format(
+    subject = "你的账户已获批准 - {} - An Otter Wiki".format(
         app.config["SITE_NAME"]
     )
     send_mail(subject=subject, recipients=[user.email], text_body=text_body)
@@ -640,9 +636,9 @@ def handle_user_management(form):
     # track users that have been approved to send a notification
     # Make sure that nobody accidentally locks themselves out.
     if len(is_admin) < 1:
-        toast("You can't remove all admins", "error")
+        toast("不能移除所有管理员。", "error")
     elif len(is_approved) < 1:
-        toast("You can't disable all users", "error")
+        toast("不能停用所有用户。", "error")
     else:
         # update users
         for user in get_all_user():
@@ -651,41 +647,41 @@ def handle_user_management(form):
             # approval
             if user.is_approved and not user.id in is_approved:
                 user.is_approved = False
-                msgs.append("disapproved")
+                msgs.append("取消批准")
             elif not user.is_approved and user.id in is_approved:
                 user.is_approved = True
                 user_was_just_approved = True
-                msgs.append("approved")
+                msgs.append("批准")
             # read
             if user.allow_read and not user.id in allow_read:
                 user.allow_read = False
-                msgs.append("disallowed read")
+                msgs.append("取消读取权限")
             elif not user.allow_read and user.id in allow_read:
                 user.allow_read = True
-                msgs.append("allowed read")
+                msgs.append("授予读取权限")
             # write
             if user.allow_write and not user.id in allow_write:
                 user.allow_write = False
-                msgs.append("disallowed write")
+                msgs.append("取消写入权限")
             elif not user.allow_write and user.id in allow_write:
                 user.allow_write = True
-                msgs.append("allowed write")
+                msgs.append("授予写入权限")
             # upload
             if user.allow_upload and not user.id in allow_upload:
                 user.allow_upload = False
-                msgs.append("disallowed upload")
+                msgs.append("取消上传权限")
             elif not user.allow_upload and user.id in allow_upload:
                 user.allow_upload = True
-                msgs.append("allowed upload")
+                msgs.append("授予上传权限")
             # admin
             if user.is_admin and not user.id in is_admin:
                 user.is_admin = False
-                msgs.append("disabled admin")
+                msgs.append("移除管理员")
             elif not user.is_admin and user.id in is_admin:
                 user.is_admin = True
-                msgs.append("enabled admin")
+                msgs.append("设为管理员")
             if len(msgs):
-                toast("{} {} flag".format(user.email, " and ".join(msgs)))
+                toast("{}：{}".format(user.email, "、".join(msgs)))
                 app.logger.info(  # pyright: ignore
                     "{} updated {} <{}>: {}".format(
                         current_user, user.name, user.email, " and ".join(msgs)
@@ -863,15 +859,15 @@ def handle_user_add(form):
 
     error = []
     if empty(user.name):  # pyright: ignore
-        error.append("Name must not be empty")
+        error.append("姓名不能为空")
     if get_user(email=user.email) is not None:  # pyright: ignore
-        error.append("User with this email exists")
+        error.append("已存在使用该邮箱的用户")
     if not is_valid_email(user.email):  # pyright: ignore
-        error.append("Invalid email address")
+        error.append("电子邮箱地址无效")
     # handle password
     if len(form.get("password1", "")) or len(form.get("password2", "")):
         if form.get("password1", "") != form.get("password2", ""):
-            error.append("Passwords do not match")
+            error.append("两次输入的密码不一致")
         else:
             user.password_hash = generate_password_hash(
                 form.get("password1")
@@ -897,10 +893,10 @@ def handle_user_add(form):
         db.session.commit()
         # send_approvement_mail(user)
         app.logger.info(f"{user.name} <{user.email}> added")
-        toast(f"{user.name} <{user.email}> added")
+        toast(f"{user.name} <{user.email}> 已添加。")
     except Exception as e:
         app.logger.error(f"Unable to update user: {e}")
-        toast('Unable to create user. Please check the server logs.', 'danger')
+        toast('无法创建用户，请查看服务器日志。', 'danger')
     return redirect(url_for("user", uid=user.id))
 
 
@@ -916,9 +912,9 @@ def handle_user_edit(uid, form):
     # delete
     if form.get("delete", False):
         if user == current_user:
-            toast(f"Unable to delete yourself.", "error")
+            toast(f"无法删除当前登录的账户。", "error")
             return redirect(url_for("user", uid=user.id))
-        toast(f"User '{user.name} &lt;{user.email}&gt;' deleted.")
+        toast(f"用户 '{user.name} &lt;{user.email}&gt;' 已删除。")
         app.logger.info(f"deleted user '{user.name} <{user.email}>'")
         delete_user(user)
         return redirect(url_for("admin_user_management"))
@@ -928,49 +924,50 @@ def handle_user_edit(uid, form):
     if user.name != form.get("name").strip():
         new_name = form.get("name").strip()
         if len(new_name) > 0:
-            msgs.append(f"renamed '{user.name}' to '{new_name}'")
+            msgs.append(f"将姓名“{user.name}”改为“{new_name}”")
             user.name = new_name
         else:
-            toast("User name must not be empty.", "danger")
+            toast("用户名不能为空。", "danger")
     # email
     if user.email != form.get("email").strip():
         if is_valid_email(form.get("email").strip()):
-            msgs.append(f"updated {user.email} to {form.get('email').strip()}")
+            msgs.append(
+                f"将邮箱 {user.email} 改为 {form.get('email').strip()}"
+            )
             user.email = form.get("email").strip()
         else:
             toast(
-                f"'{form.get('email').strip()}' is not a valid email address",
+                f"“{form.get('email').strip()}”不是有效的电子邮箱地址",
                 "danger",
             )
     if len(form.get("password1", "")) or len(form.get("password2", "")):
         if form.get("password1", "") != form.get("password2", ""):
-            toast("Passwords do not match", "danger")
+            toast("两次输入的密码不一致。", "danger")
         else:
             user.password_hash = generate_password_hash(form.get("password1"))
-            msgs.append("Updated password")
+            msgs.append("更新了密码")
     user_was_already_approved = user.is_approved
     # handle all the flags
     for value, label in [
-        ("email_confirmed", "email confirmed"),
-        ("is_admin", "admin"),
-        ("is_approved", "approved"),
-        ("allow_read", "read"),
-        ("allow_write", "write"),
-        ("allow_upload", "upload"),
+        ("email_confirmed", "已确认邮箱"),
+        ("is_admin", "管理员"),
+        ("is_approved", "已批准"),
+        ("allow_read", "读取"),
+        ("allow_write", "写入"),
+        ("allow_upload", "上传"),
     ]:
         if getattr(user, value) and not form.get(value):
             setattr(user, value, False)
-            flags.append(f"removed {label}")
+            flags.append(f"移除“{label}”标记")
         elif not getattr(user, value) and form.get(value):
             setattr(user, value, True)
-            flags.append(f"added {label}")
+            flags.append(f"添加“{label}”标记")
     # all flags checked updated msgs
     if len(flags):
-        msgs.append("{} flag".format(" and ".join(flags)))
+        msgs.append("、".join(flags))
     if len(msgs):
-        msgs[0] = msgs[0].capitalize()
-        msgs[-1] += "."
-        toast(" and ".join(msgs))
+        msgs[-1] += "。"
+        toast("；".join(msgs))
         app.logger.info(
             "{} updated {} <{}>: {}".format(
                 current_user, user.name, user.email, " and ".join(msgs)
@@ -986,7 +983,7 @@ def handle_user_edit(uid, form):
     except Exception as e:
         app.logger.error(f"Unable to update user: {e}")
         toast(
-            'Unable to update the user. Please check the server logs.',
+            '无法更新用户，请查看服务器日志。',
             'danger',
         )
     return redirect(url_for("user", uid=user.id))
@@ -1386,8 +1383,8 @@ def _update_user_groups(user, form):
         row = UserGroup.query.filter_by(user_id=user.id, group_id=gid).first()
         if row is not None:
             db.session.delete(row)
-        msgs.append("removed from group " + names.get(gid, str(gid)))
+        msgs.append("已移出用户组 " + names.get(gid, str(gid)))
     for gid in selected_ids - current_ids:
         db.session.add(UserGroup(user_id=user.id, group_id=gid))
-        msgs.append("added to group " + names.get(gid, str(gid)))
+        msgs.append("已加入用户组 " + names.get(gid, str(gid)))
     return msgs

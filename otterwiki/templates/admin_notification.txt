@@ -1,9 +1,9 @@
-Dear {{sitename}}-Admin,
+{{sitename}} 管理员，你好：
 
-A new user registered an account at {{sitename}} (An Otter Wiki):
+有新用户在 {{sitename}}（An Otter Wiki）注册了账户：
 
 {{name}} <{{email}}>
 
-Please check if the user needs to be approved here: {{url}}
+请前往以下链接检查该用户是否需要批准：{{url}}
 
-Cheers!
+祝好！

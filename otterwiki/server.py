@@ -85,9 +85,7 @@ if (
     len(app.config["SECRET_KEY"]) < 16
     or app.config["SECRET_KEY"] == "CHANGE ME"
 ):
-    fatal_error(
-        "Please configure a random SECRET_KEY with a length of at least 16 characters."
-    )
+    fatal_error("请配置一个长度至少为 16 个字符的随机 SECRET_KEY。")
 
 # enable CSRF protection globally
 csrf = CSRFProtect(app)
@@ -108,10 +106,10 @@ if _import_maintenance:
     )
     storage = otterwiki.gitstorage.SpaceStorageProxy(default_storage)
 elif app.config["REPOSITORY"] is None:
-    fatal_error("Please configure a REPOSITORY path.")
+    fatal_error("请配置 REPOSITORY 路径。")
 elif not os.path.exists(app.config["REPOSITORY"]):
     fatal_error(
-        "Repository path '{}' not found. Please configure otterwiki.".format(
+        "仓库路径 '{}' 不存在，请检查 otterwiki 配置。".format(
             app.config["REPOSITORY"]
         )
     )
@@ -246,7 +244,7 @@ if (
                 filename=filename,
                 content=content,
                 author=("Otterwiki Robot", "noreply@otterwiki"),
-                message="Initial commit",
+                message="初始提交",
             )
             app.logger.info(f"server: Created initial page /{filename[:-3]}.")
 

@@ -465,7 +465,7 @@ def test_page_saved_hook_fired_for_each_updated_backlink(
     assert "[[HookRenamed]]" in by_page["Hooklinkertwo"]["content"]
     # and the commit message of the rename
     assert by_page["Hooklinkerone"]["message"] == (
-        "Renamed HookTarget to HookRenamed."
+        "将 HookTarget 重命名为 HookRenamed。"
     )
     # the reported pagepath must be usable as one: it has to address the
     # page it belongs to

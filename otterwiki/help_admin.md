@@ -1,144 +1,103 @@
-## Admin Guide
+## 管理员指南（Admin Guide）
 
-An Otter Wiki can be configured by Admin users who can find <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-cogs"></i></span> Application Preferences</span>, <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-users"></i></span> User management</span> etc. in the sidebar menu of
-their <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span> <i class="fas fa-caret-right"></i> <span class="btn btn-square btn-sm"><i class="fas fa-cog"></i></span> Settings</span>.
+管理员用户可以对 An Otter Wiki 进行配置，他们可以在自己的 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span> <i class="fas fa-caret-right"></i> <span class="btn btn-square btn-sm"><i class="fas fa-cog"></i></span> 设置</span> 侧边栏菜单中找到 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-cogs"></i></span> 应用偏好设置</span>、<span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-users"></i></span> 用户管理</span> 等条目。
 
-### Branding
+### 品牌设置（Branding）
 
-In the <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-cogs"></i></span> Application Preferences</span> the <span class="help-button">Site Name</span>, which is
-displayed in the navigation bar on the top of the site and in emails, can be
-configured.
+在 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-cogs"></i></span> 应用偏好设置</span> 中，可以配置 <span class="help-button">站点名称</span>，它会显示在网站顶部的导航栏以及电子邮件中。
 
-The <span class="help-button">Site Logo</span> is displayed next to the site
-name, while the <span class="help-button">Site Icon</span> (or favicon) is displayed in the
-browser tab and in bookmarks. Both Site Logo and Site Icon can be attachments.
-An Otter Wikis logo is the default for both.
+<span class="help-button">站点徽标</span> 显示在站点名称旁边，而 <span class="help-button">站点图标</span>（favicon）则显示在浏览器标签页和书签中。站点徽标和站点图标都可以使用附件。两者默认使用 An Otter Wiki 的徽标。
 
-To hide the logo of An Otter Wiki, check <span class="help-button"><input type="checkbox" style="display:inline;" id="hide-logo" checked> Hide logo of an An Otter Wiki n the sidebar</span>. A menu item linking the about information will be added to the <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span></span> menu.
+要隐藏 An Otter Wiki 的徽标，请勾选 <span class="help-button"><input type="checkbox" style="display:inline;" id="hide-logo" checked> 在侧边栏隐藏 An Otter Wiki 徽标</span>。此时会在 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-ellipsis-v"></i></span></span> 菜单中添加一个指向"关于"信息的菜单项。
 
-### Meta data
+### 元数据（Meta data）
 
-The <span class="help-button">Site Description</span> is used in the
-`<meta name="description">` tag.
+<span class="help-button">站点描述</span> 用于 `<meta name="description">` 标签。
 
-The <span class="help-button">Site Language</span> is used for configuring the `lang`
-attribute of the `<html>` tag generated on the pages of the wiki.
+<span class="help-button">站点语言</span> 用于配置在 wiki 页面上生成的 `<html>` 标签的 `lang` 属性。
 
-The <span class="help-button">Robot Crawlers</span> configures what `robots.txt`
-is generated, when set to `Disallow` it indicates that to visiting crawlers that
-there not allowed to crawl the content.
+<span class="help-button">机器人爬虫</span> 用于配置所生成的 `robots.txt`，设置为 `Disallow` 时，会告知来访的爬虫不得抓取站点内容。
 
-### User management
+### 用户管理（User management）
 
-All users are listed in a table under <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-users"></i></span> User management</span>. You can update the flags of the users by checking and unchecking the checkboxes, where <span class="help-button"><input type="checkbox" style="display:inline;" id="true" checked></span> means the flag is set and <span class="help-button"><input type="checkbox" style="display:inline;" id="false"></span> means the flag is not set. A set flag grants a privilege to a user.
+所有用户都列在 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-users"></i></span> 用户管理</span> 下的表格中。你可以通过勾选和取消勾选复选框来更新用户的标志位：<span class="help-button"><input type="checkbox" style="display:inline;" id="true" checked></span> 表示已设置该标志，<span class="help-button"><input type="checkbox" style="display:inline;" id="false"></span> 表示未设置。设置了标志即向用户授予相应特权。
 
-Privileges granted per user add to the general permissions. For example, if in general only users with the **Admin** flag are allowed to upload attachments, the `user@example.org` can be allowed to Upload without being flagged as Admin.
+按用户授予的特权会叠加到全局权限之上。例如，如果全局设置只允许带有 **管理员** 标志的用户上传附件，那么可以让 `user@example.org` 获得上传权限而无需设置管理员标志。
 
-A user with a <span class="help-button"><input type="checkbox" style="display:inline;" id="true-admin" checked></span> in the **Admin** column has Admin permissions. The changes are applied with <span class="btn btn-primary btn-sm btn-hlp">Update Privileges</span>.
+**管理员** 列中带有 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-admin" checked></span> 的用户拥有管理员权限。更改通过 <span class="btn btn-primary btn-sm btn-hlp">更新权限</span> 应用。
 
-#### Edit a user
+#### 编辑用户（Edit a user）
 
-With <span class="help-button"><a hre="#"><i class="fas fa-user-edit"></i></a></span>
-you can open up a single user for editing. Here you can update
-<span class="help-button">Name</span> and <span class="help-button">eMail</span>
-of a user, and set flags and permissions. Changing a users name or email does not change
-the commit history and only affects future commits.
+通过 <span class="help-button"><a hre="#"><i class="fas fa-user-edit"></i></a></span> 可以打开单个用户进行编辑。在这里你可以更新用户的 <span class="help-button">姓名</span> 和 <span class="help-button">电子邮箱</span>，并设置标志位和权限。修改用户的姓名或电子邮箱不会改变提交历史，只影响之后的提交。
 
-Like in the User management table you can control the users flags using the
-checkboxes.
+与用户管理表格中一样，你可以使用复选框控制用户的标志位。
 
-The changes will be applied with <span class="btn btn-primary btn-sm btn-hlp">Update</span>.
+更改通过 <span class="btn btn-primary btn-sm btn-hlp">更新</span> 应用。
 
-#### Delete a user
+#### 删除用户（Delete a user）
 
-On the Edit user page you can remove a user from the wiki's database. Check the
-box and hit <span class="btn btn-danger btn-sm btn-hlp" style="border: None;" role="button">Delete</span>.
-Note that this will not change any edit history or prevent the user from signing up again.
+在"编辑用户"页面上，你可以将用户从 wiki 的数据库中移除。勾选复选框并点击 <span class="btn btn-danger btn-sm btn-hlp" style="border: None;" role="button">删除</span>。注意：此操作不会更改任何编辑历史，也不会阻止该用户再次注册。
 
-### Sidebar Preferences
+### 侧边栏偏好设置（Sidebar Preferences）
 
-#### Shortcuts
-Frequently used Wiki features such as <code>Home</code>, the <code>Page Index</code>, the <code>Changelog</code> or <code>Create
-Page</code> can be added to the Sidebar, e.g. <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-list"></i></span> A - Z</span>.
+#### 快捷方式（Shortcuts）
+常用的 wiki 功能，例如 <code>首页</code>、<code>页面索引</code>、<code>变更记录</code> 或 <code>创建页面</code>，都可以添加到侧边栏，例如 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-list"></i></span> A - Z</span>。
 
-#### Custom Menu
+#### 自定义菜单（Custom Menu）
 
-A custom menu can be configured to display links to important pages or external links.
-For wiki pages, only the page name needs to be entered. For external links, enter the
-link with its full URL. Optionally, a title can be specified for each entry. The order
-of the entries in the menu is set manually.
+可以配置自定义菜单，用于显示指向重要页面的链接或外部链接。对于 wiki 页面，只需输入页面名称；对于外部链接，请输入完整的 URL。此外，还可以为每个条目指定一个标题。菜单中条目的顺序可手动设置。
 
-#### Page Index
+#### 页面索引（Page Index）
 
-The Sidebar can be configured to display the Page Index in different modes.
-You can display pages and directories either alphabetical, or with directories first,
-or only the directories. Alternatively you choose to not display the Page Index at all.
+侧边栏可以配置为以不同模式显示页面索引。你可以按字母顺序显示页面和目录、目录优先，或只显示目录。你也可以选择完全不显示页面索引。
 
-The <code>Page Index Focus</code> setting controls which pages
-and folders are shown alongside the current page:
+<code>页面索引聚焦</code> 设置控制哪些页面和文件夹与当前页面一同显示：
 
-- <code>Focus on current subtree</code> (default): only the parents and siblings of
-  the current page are listed. Other folders are hidden until you navigate into
-  them.
-- <code>Always display all top folders and pages</code>: every top level folder
-  and page is listed, but folders stay folded unless they are on the path to the
-  current page.
-- <code>Always display all pages, unfolded</code>: the complete page tree is
-  listed and every folder is expanded.
+- <code>聚焦当前子树</code>（默认）：仅列出当前页面的父级和同级目录。其他文件夹会保持隐藏，直到你导航进入它们。
+- <code>始终显示所有顶层文件夹和页面</code>：列出所有顶层文件夹和页面，但文件夹保持折叠，除非它们位于当前页面的路径上。
+- <code>始终显示所有页面（全部展开）</code>：列出完整的页面树，并且所有文件夹都展开。
 
-### Content and Editing Preferences
+### 内容与编辑偏好设置（Content and Editing Preferences）
 
-#### Commit Messages
-Per default An Otter Wiki requires users to add commit messages when updating a
-page. You can configure this with the <span class="help-button">Commit Message</span>
-setting. Setting this to `optional` will allow empty commit messages.
+#### 提交说明（Commit Messages）
+默认情况下，An Otter Wiki 要求用户在更新页面时填写提交说明。你可以通过 <span class="help-button">提交说明</span> 设置进行配置。将其设为 `optional` 将允许提交说明留空。
 
-#### Page case name
-An Otter Wiki stores pages in files with names of all lowercase names. To retain
-the upper and lower case of the filenames, check <span class="help-button"><input type="checkbox" style="display:inline;" id="true-retain-page-name" checked>Retain page name case</span>.
+#### 页面名称大小写（Page case name）
+An Otter Wiki 以全小写的文件名存储页面。要保留文件名的大小写，请勾选 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-retain-page-name" checked>保留页面名称大小写</span>。
 
-#### Git Web server
-With <span class="help-button"><input type="checkbox" style="display:inline;" id="true-git-webserver" checked> Enable Git Server</span> allow users with the permission to READ to clone and pull the wiki content via git and users with UPLOAD/Attachment management permissions to push content. HTTP Basic authentication is used for non anonymous access. There is no option for using git via ssh. When enabled, users find the URL to clone the repositroy in their settings.
+#### Git Web 服务器
+通过 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-git-webserver" checked> 启用 Git 服务器</span>，拥有读取权限的用户可以通过 git 克隆和拉取 wiki 内容，拥有上传/附件管理权限的用户可以推送内容。非匿名访问使用 HTTP Basic 认证。不支持通过 ssh 使用 git。启用后，用户可以在自己的设置中找到克隆仓库的 URL。
 
 
-### Access Permissions and Registration Preferences
+### 访问权限与注册偏好设置（Access Permissions and Registration Preferences）
 
-What is necessary for a user to be able to Read/Write pages or upload and modify
-attachments is controlled in the <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-users-cog"></i></span> Permissions and Registration Preferences</span>.
+用户要能够读取/写入页面或上传和修改附件，需要满足的条件由 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-users-cog"></i></span> 权限与注册偏好设置</span> 控制。
 
-- `Read Access` enables users to display pages and attachments. Including the
-    history and every single commit.
-- `Write Access` enables users to edit pages.
-- `Attachments Access` enables users to upload and modify attachments.
+- `读取权限` 允许用户查看页面和附件，包括历史记录和每一个单独的提交。
+- `写入权限` 允许用户编辑页面。
+- `附件权限` 允许用户上传和修改附件。
 
-Who can access what is defined via
+谁可以访问什么由以下选项定义：
 
-- `Anonymous` - Everyone can access the wiki without being logged in.
-- `Registered` - Users need an account and have to be logged in.
-- `Approved` - Users have to be logged in and the <span class="help-button">Approved</span> flag has to be set.
-- `Admin` - Users have to be logged in and the <span class="help-button">Admin</span> flag has to be set.
+- `匿名` - 任何人无需登录即可访问 wiki。
+- `已注册` - 用户需要拥有账户并登录。
+- `已批准` - 用户需要登录，且 <span class="help-button">已批准</span> 标志必须被设置。
+- `管理员` - 用户需要登录，且 <span class="help-button">管理员</span> 标志必须被设置。
 
-Additionally, you can configure privileges per user. The privileges granted per user add to the general permissions. See [User Management](#user-management) above.
+此外，你可以按用户配置特权。按用户授予的特权会叠加到全局权限之上。参见上文的 [用户管理](#user-management)。
 
-With <span class="help-button"><input type="checkbox" style="display:inline;" id="true-reg-req" checked> Disable registration</span> you can disable that anyone can sign up for a new account.
+通过 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-reg-req" checked> 禁用注册</span>，你可以禁止任何人注册新账户。
 
-Configure <span class="help-button"><input type="checkbox" style="display:inline;" id="true-reg-req" checked> Registration requires email confirmation</span>, to ask users to confirm their email address, before their account is enabled. This is supposed to prevent users to register with a typo in their address or even using a fake mail address.
+配置 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-reg-req" checked> 注册需要邮箱确认</span>，要求用户在账户启用之前确认其电子邮箱地址。这是为了防止用户使用输入错误的邮箱地址、甚至虚假的邮箱地址来注册。
 
-If a user needs to be approved, an admin user either needs to set the flag manually
-or enable <span class="help-button"><input type="checkbox" style="display:inline;" id="true-auto-approve" checked> Auto approve of newly registered users</span>. When admins need
-to approve users, <span class="help-button"><input type="checkbox" style="display:inline;" id="true-notify" checked> Notify admins on new user registration</span> helps with that.
-For more convenience, enable <span class="help-button"><input type="checkbox" style="display:inline;" id="true-notify" checked> Notify users when their account has been approved</span> so
-that users are notified automatically and there is no need to notify them
-yourself.
+如果用户需要经过批准，管理员需要手动设置该标志，或启用 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-auto-approve" checked> 自动批准新注册用户</span>。当需要管理员批准用户时，<span class="help-button"><input type="checkbox" style="display:inline;" id="true-notify" checked> 新用户注册时通知管理员</span> 可以帮上忙。为了更加省心，可以启用 <span class="help-button"><input type="checkbox" style="display:inline;" id="true-notify" checked> 账户获得批准时通知用户</span>，这样用户会自动收到通知，无需你亲自通知。
 
 
-### Mail Preferences
+### 邮件偏好设置（Mail Preferences）
 
-To enable An Otter Wiki to send mails to users registering, resetting their lost
-password and notify admins about new users, configure the
-<span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-envelope"></i></span> Mail Preferences</span>. See the [flask-mail documentation](https://pythonhosted.org/Flask-Mail/) for configuration details.
+要让 An Otter Wiki 能够向注册的用户发送邮件（例如重置丢失的密码）并就新用户通知管理员，请配置 <span class="help-button"><span class="btn btn-square btn-sm"><i class="fas fa-envelope"></i></span> 邮件偏好设置</span>。配置详情请参见 [flask-mail 文档](https://pythonhosted.org/Flask-Mail/)。
 
-You can test the configuration using <span class="help-button">Send Test Mail</span>. Per default the test mail is sent to yourself.
+你可以使用 <span class="help-button">发送测试邮件</span> 来测试配置。默认情况下，测试邮件会发送给你自己。
 
 
 [modeline]: # ( vim: set fenc=utf-8 spell spl=en sts=4 et tw=80: )

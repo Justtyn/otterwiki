@@ -1,11 +1,10 @@
-Hello {{name}},
+{{name}}，你好：
 
-Someone, perhaps you, registered this email address ({{email}}) for an account
-at {{sitename}} (An Otter Wiki).
+有人（可能就是你）在 {{sitename}}（An Otter Wiki）为这个电子邮箱
+（{{email}}）注册了账户。
 
-If you wish to proceed with this request, please confirm your email
-address here: {{url}}
+如果你想继续本次请求，请在这里确认你的电子邮箱地址：{{url}}
 
-If you did not make this request, you can safely ignore this email.
+如果你没有发起过此请求，可以放心忽略这封邮件。
 
-Cheers!
+祝好！

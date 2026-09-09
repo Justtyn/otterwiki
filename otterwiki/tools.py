@@ -100,7 +100,7 @@ def handle_housekeeping_emptypages(form):
         if len(files_to_delete):
             storage.delete(
                 files_to_delete,
-                message=f"Housekeeping: Removed empty page{'s'[:len(files_to_delete)^1]}",
+                message=f"清理维护：移除 {len(files_to_delete)} 个空页面",
                 author=get_author(),
             )
             app.logger.debug(
@@ -137,17 +137,17 @@ def handle_housekeeping_emptypages(form):
         except StorageError:
             continue
         if len(content) < 1:
-            pages[pagename] = "Page is empty"
+            pages[pagename] = "页面为空"
             continue
         # check for header only
         if re.match(r"^# ([^ \r\n]+)$", content):
             if pagename == "Imageresize":
                 print(f"{content=}")
-            pages[pagename] = "Header only"
+            pages[pagename] = "仅标题"
             continue
         lines = content.count("\n") + 1
         if lines < 3:
-            pages[pagename] = "Less than three lines"
+            pages[pagename] = "少于三行"
             continue
     duration = timer() - t_start
     app.logger.debug(
@@ -304,5 +304,5 @@ def handle_housekeeping(form):
     if form.get("task", None) == "brokenwikilinks":
         return handle_housekeeping_brokenwikilinks(form)
     # unkown task: display the form
-    toast("未知任务", "error")
+    toast("未知任务。", "error")
     return redirect(url_for("housekeeping"))

@@ -107,8 +107,8 @@
           <div class="form-group">
               <div class="alert alert-secondary" role="alert">
                   <i class="fas fa-exclamation-triangle"></i>
-                  Your webhook URL uses a legacy hash that can be derived from the remote URL.
-                  Check the box below and save preferences to generate a secure webhook URL.
+                  当前 Webhook URL 使用的旧版哈希可由远程仓库地址推导得出。
+                  请勾选下方复选框并保存偏好设置，以生成更安全的 Webhook URL。
                   <strong>注意：</strong>Webhook URL 将发生变化，已有 Webhook 配置也需要更新。
               </div>
               <div class="custom-checkbox">
@@ -167,7 +167,7 @@
 <div class="mt-20" id="git_action_results">
   <div class="card">
     <div class="card-body">
-      <h5 class="card-title">{{ git_action_result.action|title }} Results</h5>
+      <h5 class="card-title">{{ git_action_result.action|title }} 结果</h5>
       <pre class="{% if git_action_result.success %}bg-success{% else %}bg-danger{% endif %} text-light p-10" style="white-space: pre-wrap; font-family: monospace;">{{ git_action_result.output }}</pre>
     </div>
   </div>

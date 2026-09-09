@@ -27,20 +27,21 @@ def test_help_page(test_client):
     # check that help topics are present as h3 headings
     h3_texts = [h3.get_text(strip=True) for h3 in soup.find_all('h3')]
     help_topics = [
-        'Editing and creating pages',
-        'Attachments',
-        'Search',
-        'Page index',
-        'Changelog',
-        'Subdirectories',
+        ('编辑与创建页面', 'editing-and-creating-pages'),
+        ('附件', 'attachments'),
+        ('搜索', 'search'),
+        ('页面索引', 'page-index'),
+        ('变更记录', 'changelog'),
+        ('子目录', 'subdirectories'),
     ]
-    for topic in help_topics:
-        assert topic in h3_texts, f'Help topic {topic!r} not found in h3 tags'
-    # check that the sidebar has links with class sidebar-link for each topic
-    for topic in help_topics:
-        anchor = '#' + topic.lower().replace(' ', '-')
+    for topic, _anchor in help_topics:
         assert any(
-            anchor in h for h in hrefs
+            topic in t for t in h3_texts
+        ), f'Help topic {topic!r} not found in h3 tags'
+    # check that the sidebar has links with class sidebar-link for each topic
+    for topic, anchor in help_topics:
+        assert any(
+            '#' + anchor in h for h in hrefs
         ), f'Sidebar link for {topic!r} not found with class sidebar-link'
 
 
@@ -53,14 +54,14 @@ def test_help_syntax_page(test_client):
     # check that syntax topics are present as h3 headings
     h3_texts = [h3.get_text(strip=True) for h3 in soup.find_all('h3')]
     for topic in [
-        'Emphasis',
-        'Headings',
-        'Lists',
-        'Links',
-        'Quotes',
-        'Images',
-        'Tables',
-        'Code',
+        '强调',
+        '标题',
+        '列表',
+        '链接',
+        '引用',
+        '图片',
+        '表格',
+        '代码',
     ]:
         assert (
             topic in h3_texts
@@ -69,14 +70,14 @@ def test_help_syntax_page(test_client):
     sidebar_links = soup.find_all('a', class_='sidebar-link', href=True)
     sidebar_hrefs = [a['href'] for a in sidebar_links]
     for topic in [
-        'emphasis',
-        'headings',
-        'lists',
-        'links',
-        'quotes',
-        'images',
-        'tables',
-        'code',
+        '强调',
+        '标题',
+        '列表',
+        '链接',
+        '引用',
+        '图片',
+        '表格',
+        '代码',
     ]:
         assert any(
             f'#{topic}' in h for h in sidebar_hrefs
@@ -92,30 +93,34 @@ def test_help_admin_page(test_client):
     # check that admin topics are present as h3 headings
     h3_texts = [h3.get_text(strip=True) for h3 in soup.find_all('h3')]
     admin_topics = [
-        'Branding',
-        'Meta data',
-        'User management',
-        'Sidebar Preferences',
-        'Content and Editing Preferences',
-        'Access Permissions and Registration Preferences',
-        'Mail Preferences',
+        ('品牌设置', 'branding'),
+        ('元数据', 'meta-data'),
+        ('用户管理', 'user-management'),
+        ('侧边栏偏好设置', 'sidebar-preferences'),
+        ('内容与编辑偏好设置', 'content-and-editing-preferences'),
+        (
+            '访问权限与注册偏好设置',
+            'access-permissions-and-registration-preferences',
+        ),
+        ('邮件偏好设置', 'mail-preferences'),
     ]
-    for topic in admin_topics:
-        assert topic in h3_texts, f'Admin topic {topic!r} not found in h3 tags'
+    for topic, _anchor in admin_topics:
+        assert any(
+            topic in t for t in h3_texts
+        ), f'Admin topic {topic!r} not found in h3 tags'
     # check that the sidebar has links with class sidebar-link for each topic
     sidebar_links = soup.find_all('a', class_='sidebar-link', href=True)
     sidebar_hrefs = [a['href'] for a in sidebar_links]
-    for topic in admin_topics:
-        anchor = '#' + topic.lower().replace(' ', '-')
+    for topic, anchor in admin_topics:
         assert any(
-            anchor in h for h in sidebar_hrefs
+            '#' + anchor in h for h in sidebar_hrefs
         ), f'Sidebar link for {topic!r} not found with class sidebar-link'
     # check that the settings button span is present in the rendered html
     settings_spans = soup.find_all('span', class_='help-button')
     found = any(
         s.find('span', class_='btn btn-square btn-sm')
         and s.find('i', class_='fas fa-cog')
-        and 'Settings' in s.get_text()
+        and '设置' in s.get_text()
         for s in settings_spans
     )
     assert found, 'Settings button span with cog icon not found in admin help'

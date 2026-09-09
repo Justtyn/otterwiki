@@ -1,9 +1,9 @@
-Hello {{name}},
+{{name}}，你好：
 
-Thank you for registering your account at {{sitename}} (An Otter Wiki).
+感谢你在 {{sitename}}（An Otter Wiki）注册账户。
 
-The password generated for you is: {{password}}
+为你生成的密码是：{{password}}
 
-Please login here: {{url}}
+请在这里登录：{{url}}
 
-Cheers!
+祝好！

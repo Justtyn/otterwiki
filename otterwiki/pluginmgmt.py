@@ -10,12 +10,12 @@ def generate_help():
     """
     List the help available for all plugins or display the help of the requested plugin.
     """
-    content = "# Plugins\n"
+    content = "# 插件（Plugins）\n"
 
     plugins_info = collect_hook("info")
 
     if len(plugins_info) < 1:
-        content += "<em>No plugins found.</em>"
+        content += "<em>未找到插件。</em>"
 
     # sort plugins_info by category, name
     plugins_info.sort(key=lambda info: (info[2], info[0]))
@@ -46,7 +46,7 @@ def generate_help():
             content += f"\n### {plugin}\n\n{help}\n<div style=\"clear:both;\"></div>\n"
 
     if plugins_without_help:
-        content += "\n## Other Plugins\n\n"
+        content += "\n## 其他插件（Other Plugins）\n\n"
         for plugin, description, category in plugins_without_help:
             content += f"- {plugin}: {description}\n"
 

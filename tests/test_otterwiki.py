@@ -535,7 +535,7 @@ def test_non_version_control_file(test_client):
     response = test_client.get(f"/{filename}")
     assert response.status_code == 200
     assert (
-        "This page was loaded from the repository but is not added under git version control"
+        "此页面虽已从仓库加载，但尚未加入 git 版本控制"
         in response.data.decode()
     )
     assert content in response.data.decode()

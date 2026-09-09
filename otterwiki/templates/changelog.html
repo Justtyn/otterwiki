@@ -3,8 +3,8 @@
 {%block head %}
 {{ super() }}
     <meta name="robots" content="noindex, nofollow"/>
-    <link rel="alternate" type="application/rss+xml" title="Changelog RSS Feed" href="{{url_for("changelog_feed_rss", _external=True)}}" />
-    <link rel="alternate" type="application/atom+xml" title="Changelog Atom Feed" href="{{url_for("changelog_feed_atom", _external=True)}}" />
+    <link rel="alternate" type="application/rss+xml" title="更新记录 RSS 订阅" href="{{url_for("changelog_feed_rss", _external=True)}}" />
+    <link rel="alternate" type="application/atom+xml" title="更新记录 Atom 订阅" href="{{url_for("changelog_feed_atom", _external=True)}}" />
 {% endblock %}
 {% block extra_nav %}{% endblock %}
 {% block menu %}
