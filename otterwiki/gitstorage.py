@@ -723,6 +723,8 @@ class GitStorage(object):
             if depth is not None:
                 d = len(split_path(root))
                 if d > depth:
+                    # 剪枝：只 continue 仍会让 os.walk 遍历整棵子树
+                    dirs[:] = []
                     continue
             # filter directories
             dirs[:] = [d for d in dirs if d not in excludes]

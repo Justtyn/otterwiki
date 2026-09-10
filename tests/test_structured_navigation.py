@@ -418,3 +418,209 @@ def test_complete_tree_cache_is_reused_and_invalidated_by_commit(
 
     assert after_commit.misses == after_second.misses + 1
     assert "新页面" in [entry.header for entry in component.children.values()]
+
+
+def _populate_cycle_docs(storage, sidebar_specs):
+    """组件目录写入自引用/互环规则，用于验证递归保护。"""
+    files = {
+        "cycle/.portal.yml": """mappings:
+  - doc_code: cyc-component
+    file_path: docs/components/cyc
+""",
+        "cycle/.idp/.model.yaml": """- domainName: Cycle
+  code: cycle
+  modules:
+    - moduleName: 循环模块
+      code: cycle-module
+      components:
+        - componentName: 循环组件
+          code: cyc-component
+""",
+        "cycle/components/cyc/index.md": "# 循环组件\n",
+    }
+    for relative, content in sidebar_specs.items():
+        files[f"cycle/components/cyc/{relative}"] = content
+    for filename, content in files.items():
+        storage.update(filename, content)
+    storage.commit(
+        list(files),
+        message="cycle fixture",
+        author=("Test", "test@example.org"),
+        no_add=True,
+    )
+
+
+def test_self_referencing_sidebar_does_not_recurse(
+    create_app, req_ctx, caplog
+):
+    """`path: "."` / `".."` 曾被 sanitize 收敛为空串，导致无限递归 500。"""
+    from otterwiki.structured_navigation import (
+        StructuredNavigation,
+        clear_structured_navigation_cache,
+    )
+
+    _populate_cycle_docs(
+        create_app.storage,
+        {".sidebar.json": json.dumps([{"title": "自身", "path": "."}])},
+    )
+    clear_structured_navigation_cache()
+
+    navigation = StructuredNavigation.for_page("cycle/components/cyc/index")
+    assert navigation is not None
+    tree = navigation.build()
+
+    component = next(iter(next(iter(tree.values())).children.values()))
+    assert component.header == "循环组件"
+    assert component.children == {}
+    assert "形成循环" in caplog.text or "自引用" in caplog.text
+
+
+def test_mutual_sidebar_cycle_does_not_recurse(create_app, req_ctx, caplog):
+    from otterwiki.structured_navigation import (
+        StructuredNavigation,
+        clear_structured_navigation_cache,
+    )
+
+    _populate_cycle_docs(
+        create_app.storage,
+        {
+            ".sidebar.json": json.dumps(
+                [{"title": "A", "path": "a"}], ensure_ascii=False
+            ),
+            "a/.sidebar.json": json.dumps(
+                [{"title": "回到组件", "path": ".."}], ensure_ascii=False
+            ),
+            "a/index.md": "# A\n",
+        },
+    )
+    clear_structured_navigation_cache()
+
+    navigation = StructuredNavigation.for_page("cycle/components/cyc/index")
+    assert navigation is not None
+    tree = navigation.build()
+
+    component = next(iter(next(iter(tree.values())).children.values()))
+    assert [entry.header for entry in component.children.values()] == ["A"]
+    # 环被截断：A 不再展开回组件目录
+    assert next(iter(component.children.values())).children == {}
+
+
+def test_dotted_version_paths_are_preserved(create_app, req_ctx):
+    """版本号目录（v1.2 / 1.0）曾因删除点号而被改写成不存在的路径。"""
+    from otterwiki.structured_navigation import (
+        StructuredNavigation,
+        clear_structured_navigation_cache,
+    )
+
+    _populate_cycle_docs(
+        create_app.storage,
+        {
+            ".sidebar.json": json.dumps(
+                [{"title": "1.0 指南", "path": "v1.2/guide"}],
+                ensure_ascii=False,
+            ),
+            "v1.2/guide.md": "# 指南\n",
+        },
+    )
+    clear_structured_navigation_cache()
+
+    navigation = StructuredNavigation.for_page("cycle/components/cyc/index")
+    assert navigation is not None
+    tree = navigation.build()
+
+    component = next(iter(next(iter(tree.values())).children.values()))
+    entry = next(iter(component.children.values()))
+    assert entry.path == "cycle/components/cyc/v1.2/guide"
+    assert create_app.storage.exists(entry.path + ".md")
+
+
+def test_uncommitted_worktree_change_invalidates_navigation_cache(
+    create_app, req_ctx
+):
+    """导航读的是工作树，缓存键必须随未提交改动变化。"""
+    from otterwiki.sidebar import SidebarPageIndex
+    from otterwiki.structured_navigation import (
+        clear_structured_navigation_cache,
+    )
+
+    _populate_structured_docs(create_app.storage)
+    clear_structured_navigation_cache()
+
+    before = SidebarPageIndex("suite/components/index").query()
+    component = next(iter(next(iter(before.values())).children.values()))
+    assert "工作树新页面" not in [
+        e.header for e in component.children.values()
+    ]
+
+    # 只写入文件并 add，不产生新的 commit
+    create_app.storage.update(
+        "suite/components/demo/worktree.md", "---\ntitle: 工作树新页面\n---\n"
+    )
+    create_app.storage.repo.index.add(["suite/components/demo/worktree.md"])
+
+    after = SidebarPageIndex("suite/components/index").query()
+    component = next(iter(next(iter(after.values())).children.values()))
+    assert "工作树新页面" in [e.header for e in component.children.values()]
+
+
+def test_heading_numbering_handles_gaps_and_out_of_order_levels():
+    from otterwiki.structured_navigation import number_document_headings
+
+    # ### 先于 ## 出现：旧实现会输出 "0.1"
+    toc = [
+        (1, "<h3>三</h3>", 3, "三", "toc-1"),
+        (2, "<h2>二</h2>", 2, "二", "toc-2"),
+    ]
+    _, numbered = number_document_headings("<h3>三</h3><h2>二</h2>", toc)
+    # 旧实现得到 ["0.1 三", "0 二"]；现在回落到顶层计数
+    assert [label for _, _, _, label, _ in numbered] == ["1 三", "2 二"]
+
+    # 跨级跳跃：## 后直接 ####，不应出现 "1.1.0.1"
+    toc = [
+        (1, "<h2>一</h2>", 2, "一", "toc-1"),
+        (2, "<h4>四</h4>", 4, "四", "toc-2"),
+    ]
+    _, numbered = number_document_headings("<h2>一</h2><h4>四</h4>", toc)
+    assert [label for _, _, _, label, _ in numbered] == ["1 一", "1.1.1 四"]
+    assert all(
+        "0" not in label.split(" ")[0] for _, _, _, label, _ in numbered
+    )
+
+
+def test_navigation_editor_rejects_stale_save(create_app, admin_client):
+    """两个标签页并发保存时，后保存者必须收到冲突提示而不是静默覆盖。"""
+    _populate_structured_docs(create_app.storage)
+    page = admin_client.get(
+        "/-/admin/navigation?namespace=suite&section=components"
+    ).data.decode()
+    stale = page.split('name="navigation_revision" value="')[1].split('"')[0]
+
+    payload = {"title": "第一次保存", "tabs": [], "nodes": []}
+    first = admin_client.post(
+        "/-/admin/navigation",
+        data={
+            "namespace": "suite",
+            "section": "components",
+            "navigation_revision": stale,
+            "navigation_payload": json.dumps(payload, ensure_ascii=False),
+        },
+    )
+    assert first.status_code in (200, 302)
+
+    # 用已经过期的 revision 再保存一次
+    second = admin_client.post(
+        "/-/admin/navigation",
+        data={
+            "namespace": "suite",
+            "section": "components",
+            "navigation_revision": stale,
+            "navigation_payload": json.dumps(
+                {"title": "第二次保存", "tabs": [], "nodes": []},
+                ensure_ascii=False,
+            ),
+        },
+        follow_redirects=True,
+    )
+    assert "已被他人修改" in second.data.decode()
+    stored = json.loads(create_app.storage.load("suite/.navigation.json"))
+    assert stored["title"] == "第一次保存"

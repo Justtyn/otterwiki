@@ -23,23 +23,16 @@
   <section class="login-intro" aria-labelledby="login-intro-title">
     <div class="login-eyebrow"><span></span> 产品门户 · 使用手册</div>
     <h1 id="login-intro-title">让产品知识，<br><span>触手可及。</span></h1>
-    <p class="login-description">连接产品、技术与实践。<br>从快速入门到深入探索，在这里找到你需要的答案。</p>
     <img class="login-illustration" src="{{ url_for('static', filename='img/login-documents.svg') }}" alt="" aria-hidden="true" width="600" height="310">
-    <ul class="login-features" aria-label="门户核心特点">
-      <li><i class="far fa-folder-open" aria-hidden="true"></i><div><strong>结构化文档</strong><span>清晰组织，轻松查阅</span></div></li>
-      <li><i class="fas fa-search" aria-hidden="true"></i><div><strong>快速检索</strong><span>直达所需产品知识</span></div></li>
-      <li><i class="fas fa-code-branch" aria-hidden="true"></i><div><strong>协作维护</strong><span>沉淀经验，持续更新</span></div></li>
-    </ul>
+
   </section>
   <section class="login-panel" aria-labelledby="login-title">
     <div class="login-card">
       <div class="login-card-icon" aria-hidden="true">{% block auth_icon %}<i class="fas fa-sign-in-alt"></i>{% endblock %}</div>
       <h2 id="login-title">{% block auth_title %}欢迎回来{% endblock %}</h2>
-      <p class="login-card-description">{% block auth_description %}登录账号，开启你的文档工作空间{% endblock %}</p>
 {% block formcontent %}{% endblock %}
     </div>
     <p class="login-panel-note"><i class="far fa-file-alt" aria-hidden="true"></i> 知识有序，工作从容</p>
   </section>
 </main>
-<footer class="login-footer"><span>产品文档 · 让每一次探索都有方向</span><span>专注知识，连接价值</span></footer>
 {% endblock %}

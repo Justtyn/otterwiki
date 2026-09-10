@@ -292,25 +292,6 @@
     max-width: 52rem;
 }
 
-/* inline key-value-ish text in cards */
-.settings-kv {
-    margin: 0;
-}
-
-.settings-kv dt {
-    font-weight: 600;
-    margin-top: 1.2rem;
-}
-
-.settings-kv dd {
-    margin: 0.2rem 0 0 0;
-    color: var(--lm-muted-text-color);
-}
-
-.dark-mode .settings-kv dd {
-    color: var(--dm-muted-text-color);
-}
-
 /* narrow screens: give cards a bit less padding via halfmoon defaults,
    and let the page header breathe */
 @media (max-width: 576px) {

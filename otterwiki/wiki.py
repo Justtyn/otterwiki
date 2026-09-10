@@ -1464,6 +1464,18 @@ class Attachment:
     def exists(self):
         return os.path.exists(self.abspath)
 
+    def _must_download(self) -> bool:
+        """主动内容（HTML/SVG）必须作为下载返回，不能同源内联执行。
+
+        结构化导航会把目录内的 ``index.html`` 链接进主导航；若仍以内联方式
+        返回，任何能上传附件的人都能在 Wiki 同源下执行脚本。
+        """
+        mimetype = (self.mimetype or "").lower()
+        return mimetype.startswith("text/html") or mimetype in (
+            "application/xhtml+xml",
+            "image/svg+xml",
+        )
+
     def get_thumbnail_url(self):
         if self.mimetype is not None and self.mimetype.startswith("image"):
             return (
@@ -1599,7 +1611,15 @@ class Attachment:
             if not storage.exists(self.filepath):
                 return abort(404)
             # headers are already set correctly by send_file
-            response = make_response(send_file(self.abspath))
+            response = make_response(
+                send_file(
+                    self.abspath,
+                    as_attachment=self._must_download(),
+                    download_name=(
+                        self.filename if self._must_download() else None
+                    ),
+                )
+            )
         else:
             # revision is given
             try:
@@ -1624,7 +1644,10 @@ class Attachment:
             # create response
             response = make_response(
                 send_file(
-                    buffer, mimetype=self.mimetype, download_name=self.filename
+                    buffer,
+                    mimetype=self.mimetype,
+                    download_name=self.filename,
+                    as_attachment=self._must_download(),
                 )
             )
             # set header, caching, etc

@@ -14,11 +14,22 @@ import unicodedata
 import yaml
 from hashlib import sha256
 from functools import lru_cache
-from typing import List, Tuple
+from typing import Any, List, Tuple
 from unidiff import PatchSet
 
 # the cursor magic word which is ignored by the rendering
 cursormagicword = "CuRsoRm4g1cW0Rd"
+
+
+def _as_bool(value: Any, default: bool = True) -> bool:
+    """把「1/true/yes/on」等字符串解释为布尔值（导航/侧栏共用）。"""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)
 
 
 def ttl_lru_cache(ttl: int = 60, maxsize: int = 128):

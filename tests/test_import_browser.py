@@ -13,16 +13,9 @@ import pytest
 
 
 def test_import_browser_upload_polling_and_refresh(tmp_path):
-    candidates = [os.environ.get('CHROME_BIN')] + list(
-        (Path.home() / 'Library/Caches/ms-playwright').glob(
-            'chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell'
-        )
-    )
-    chrome = next(
-        (str(p) for p in candidates if p and Path(p).is_file()), None
-    )
-    if not chrome:
-        pytest.skip('需要 Chromium 验证导入交互')
+    from browser_support import browser_flags, require_chrome
+
+    chrome = require_chrome('验证导入交互')
     script = Path('otterwiki/static/js/document-import.js').read_text()
     fixture = '''<form id="document-import-form" action="http://example.test/-/admin/document_import"><button id="document-import-submit">提交</button></form>
     <section id="document-import-progress" hidden><span id="document-import-phase"></span><span id="document-import-message"></span><span id="document-import-counts"></span><span id="document-import-elapsed"></span><progress id="document-import-bar" max="100"></progress><pre id="document-import-result"></pre><a id="document-import-open" hidden></a></section><script type="application/json" id="document-import-task">null</script>'''
@@ -76,10 +69,7 @@ function setup(initial){document.getElementById('fixture').innerHTML=FIXTURE;el(
     result = subprocess.run(
         [
             chrome,
-            '--headless',
-            '--disable-gpu',
-            '--no-first-run',
-            '--disable-background-networking',
+            *browser_flags(),
             f'--user-data-dir={tmp_path / "profile"}',
             '--dump-dom',
             page.as_uri(),
@@ -94,16 +84,9 @@ function setup(initial){document.getElementById('fixture').innerHTML=FIXTURE;el(
 
 
 def test_repository_import_works_without_random_uuid(tmp_path):
-    candidates = [os.environ.get('CHROME_BIN')] + list(
-        (Path.home() / 'Library/Caches/ms-playwright').glob(
-            'chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell'
-        )
-    )
-    chrome = next(
-        (str(p) for p in candidates if p and Path(p).is_file()), None
-    )
-    if not chrome:
-        pytest.skip('需要 Chromium 验证仓库导入交互')
+    from browser_support import browser_flags, require_chrome
+
+    chrome = require_chrome('验证仓库导入交互')
     script = Path('otterwiki/static/js/repository-sync.js').read_text()
     checks = r'''
 Object.defineProperty(window.crypto, 'randomUUID', {value: undefined});
@@ -142,10 +125,7 @@ function ok(value,label){if(!value)throw new Error(label);}
     result = subprocess.run(
         [
             chrome,
-            '--headless',
-            '--disable-gpu',
-            '--no-first-run',
-            '--disable-background-networking',
+            *browser_flags(),
             f'--user-data-dir={tmp_path / "profile"}',
             '--dump-dom',
             page.as_uri(),

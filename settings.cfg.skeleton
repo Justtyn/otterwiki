@@ -28,6 +28,8 @@ APSTACK_API_BASE_URL = 'http://localhost:9988'
 
 # Permissions
 # 'ANONYMOUS' or 'REGISTERED' or 'APPROVED'
+# 注意：多空间部署下所有页面都要求登录（匿名读取被门禁覆盖），
+# READ_ACCESS = 'ANONYMOUS' 仅表示「已登录用户无需额外审批即可读取」。
 
 READ_ACCESS       = 'ANONYMOUS'
 WRITE_ACCESS      = 'REGISTERED'

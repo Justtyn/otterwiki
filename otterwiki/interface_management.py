@@ -2,13 +2,19 @@
 
 """External API integration helpers for the administrator interface."""
 
+import http.client
 import json
+import os
 import secrets
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, BinaryIO
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import (
+    HTTPRedirectHandler as URLRequestRedirectHandler,
+    Request,
+    build_opener,
+)
 
 from otterwiki.server import app
 
@@ -47,8 +53,9 @@ API_GATEWAY_ASSET_STATUSES = (
     "waitPublish",
 )
 PACKAGE_SOURCE_TYPES = ("LOCAL_FILE", "LOCAL_DIR", "MAVEN_REPO", "HTTP_URL")
-SCAN_TASK_STATUSES = ("INIT", "RUNNING", "SUCCESS", "FAIL")
 MAX_RESPONSE_SIZE = 2 * 1024 * 1024
+# 扫描包上传上限的兜底值，与 defaults.DEFAULT_CONFIG 保持一致
+DEFAULT_SCAN_UPLOAD_MAX_SIZE = 256 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -79,11 +86,38 @@ class InterfaceAPIError(Exception):
         self.status_code = status_code
 
 
+def normalise_mutation_result(payload: Any) -> dict[str, Any]:
+    """把变更类接口的返回体归一化成固定结构。
+
+    上游响应不能原样回传：前端成功判定需要稳定的 ``code``/``msg``/``data``，
+    且任意额外字段都不应进入浏览器。
+    """
+    if not isinstance(payload, dict):
+        raise InterfaceAPIError("外部接口返回的数据格式不正确。")
+    try:
+        code = int(payload.get("code", 200))
+    except (TypeError, ValueError):
+        code = 200
+    if not 100 <= code <= 599:
+        code = 200
+    return {
+        "code": code,
+        "msg": _text(payload.get("msg") or payload.get("message"), 500),
+        "data": payload.get("data"),
+    }
+
+
 def _count(value: Any) -> int:
     if isinstance(value, bool):
         return 0
     if isinstance(value, (int, float)):
         return max(0, int(value))
+    if isinstance(value, str):
+        # 上游偶尔把总数序列化成字符串，直接返回 0 会让分页静默失效
+        try:
+            return max(0, int(value.strip()))
+        except ValueError:
+            return 0
     return 0
 
 
@@ -124,8 +158,12 @@ def api_url(path: str, query: dict[str, Any] | None = None) -> str:
     base_url = str(app.config.get("APSTACK_API_BASE_URL", "")).strip()
     if not base_url:
         raise InterfaceAPIError("尚未配置外部接口 Base URL。")
-    parsed = urlsplit(base_url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+    try:
+        parsed = urlsplit(base_url)
+        netloc = parsed.netloc
+    except ValueError as error:
+        raise InterfaceAPIError("外部接口 Base URL 配置无效。") from error
+    if parsed.scheme not in ("http", "https") or not netloc:
         raise InterfaceAPIError("外部接口 Base URL 配置无效。")
     url = f"{base_url.rstrip('/')}/{path.lstrip('/')}"
     if query:
@@ -133,8 +171,13 @@ def api_url(path: str, query: dict[str, Any] | None = None) -> str:
     return url
 
 
-def dashboard_summary_url() -> str:
-    return api_url(DASHBOARD_SUMMARY_PATH)
+def _path_segment(value: Any) -> str:
+    """URL 路径段编码。
+
+    ``quote(safe="")`` 不编码点号，``..`` 会作为路径段原样透传给上游接口，
+    因此这里额外编码 ``.``。
+    """
+    return quote(str(value), safe="").replace(".", "%2E")
 
 
 def _decode_json(raw: bytes, invalid_message: str) -> Any:
@@ -174,9 +217,18 @@ def _perform_api_request(request: Request) -> Any:
     except (TypeError, ValueError):
         raise InterfaceAPIError("外部接口超时时间配置无效。")
     try:
-        with urlopen(request, timeout=timeout) as response:
+        # 不自动跟随 30x：urllib 会把 POST 降级为 GET 并丢掉请求体，
+        # PUT/DELETE 则直接抛 HTTPError，两种行为都不可预期。
+        with _open_no_redirect(request, timeout) as response:
             raw = response.read(MAX_RESPONSE_SIZE + 1)
     except HTTPError as error:
+        if 300 <= error.code < 400:
+            app.logger.warning(
+                "Interface API returned a redirect (%s)", error.code
+            )
+            raise InterfaceAPIError(
+                "外部接口返回了重定向响应，请检查接口地址配置。", 502
+            )
         raw_error = error.read(MAX_RESPONSE_SIZE + 1)
         message = "外部接口请求失败。"
         try:
@@ -192,11 +244,44 @@ def _perform_api_request(request: Request) -> Any:
         app.logger.warning("Interface API request failed: %s", error)
         status_code = error.code if 400 <= error.code < 500 else 502
         raise InterfaceAPIError(message, status_code)
-    except (URLError, TimeoutError, OSError) as error:
+    except (
+        URLError,
+        TimeoutError,
+        OSError,
+        http.client.HTTPException,
+    ) as error:
         app.logger.warning("Interface API request failed: %s", error)
         raise InterfaceAPIError("暂时无法连接外部接口，请稍后重试。")
+    except RecursionError:
+        # 深层嵌套 JSON 会让解码递归爆栈，不能把 500 堆栈暴露给管理员
+        app.logger.warning("Interface API response is too deeply nested")
+        raise InterfaceAPIError("外部接口返回的数据结构过于复杂。")
 
     return _decode_json(raw, "外部接口没有返回有效的 JSON 数据。")
+
+
+class LimitedReader:
+    """按上限读取的流包装：超限时抛 InterfaceAPIError(413)。
+
+    用于把上传流直接转发给外部接口，避免先把整包读进内存。
+    """
+
+    def __init__(self, stream, limit: int):
+        self._stream = stream
+        self._limit = max(1, int(limit))
+        self._read = 0
+
+    def read(self, size: int = -1) -> bytes:
+        block = self._stream.read(size)
+        if not block:
+            return block
+        self._read += len(block)
+        if self._read > self._limit:
+            raise InterfaceAPIError(
+                f"扫描包超过允许上限（{self._limit // (1024 * 1024)} MiB）。",
+                413,
+            )
+        return block
 
 
 def request_api_multipart(
@@ -204,18 +289,23 @@ def request_api_multipart(
     *,
     fields: dict[str, str],
     filename: str,
-    file_data: bytes,
+    file_data: bytes | BinaryIO,
+    file_size: int | None = None,
 ) -> Any:
-    """Send one gzip file and text fields as multipart/form-data."""
+    """Send one gzip file and text fields as multipart/form-data.
+
+    ``file_data`` 可以是字节串或文件对象；文件对象会按块转发给外部接口，
+    避免把上传包在内存中再复制一份（256MiB 上限下的峰值翻倍问题）。
+    """
 
     boundary = f"----OtterWiki{secrets.token_hex(16)}"
     safe_filename = filename.replace("\\", "/").rsplit("/", 1)[-1]
     safe_filename = safe_filename.replace('"', "").replace("\r", "")
     safe_filename = safe_filename.replace("\n", "") or "package.tar.gz"
-    chunks: list[bytes] = []
+    head: list[bytes] = []
     for name, value in fields.items():
         safe_name = name.replace('"', "").replace("\r", "").replace("\n", "")
-        chunks.extend(
+        head.extend(
             (
                 f"--{boundary}\r\n".encode(),
                 (
@@ -226,7 +316,7 @@ def request_api_multipart(
                 b"\r\n",
             )
         )
-    chunks.extend(
+    head.extend(
         (
             f"--{boundary}\r\n".encode(),
             (
@@ -234,22 +324,44 @@ def request_api_multipart(
                 f'filename="{safe_filename}"\r\n'
             ).encode("utf-8"),
             b"Content-Type: application/gzip\r\n\r\n",
-            file_data,
-            b"\r\n",
-            f"--{boundary}--\r\n".encode(),
         )
     )
-    body = b"".join(chunks)
-    request = Request(
-        api_url(path),
-        data=body,
-        headers={
-            "Accept": "application/json",
-            "Content-Type": f"multipart/form-data; boundary={boundary}",
-        },
-        method="POST",
+    tail = b"\r\n" + f"--{boundary}--\r\n".encode()
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+    }
+    if isinstance(file_data, (bytes, bytearray)):
+        body = b"".join(head) + bytes(file_data) + tail
+        return _perform_api_request(
+            Request(api_url(path), data=body, headers=headers, method="POST")
+        )
+
+    def chunks():
+        for chunk in head:
+            yield chunk
+        while True:
+            block = file_data.read(1024 * 1024)
+            if not block:
+                break
+            yield block
+        yield tail
+
+    size = file_size
+    if size is None:
+        try:
+            file_data.seek(0, os.SEEK_END)
+            size = file_data.tell()
+            file_data.seek(0)
+        except (OSError, ValueError, AttributeError):
+            size = None
+    if size is not None:
+        headers["Content-Length"] = str(
+            sum(len(chunk) for chunk in head) + size + len(tail)
+        )
+    return _perform_api_request(
+        Request(api_url(path), data=chunks(), headers=headers, method="POST")
     )
-    return _perform_api_request(request)
 
 
 def fetch_dashboard_summary() -> dict[str, Any]:
@@ -259,7 +371,11 @@ def fetch_dashboard_summary() -> dict[str, Any]:
 
 
 def _text(value: Any, max_length: int = 500) -> str:
-    return str(value or "")[:max_length]
+    if value is None or value is False:
+        return ""
+    if value is True:
+        return "true"
+    return str(value)[:max_length]
 
 
 def _local_datetime(value: Any) -> str:
@@ -353,7 +469,7 @@ def system_path(system_id: Any) -> str:
     value = _text(system_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少系统 ID。", 400)
-    return f"{SYSTEMS_PATH}/{quote(value, safe='')}"
+    return f"{SYSTEMS_PATH}/{_path_segment(value)}"
 
 
 def normalise_application_page(payload: Any) -> dict[str, Any]:
@@ -452,7 +568,7 @@ def application_path(app_id: Any) -> str:
     value = _text(app_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少应用 ID。", 400)
-    return f"{APPLICATIONS_PATH}/{quote(value, safe='')}"
+    return f"{APPLICATIONS_PATH}/{_path_segment(value)}"
 
 
 def normalise_scan_task_page(payload: Any) -> dict[str, Any]:
@@ -595,14 +711,14 @@ def application_snapshot_delete_path(snapshot_id: Any) -> str:
     value = _text(snapshot_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少应用快照 ID。", 400)
-    return f"{SNAPSHOTS_PATH}/delete/{quote(value, safe='')}"
+    return f"{SNAPSHOTS_PATH}/delete/{_path_segment(value)}"
 
 
 def snapshot_options_path(app_id: Any) -> str:
     value = _text(app_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少应用 ID。", 400)
-    return f"{SNAPSHOTS_PATH}/{quote(value, safe='')}/snapshot-options"
+    return f"{SNAPSHOTS_PATH}/{_path_segment(value)}/snapshot-options"
 
 
 def normalise_snapshot_options(payload: Any) -> list[dict[str, Any]]:
@@ -913,16 +1029,30 @@ def fetch_module_snapshots(
 
 
 def _relation_json_text(value: Any) -> str:
+    """把关联属性渲染成可读文本；列表页不再直接显示原始 JSON。"""
     if value is None:
         return ""
+    parsed: Any = value
     if isinstance(value, str):
-        return value[:4000]
-    try:
-        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))[
-            :4000
-        ]
-    except (TypeError, ValueError):
-        return _text(value, 4000)
+        stripped = value.strip()
+        if stripped[:1] in ("{", "["):
+            try:
+                parsed = json.loads(stripped)
+            except ValueError:
+                return value[:4000]
+        else:
+            return value[:4000]
+    if isinstance(parsed, dict):
+        return "；".join(
+            f"{_text(key, 100)}={_text(item, 200)}"
+            for key, item in list(parsed.items())[:50]
+            if item not in (None, "")
+        )[:4000]
+    if isinstance(parsed, list):
+        return "；".join(
+            _text(item, 200) for item in parsed[:50] if item not in (None, "")
+        )[:4000]
+    return _text(parsed, 4000)
 
 
 def normalise_asset_relation_page(payload: Any) -> dict[str, Any]:
@@ -972,12 +1102,11 @@ def normalise_asset_relation_page(payload: Any) -> dict[str, Any]:
                     ),
                 ),
                 "targetAssetCode": _first_value(
-                    [item, target_asset, record],
+                    [target_asset, item, record],
                     (
                         "targetAssetCode",
                         "targetCode",
                         "targetAssetId",
-                        "assetCode",
                     ),
                 ),
                 "seqNo": _text(sequence if sequence is not None else "", 100),
@@ -1114,7 +1243,7 @@ def transaction_asset_path(asset_id: Any) -> str:
     value = _text(asset_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少交易资产 ID。", 400)
-    return f"{ASSETS_PATH}/{quote(value, safe='')}"
+    return f"{ASSETS_PATH}/{_path_segment(value)}"
 
 
 def _normalise_asset_fields(values: Any) -> list[dict[str, str]]:
@@ -1442,7 +1571,7 @@ def audit_log_path(log_id: Any) -> str:
     value = _text(log_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少审计日志 ID。", 400)
-    return f"{AUDIT_LOGS_PATH}/{quote(value, safe='')}"
+    return f"{AUDIT_LOGS_PATH}/{_path_segment(value)}"
 
 
 def validate_audit_log_ids(payload: Any) -> dict[str, list[str]]:
@@ -1481,22 +1610,27 @@ def validate_scan_task_payload(payload: Any, operator: str) -> dict[str, str]:
     if not app_id:
         raise InterfaceAPIError("请选择应用。", 400)
     source_type = _text(payload.get("packageSourceType"), 30).strip()
+    if source_type and source_type not in PACKAGE_SOURCE_TYPES:
+        raise InterfaceAPIError("部署包来源类型无效。", 400)
     selected_version = _text(payload.get("selectedVersion")).strip()
     if source_type == "MAVEN_REPO" and not selected_version:
         raise InterfaceAPIError("请选择部署包版本。", 400)
-    return {
+    result = {
         "appId": app_id,
         "selectedVersion": selected_version,
         "packageName": _text(payload.get("packageName"), 500).strip(),
         "operator": _text(operator, 300).strip(),
     }
+    if source_type:
+        result["packageSourceType"] = source_type
+    return result
 
 
 def scan_task_path(scan_task_id: Any, action: str = "") -> str:
     value = _text(scan_task_id, 200).strip()
     if not value:
         raise InterfaceAPIError("缺少扫描任务 ID。", 400)
-    encoded = quote(value, safe="")
+    encoded = _path_segment(value)
     if action == "run":
         return f"{SCAN_TASKS_PATH}/{encoded}/run"
     if action == "delete":
@@ -1517,3 +1651,13 @@ def normalise_package_versions(payload: Any) -> list[str]:
     return [
         _text(value).strip() for value in source[:500] if _text(value).strip()
     ]
+
+
+class _NoRedirectHandler(URLRequestRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _open_no_redirect(request: Request, timeout: float):
+    opener = build_opener(_NoRedirectHandler)
+    return opener.open(request, timeout=timeout)

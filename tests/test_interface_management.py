@@ -397,9 +397,12 @@ def test_dashboard_summary_uses_idp_endpoint(create_app):
 
     create_app.config["APSTACK_API_BASE_URL"] = "http://localhost:9988/"
 
-    assert (
-        interface_api.dashboard_summary_url()
-        == "http://localhost:9988/idp/api/dashboard/summary"
+    # 工作台摘要只通过常量路径请求上游，URL 构建必须与常量一致
+    assert interface_api.DASHBOARD_SUMMARY_PATH == (
+        "/idp/api/dashboard/summary"
+    )
+    assert interface_api.api_url(interface_api.DASHBOARD_SUMMARY_PATH) == (
+        "http://localhost:9988/idp/api/dashboard/summary"
     )
 
 
@@ -984,7 +987,7 @@ def test_asset_relation_list_forwards_filter_and_normalises_nested_relation(
         "targetAssetCode": "DirectInnerAps",
         "seqNo": "1",
         "matchRule": "service_name",
-        "relAttrsJson": '{"serviceName":"DirectInnerAps"}',
+        "relAttrsJson": "serviceName=DirectInnerAps",
     }
 
 
@@ -1369,6 +1372,7 @@ def test_maven_scan_task_create_injects_current_operator(
                 "selectedVersion": "1.2.3",
                 "packageName": "core-app",
                 "operator": "Test User",
+                "packageSourceType": "MAVEN_REPO",
             },
         )
     ]
@@ -1442,7 +1446,9 @@ def test_scan_task_upload_forwards_gzip_and_operator(
     calls = []
 
     def fake_multipart(path, *, fields, filename, file_data):
-        calls.append((path, fields, filename, file_data))
+        # 视图以流式方式转发上传内容（LimitedReader），这里读出实际字节
+        body = file_data.read() if hasattr(file_data, "read") else file_data
+        calls.append((path, fields, filename, body))
         return {"code": 200, "msg": "success", "data": {"scanTaskId": "1"}}
 
     monkeypatch.setattr(interface_api, "request_api_multipart", fake_multipart)

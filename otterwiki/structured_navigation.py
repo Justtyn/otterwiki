@@ -21,8 +21,10 @@ import copy
 import hashlib
 import html
 import json
+import os
 import posixpath
 import re
+import unicodedata
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -33,10 +35,10 @@ import yaml
 from otterwiki.gitstorage import StorageError
 from otterwiki.server import app, storage
 from otterwiki.util import (
+    _as_bool,
     get_frontmatter,
     get_header,
     join_path,
-    sanitize_pagename,
     split_path,
 )
 
@@ -111,8 +113,26 @@ class NavigationTree(OrderedDict[str, NavigationEntry]):
 
 
 def _clean_repo_path(value: str) -> str:
-    value = value.replace("\\", "/").strip("/")
-    value = sanitize_pagename(value, handle_md=True)
+    """Normalise a repository path used by navigation rules.
+
+    与 ``sanitize_pagename`` 不同，这里**保留点号**：APStack 文档大量使用
+    ``v1.2``、``1.0`` 这类版本号目录，删除点号会让规则指向不存在的路径
+    （``v1.2/guide`` 曾会被改写成 ``v12/guide``）。仅拦截真正危险的写法：
+    空字符、绝对路径、``.``/``..`` 路径段与反斜杠分隔符。
+    """
+    value = str(value).replace("\\", "/")
+    value = unicodedata.normalize("NFKC", value)
+    value = re.sub(r"\.md$", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"[?$!#\x00]", "", value)
+    value = value.strip().strip("/")
+    segments = []
+    for segment in value.split("/"):
+        segment = segment.strip()
+        if not segment or segment in (".", ".."):
+            # 相对回溯与空段一律丢弃，避免越出命名空间
+            continue
+        segments.append(segment)
+    value = "/".join(segments)
     if not app.config["RETAIN_PAGE_NAME_CASE"]:
         value = value.lower()
     return value
@@ -151,16 +171,6 @@ def _is_page_active(pagepath: str, target: str) -> bool:
     page = _clean_repo_path(pagepath)
     target = _clean_repo_path(target)
     return page == target or page.startswith(target.rstrip("/") + "/")
-
-
-def _as_bool(value: Any, default: bool = True) -> bool:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true", "yes", "on")
-    return bool(value)
 
 
 class StructuredNavigation:
@@ -346,15 +356,36 @@ class StructuredNavigation:
                 )
         return tabs
 
-    def build(self) -> NavigationTree:
+    def _section_for_page(self) -> str:
+        """按标签配置推导当前页面所属分类。
+
+        标签路径可以在可视化编辑器里改成任意目录，因此不能只按
+        ``{ns}/aps``、``{ns}/components``、``{ns}/reference`` 硬编码判断，
+        否则自定义标签下的页面会落到「产品组件」并显示错误的树与高亮。
+        """
+        best = None
+        for definition in self.tab_config():
+            key = definition["key"]
+            path = definition["path"]
+            if key not in ("manual", "components", "reference") or not path:
+                continue
+            if not _is_page_active(self.pagepath, path):
+                continue
+            depth = len(split_path(path))
+            if best is None or depth > best[0]:
+                best = (depth, key)
+        if best is not None:
+            return best[1]
         if self._active_component_root() is not None:
-            section = "components"
-        elif _is_page_active(self.pagepath, f"{self.namespace}/aps"):
-            section = "manual"
-        elif _is_page_active(self.pagepath, f"{self.namespace}/reference"):
-            section = "reference"
-        else:
-            section = "components"
+            return "components"
+        if _is_page_active(self.pagepath, f"{self.namespace}/aps"):
+            return "manual"
+        if _is_page_active(self.pagepath, f"{self.namespace}/reference"):
+            return "reference"
+        return "components"
+
+    def build(self) -> NavigationTree:
+        section = self._section_for_page()
 
         tree = self.base_tree(section)
         self._add_custom_entries(tree, section)
@@ -404,8 +435,16 @@ class StructuredNavigation:
         if not isinstance(custom, list):
             return
         pending = [item for item in custom if isinstance(item, dict)]
-        # Multiple passes allow a custom item to use another custom item as
-        # its parent without requiring a particular serialization order.
+        # 先建 id → entry 索引（单趟遍历），避免每个自定义项都全树查找；
+        # 多趟循环只用于满足「父项可能排在子项之后」的序列化顺序。
+        index_by_id: dict[str, NavigationEntry] = {}
+
+        def reindex(tree_node) -> None:
+            for entry in tree_node.values():
+                index_by_id[entry.node_id] = entry
+                reindex(entry.children)
+
+        reindex(tree)
         for _ in range(len(pending) + 1):
             if not pending:
                 break
@@ -416,9 +455,7 @@ class StructuredNavigation:
                 if not node_id or not title:
                     continue
                 parent_id = str(item.get("parent", "")).strip()
-                parent = (
-                    self._find_entry(tree, parent_id) if parent_id else None
-                )
+                parent = index_by_id.get(parent_id) if parent_id else None
                 if parent_id and parent is None:
                     remaining.append(item)
                     continue
@@ -441,7 +478,15 @@ class StructuredNavigation:
                 )
                 target = parent.children if parent is not None else tree
                 self._insert(target, node_id, entry)
+                index_by_id[node_id] = entry
             if len(remaining) == len(pending):
+                # 父项不存在：明确记录，不再静默丢弃
+                for item in remaining:
+                    app.logger.warning(
+                        "structured navigation: 自定义项 %r 的父项 %r 不存在，已忽略",
+                        item.get("id"),
+                        item.get("parent"),
+                    )
                 break
             pending = remaining
 
@@ -758,6 +803,7 @@ class StructuredNavigation:
         config_base: str | None = None,
         child_specs: list[dict[str, Any]] | None = None,
         expand_all: bool = False,
+        path_guard: frozenset[str] = frozenset(),
     ) -> NavigationEntry | None:
         target = _clean_repo_path(target)
         page_file = target + ".md"
@@ -778,7 +824,9 @@ class StructuredNavigation:
                 expand_all or _is_page_active(self.pagepath, target)
             ):
                 entry.children = self._build_directory(
-                    directory, expand_all=expand_all
+                    directory,
+                    expand_all=expand_all,
+                    path_guard=path_guard,
                 )
             return entry
 
@@ -815,11 +863,13 @@ class StructuredNavigation:
             if child_specs:
                 base = config_base or directory
                 entry.children = self._build_configured_children(
-                    base, directory, child_specs, expand_all
+                    base, directory, child_specs, expand_all, path_guard
                 )
             else:
                 entry.children = self._build_directory(
-                    directory, expand_all=expand_all
+                    directory,
+                    expand_all=expand_all,
+                    path_guard=path_guard,
                 )
             if len(entry.children) == 1:
                 only_child = next(iter(entry.children.values()))
@@ -829,13 +879,14 @@ class StructuredNavigation:
 
     def _target_from_spec(self, base: str, path: str) -> str:
         path = _clean_repo_path(path)
-        return join_path([base, path])
+        return _clean_repo_path(join_path([base, path]))
 
     def _build_spec_entry(
         self,
         config_base: str,
         spec: dict[str, Any],
         expand_all: bool,
+        path_guard: frozenset[str] = frozenset(),
     ) -> NavigationEntry | None:
         if bool(spec.get("hide", False)):
             return None
@@ -859,10 +910,15 @@ class StructuredNavigation:
             config_base=config_base,
             child_specs=child_specs,
             expand_all=expand_all,
+            path_guard=path_guard,
         )
 
     def _immediate_candidates(
-        self, directory: str, *, expand_all: bool
+        self,
+        directory: str,
+        *,
+        expand_all: bool,
+        path_guard: frozenset[str] = frozenset(),
     ) -> OrderedDict[str, NavigationEntry]:
         files, directories = self._list_directory(directory)
         candidates: list[tuple[str, NavigationEntry]] = []
@@ -870,7 +926,9 @@ class StructuredNavigation:
 
         for name in sorted(directory_names, key=str.casefold):
             target = join_path([directory, name])
-            entry = self._entry_for_target(target, expand_all=expand_all)
+            entry = self._entry_for_target(
+                target, expand_all=expand_all, path_guard=path_guard
+            )
             if entry is not None:
                 candidates.append((name, entry))
 
@@ -882,7 +940,9 @@ class StructuredNavigation:
             if stem.lower() in ("index", "readme") or stem in directory_names:
                 continue
             target = join_path([directory, stem])
-            entry = self._entry_for_target(target, expand_all=expand_all)
+            entry = self._entry_for_target(
+                target, expand_all=expand_all, path_guard=path_guard
+            )
             if entry is not None:
                 candidates.append((stem, entry))
 
@@ -904,24 +964,39 @@ class StructuredNavigation:
         directory: str,
         specs: list[dict[str, Any]],
         expand_all: bool,
+        path_guard: frozenset[str] = frozenset(),
     ) -> OrderedDict[str, NavigationEntry]:
         result: OrderedDict[str, NavigationEntry] = OrderedDict()
         used_targets: set[str] = set()
         for index, spec in enumerate(specs):
             spec_path = spec.get("path")
+            target = None
             if isinstance(spec_path, str) and spec_path.strip():
+                target = self._target_from_spec(config_base, spec_path)
                 # A configured item owns its target even when hidden, so it
                 # is not reintroduced by automatic discovery below.
-                used_targets.add(
-                    self._target_from_spec(config_base, spec_path)
+                used_targets.add(target)
+            if target is not None and target in path_guard:
+                # 自引用或循环规则：保留节点本身，但不再展开子树
+                app.logger.warning(
+                    "structured navigation: 规则 %s 中的路径 %r 形成循环，"
+                    "已跳过其子树",
+                    config_base,
+                    spec_path,
                 )
-            entry = self._build_spec_entry(config_base, spec, expand_all)
+                continue
+            entry = self._build_spec_entry(
+                config_base,
+                spec,
+                expand_all,
+                path_guard | {target} if target is not None else path_guard,
+            )
             if entry is None:
                 continue
             self._insert(result, f"configured-{index}", entry)
 
         for key, entry in self._immediate_candidates(
-            directory, expand_all=expand_all
+            directory, expand_all=expand_all, path_guard=path_guard
         ).items():
             if any(
                 _is_page_active(entry.path, used)
@@ -933,14 +1008,29 @@ class StructuredNavigation:
         return result
 
     def _build_directory(
-        self, directory: str, *, expand_all: bool
+        self,
+        directory: str,
+        *,
+        expand_all: bool,
+        path_guard: frozenset[str] = frozenset(),
     ) -> OrderedDict[str, NavigationEntry]:
+        directory = _clean_repo_path(directory)
+        if directory in path_guard:
+            # 规则自引用（path: "."/".."）会回到自身目录，必须截断
+            app.logger.warning(
+                "structured navigation: 目录 %s 的规则形成自引用，已截断子树",
+                directory,
+            )
+            return OrderedDict()
+        path_guard = path_guard | {directory}
         specs = self._sidebar_config(directory)
         if specs:
             return self._build_configured_children(
-                directory, directory, specs, expand_all
+                directory, directory, specs, expand_all, path_guard
             )
-        return self._immediate_candidates(directory, expand_all=expand_all)
+        return self._immediate_candidates(
+            directory, expand_all=expand_all, path_guard=path_guard
+        )
 
     @staticmethod
     def _insert(
@@ -999,10 +1089,24 @@ class StructuredNavigation:
 
 
 def _repository_revision() -> str:
+    """缓存键：HEAD 提交 + Git 索引指纹。
+
+    导航内容全部从**工作树**读取，而旧实现只用 HEAD 提交号做键：仓库处于
+    未提交状态（外部拷入文档、pull 后工作树较新、storage.update 已落盘未
+    提交）时同一 revision 下的内容变化不会改变键，导航会一直返回旧树。
+    索引文件在工作树被 git add/commit/checkout 时必然变化，用它做指纹
+    只需一次 stat（约 0.01ms），且能覆盖「有未提交改动」这一场景。
+    """
     try:
-        return storage.repo.head.commit.hexsha
+        head = storage.repo.head.commit.hexsha
     except (TypeError, ValueError):
-        return "unborn"
+        head = "unborn"
+    try:
+        stat = os.stat(os.path.join(storage.path, ".git", "index"))
+        fingerprint = f"{int(stat.st_mtime_ns)}:{stat.st_size}"
+    except OSError:
+        fingerprint = "no-index"
+    return f"{head}:{fingerprint}"
 
 
 @lru_cache(maxsize=24)
@@ -1060,7 +1164,25 @@ def structured_navigation_cache_info():
 
 def build_structured_navigation(pagepath: str) -> NavigationTree | None:
     navigation = StructuredNavigation.for_page(pagepath)
-    return navigation.build() if navigation is not None else None
+    if navigation is None:
+        return None
+    try:
+        return navigation.build()
+    except RecursionError:
+        # 规则互相引用时宁可回退到普通页面索引，也不能让整站页面 500
+        app.logger.error(
+            "structured navigation: %s 的规则存在循环引用，已回退到普通页面索引",
+            pagepath,
+        )
+        clear_structured_navigation_cache()
+        return None
+    except Exception as error:  # pragma: no cover - 防御性兜底
+        app.logger.exception(
+            "structured navigation: %s 构建失败，已回退到普通页面索引：%s",
+            pagepath,
+            error,
+        )
+        return None
 
 
 def number_document_headings(
@@ -1071,13 +1193,17 @@ def number_document_headings(
     if not toc:
         return htmlcontent, toc
 
-    minimum_level = min(item[2] for item in toc)
     counters = [0] * 6
+    # 以文档首个标题的层级作为编号起点。若用全局最小层级，`###` 先于 `##`
+    # 出现时首个标题会得到 normalized=1 而 counters[0] 仍为 0，编号显示成
+    # "0.1"；跨级跳跃（## 后直接 ####）也会产生 "1.1.0.1" 这类编号。
+    base_level = min(max(int(toc[0][2]), 1), 6)
     numbered_toc: list[tuple[int, str, int, str, str]] = []
     headings_by_anchor: dict[str, tuple[str, bool]] = {}
 
     for count, rendered, level, raw, anchor in toc:
-        normalized = max(0, level - minimum_level)
+        # 比首个标题更浅的标题回到顶层计数，避免出现 "0.1" 这样的编号
+        depth = max(0, min(int(level), 6) - base_level)
         existing = NUMBER_PREFIX.match(raw.strip())
         if existing:
             parts = [
@@ -1090,11 +1216,12 @@ def number_document_headings(
             number = existing.group("number")
             label = raw
         else:
-            counters[normalized] += 1
-            for index in range(normalized + 1, len(counters)):
+            counters[depth] += 1
+            for index in range(depth + 1, len(counters)):
                 counters[index] = 0
+            # 缺级时补齐，避免出现 "1.1.0.1" 这样的零段
             number = ".".join(
-                str(value) for value in counters[: normalized + 1]
+                str(value if value else 1) for value in counters[: depth + 1]
             )
             label = f"{number} {raw}"
         headings_by_anchor[anchor] = (number, existing is None)

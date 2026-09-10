@@ -16,7 +16,6 @@ from flask_login import current_user
 
 from otterwiki.import_runtime import (
     ProcessLock,
-    blocked,
     journals,
     repo_commit,
     recover_journal,
@@ -235,25 +234,6 @@ def submit_task(form, files):
                 {"error": "存在需要人工恢复的导入现场，请先处理。"}, 409
             )
         storage = current_storage()
-        # A per-space Git task is persisted before its worker starts.  Check
-        # it while holding the APStack executor lock so the two replacement
-        # workflows cannot race on the same repository.
-        try:
-            from otterwiki.models import GitSyncTask
-            from sqlalchemy.exc import OperationalError
-
-            git_busy = (
-                GitSyncTask.query.filter_by(space_id=space.id)
-                .filter(GitSyncTask.status.in_(ACTIVE))
-                .first()
-            )
-        except OperationalError:
-            git_busy = None
-        if git_busy:
-            return _json(
-                {"error": "当前空间正在执行 Git 同步，请稍后再试。"},
-                409,
-            )
         task_id = uuid.uuid4().hex
         target = Path(storage.path).resolve()
         workspace = target.parent / (".otterwiki-import-" + task_id)
@@ -282,8 +262,36 @@ def submit_task(form, files):
                 else source.name
             ),
         }
-        # 维护标志与活动请求登记共享同步锁。
+        # 维护标志与活动请求登记共享同步锁。上传可能持续很久，必须在
+        # 上传前登记：这样 Git 同步一侧的 blocked() 在整个上传期间都能
+        # 看到本任务，两个替换流程才不会竞争同一个内容仓库。
         write_journal(root, journal)
+        try:
+            from otterwiki.models import GitSyncTask
+            from sqlalchemy.exc import OperationalError
+
+            git_busy = (
+                GitSyncTask.query.filter_by(space_id=space.id)
+                .filter(GitSyncTask.status.in_(ACTIVE))
+                .first()
+            )
+        except OperationalError as error:
+            # 数据库不可用时不能假装「没有冲突」，否则两道互斥门禁同时失效
+            app.logger.error("查询 Git 同步任务失败：%s", error)
+            remove_journal(root, task_id)
+            shutil.rmtree(workspace, ignore_errors=True)
+            return _json(
+                {"error": "数据库暂时不可用，请稍后再试。"},
+                503,
+            )
+        if git_busy:
+            # 登记与落库之间挤进来的 Git 任务：撤销本任务的登记后重试。
+            remove_journal(root, task_id)
+            shutil.rmtree(workspace, ignore_errors=True)
+            return _json(
+                {"error": "当前空间正在执行 Git 同步，请稍后再试。"},
+                409,
+            )
         task = model(
             id=task_id,
             user_id=user_id,
@@ -381,13 +389,21 @@ class Progress:
             return
         self.phase, self.last_write = phase, now
         _, db, model = _objects()
-        task = db.session.get(model, self.task_id)
-        task.phase = phase
-        task.completed = completed
-        task.total = total
-        task.extracted_bytes = extracted_bytes
-        task.updated_at = time.time()
-        db.session.commit()
+        try:
+            task = db.session.get(model, self.task_id)
+            if task is None:
+                # 任务行已被清理：进度上报不应打断导入本身
+                return
+            task.phase = phase
+            task.completed = completed
+            task.total = total
+            task.extracted_bytes = extracted_bytes
+            task.updated_at = time.time()
+            db.session.commit()
+        except Exception as error:
+            # 一次数据库抖动不能把已经完成的转换判为失败
+            db.session.rollback()
+            app.logger.warning("导入进度写入失败（忽略）：%s", error)
 
 
 def _heartbeat(app, task_id, stop):

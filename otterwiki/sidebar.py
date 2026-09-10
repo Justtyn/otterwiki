@@ -13,6 +13,7 @@ from otterwiki.server import storage, app
 from otterwiki.renderer import clean_html, parse_custom_allowlist
 from otterwiki.structured_navigation import build_structured_navigation
 from otterwiki.util import (
+    _as_bool,
     get_header,
     get_page_directoryname,
     split_path,
@@ -29,15 +30,8 @@ class SidebarMenu:
     URI_SIMPLE = re.compile(r"^(((https?)\:\/\/)|(mailto:))\S+")
     TYPES = ("link", "heading", "separator")
 
-    @staticmethod
-    def _as_bool(value, default: bool) -> bool:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() in ("1", "true", "yes", "on")
-        return bool(value)
+    # 单一实现，见 otterwiki.util._as_bool，避免三份重复逻辑漂移
+    _as_bool = staticmethod(_as_bool)
 
     def _resolve_link(self, link: str, title: str) -> str:
         if empty(link):

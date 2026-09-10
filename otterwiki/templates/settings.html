@@ -106,7 +106,6 @@
 {% block content %}
 {% set settings_page_title = "设置" %}
 {% set settings_page_icon = "fas fa-address-card" %}
-{% set settings_page_desc = "管理你的账户信息：姓名、密码，以及 Git 仓库的克隆地址。" %}
 {% include "snippets/settings_page_header.html" %}
 {#
 #}
@@ -119,9 +118,6 @@
   <label for="name" class="required">姓名</label>
   <input name="name" type="text" class="form-control" id="name" value="{{current_user.name if current_user.name}}" {% if
     not auth_supported_features['editing'] %}disabled{% endif %}>
-    <div class="form-text-plain">
-      修改姓名不会更改已有编辑历史中的署名。
-    </div>
   </div>
   <div class="settings-actions">
     <input class="btn btn-primary" type="submit" value="更新姓名" {% if not auth_supported_features['editing']

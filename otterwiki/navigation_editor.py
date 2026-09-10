@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from typing import Any
@@ -13,6 +14,7 @@ from flask import abort, redirect, render_template, url_for
 from otterwiki.auth import get_author, has_permission
 from otterwiki.helper import toast
 from otterwiki.server import storage
+from otterwiki.util import _as_bool
 from otterwiki.structured_navigation import (
     StructuredNavigation,
     _clean_repo_path,
@@ -33,16 +35,6 @@ MAX_NODES = 5000
 
 class NavigationEditorError(ValueError):
     pass
-
-
-def _as_bool(value: Any, default: bool = True) -> bool:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true", "yes", "on")
-    return bool(value)
 
 
 def _text(value: Any, *, maximum: int, field: str) -> str:
@@ -94,7 +86,23 @@ def navigation_editor_form(namespace: str = "", section: str = "components"):
         navigation_title=tree.title if tree is not None else "文档目录",
         tabs=tabs,
         navigation_rows=rows,
+        navigation_revision=_navigation_revision(namespace),
     )
+
+
+def _navigation_revision(namespace: str) -> str:
+    """当前 .navigation.json 的内容摘要，用于保存时的乐观并发校验。"""
+    if not namespace:
+        return ""
+    filename = f"{namespace}/.navigation.json"
+    try:
+        if not storage.exists(filename):
+            return "absent"
+        return hashlib.sha256(
+            storage.load(filename).encode("utf-8")
+        ).hexdigest()[:32]
+    except Exception:
+        return "unknown"
 
 
 def _validate_tabs(value: Any) -> list[dict[str, Any]]:
@@ -230,6 +238,13 @@ def save_navigation_editor(form):
         navigation, section, payload.get("nodes", [])
     )
 
+    expected = str(form.get("navigation_revision", "")).strip()
+    current = _navigation_revision(namespace)
+    if expected and current not in ("unknown",) and expected != current:
+        raise NavigationEditorError(
+            "导航配置已被他人修改，请刷新页面后重新编辑。"
+        )
+
     config = dict(navigation.override)
     config["version"] = 1
     config["title"] = title or "文档目录"
@@ -241,14 +256,44 @@ def save_navigation_editor(form):
     config["sections"] = sections
 
     filename = f"{namespace}/.navigation.json"
-    storage.store(
-        filename,
-        json.dumps(config, ensure_ascii=False, indent=2) + "\n",
-        message=f"更新 {namespace} 文档导航",
-        author=get_author(),
-    )
+    body = json.dumps(config, ensure_ascii=False, indent=2) + "\n"
+    # 同一仓库的写入串行化：两个管理员同时保存时不会竞争 Git 索引
+    from otterwiki.repomgmt import RepositoryManager
+
+    with RepositoryManager.git_push_pull_Lock:
+        _write_atomically(filename, body)
+        storage.store(
+            filename,
+            body,
+            message=f"更新 {namespace} 文档导航",
+            author=get_author(),
+        )
     clear_structured_navigation_cache()
     toast("文档导航已保存。")
     return redirect(
         url_for("admin_navigation", namespace=namespace, section=section)
     )
+
+
+def _write_atomically(filename: str, body: str) -> None:
+    """先写临时文件再替换，避免写入中断留下截断的 JSON。"""
+    import os
+    import tempfile
+
+    target = os.path.join(storage.path, filename)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(
+        prefix=".navigation-", suffix=".json", dir=os.path.dirname(target)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(body)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, target)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise

@@ -528,6 +528,18 @@ def admin_group_delete(group_id):
     return otterwiki.preferences.handle_group_delete(group_id, request.form)
 
 
+def _interface_mutation_response(result):
+    """变更类端点的统一响应：白名单归一化 + 禁止缓存。
+
+    上游返回体直接回传会让前端成功判定完全依赖对方恰好返回 code===200，
+    也无法阻止中间缓存保存变更结果。
+    """
+    payload = otterwiki.interface_management.normalise_mutation_result(result)
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.route("/-/interface")
 @app.route("/-/interface/<string:tab>")
 @login_required
@@ -742,7 +754,7 @@ def interface_systems():
             otterwiki.interface_management.SYSTEMS_PATH,
             json_body=payload,
         )
-        return jsonify(result)
+        return _interface_mutation_response(result)
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),
@@ -770,7 +782,7 @@ def interface_system(system_id):
             result = otterwiki.interface_management.request_api_json(
                 "DELETE", path
             )
-        return jsonify(result)
+        return _interface_mutation_response(result)
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),
@@ -804,7 +816,7 @@ def interface_applications():
             otterwiki.interface_management.APPLICATIONS_PATH,
             json_body=payload,
         )
-        return jsonify(result)
+        return _interface_mutation_response(result)
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),
@@ -835,7 +847,7 @@ def interface_application(app_id):
             result = otterwiki.interface_management.request_api_json(
                 "DELETE", path
             )
-        return jsonify(result)
+        return _interface_mutation_response(result)
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),
@@ -871,7 +883,7 @@ def interface_scan_tasks():
             otterwiki.interface_management.SCAN_TASKS_PATH,
             json_body=payload,
         )
-        return jsonify(result)
+        return _interface_mutation_response(result)
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),
@@ -902,15 +914,21 @@ def interface_scan_task_upload():
         try:
             max_size = int(
                 app.config.get(
-                    "APSTACK_SCAN_UPLOAD_MAX_SIZE", 256 * 1024 * 1024
+                    "APSTACK_SCAN_UPLOAD_MAX_SIZE",
+                    otterwiki.interface_management.DEFAULT_SCAN_UPLOAD_MAX_SIZE,
                 )
             )
         except (TypeError, ValueError):
             raise otterwiki.interface_management.InterfaceAPIError(
                 "扫描包上传大小配置无效。"
             )
-        file_data = upload.stream.read(max_size + 1)
-        if len(file_data) > max_size:
+        if max_size <= 0:
+            raise otterwiki.interface_management.InterfaceAPIError(
+                "扫描包上传大小配置无效。"
+            )
+        # 以流式方式转发，避免把上限 256MiB 的包在内存中再复制一份
+        declared = request.content_length
+        if declared is not None and declared > max_size:
             raise otterwiki.interface_management.InterfaceAPIError(
                 f"扫描包超过允许上限（{max_size // (1024 * 1024)} MiB）。",
                 413,
@@ -925,9 +943,11 @@ def interface_scan_task_upload():
                 ).strip()[:500],
             },
             filename=upload.filename,
-            file_data=file_data,
+            file_data=otterwiki.interface_management.LimitedReader(
+                upload.stream, max_size
+            ),
         )
-        return jsonify(result)
+        return _interface_mutation_response(result)
     except otterwiki.interface_management.InterfaceAPIError as error:
         return (
             jsonify({"code": error.status_code, "msg": str(error)}),
@@ -947,7 +967,7 @@ def interface_scan_task_run(scan_task_id):
         path = otterwiki.interface_management.scan_task_path(
             scan_task_id, "run"
         )
-        return jsonify(
+        return _interface_mutation_response(
             otterwiki.interface_management.request_api_json("POST", path)
         )
     except otterwiki.interface_management.InterfaceAPIError as error:
@@ -969,7 +989,7 @@ def interface_scan_task_delete(scan_task_id):
         path = otterwiki.interface_management.scan_task_path(
             scan_task_id, "delete"
         )
-        return jsonify(
+        return _interface_mutation_response(
             otterwiki.interface_management.request_api_json("DELETE", path)
         )
     except otterwiki.interface_management.InterfaceAPIError as error:
@@ -1083,7 +1103,7 @@ def interface_application_snapshot_delete(snapshot_id):
         path = otterwiki.interface_management.application_snapshot_delete_path(
             snapshot_id
         )
-        return jsonify(
+        return _interface_mutation_response(
             otterwiki.interface_management.request_api_json("DELETE", path)
         )
     except otterwiki.interface_management.InterfaceAPIError as error:
@@ -1287,7 +1307,7 @@ def interface_audit_log_delete(log_id):
         abort(403)
     try:
         path = otterwiki.interface_management.audit_log_path(log_id)
-        return jsonify(
+        return _interface_mutation_response(
             otterwiki.interface_management.request_api_json("DELETE", path)
         )
     except otterwiki.interface_management.InterfaceAPIError as error:

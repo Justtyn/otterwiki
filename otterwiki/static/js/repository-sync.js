@@ -11,14 +11,29 @@
     target.className = "repository-task-result mt-10" + (task.status === "failed" ? " text-danger" : "");
   }
 
-  async function poll(card, url, delay) {
+  const POLL_INTERVAL_MS = 2000;
+  // 任务卡在 running 时不能让页面无限轮询：超过上限后提示手动刷新。
+  const POLL_MAX_MS = 30 * 60 * 1000;
+
+  async function poll(card, url, delay, startedAt) {
+    const started = startedAt || Date.now();
+    if (Date.now() - started > POLL_MAX_MS) {
+      const target = card.querySelector(".repository-task-result");
+      if (target) {
+        target.textContent = "任务状态查询已超过 30 分钟，请刷新页面确认结果。";
+      }
+      return;
+    }
     try {
       const response = await fetch(url, {headers: {"Accept": "application/json"}});
       const task = await response.json();
       if (!response.ok) throw new Error(task.error || "无法查询任务状态。");
       render(card, task);
       if (task.status === "queued" || task.status === "running") {
-        window.setTimeout(() => poll(card, url, 2000), 2000);
+        window.setTimeout(
+          () => poll(card, url, POLL_INTERVAL_MS, started),
+          POLL_INTERVAL_MS
+        );
       } else if (task.status === "succeeded" && task.operation === "import") {
         window.setTimeout(() => window.location.reload(), 700);
       } else {
@@ -29,7 +44,10 @@
     } catch (error) {
       const target = card.querySelector(".repository-task-result");
       if (target) target.textContent = error.message;
-      window.setTimeout(() => poll(card, url, Math.min(delay * 2, 15000)), delay);
+      window.setTimeout(
+        () => poll(card, url, Math.min(delay * 2, 15000), started),
+        delay
+      );
     }
   }
 

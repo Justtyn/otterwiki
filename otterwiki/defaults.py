@@ -83,6 +83,8 @@ DEFAULT_CONFIG = dict(
     SITE_BACKUP_MAX_FILES=200_000,
     APSTACK_API_BASE_URL="http://localhost:9988",
     APSTACK_API_TIMEOUT=10,
+    # 扫描任务上传包大小上限（字节）；进入整站备份的部署配置
+    APSTACK_SCAN_UPLOAD_MAX_SIZE=256 * 1024 * 1024,
     # 多空间：新空间仓库根目录；默认取 REPOSITORY 同级的 spaces 目录
     SPACES_ROOT=None,
     # 全局文档字号（px），允许 12-24 的整数

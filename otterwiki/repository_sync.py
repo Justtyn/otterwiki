@@ -59,11 +59,51 @@ PHASE_LABELS = {
     "done": "已完成",
 }
 _BRANCH_RE = re.compile(r"^[^\s~^:?*\\\[\]-][^\s~^:?*\\\[]*$")
-_SCP_RE = re.compile(r"^(?:[A-Za-z0-9._-]+@)?[A-Za-z0-9.-]+:[^/].+$")
+# scp 风格地址（user@host:path）；主机名部分不含点号以外的特殊字符，
+# 且路径不得以 / 开头（否则更可能是 Windows 盘符或协议写法）。
+_SCP_RE = re.compile(
+    r"^(?P<user>[A-Za-z0-9._-]+@)?(?P<host>[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?)"
+    r":(?P<path>[^/].*)$"
+)
+# 允许的远程协议；scp 风格地址单独处理
+_ALLOWED_SCHEMES = ("http", "https", "ssh")
+# Git 的远程助手协议（ext::、file:: 等）一律拒绝，且必须大小写不敏感：
+# 大写 EXT:: 会绕过 ext:: 黑名单并被 scp 风格正则放行。
+_FORBIDDEN_TRANSPORT_PREFIXES = (
+    "ext::",
+    "file::",
+    "fd::",
+    "fd",
+    "hg::",
+    "svn::",
+    "sh::",
+    "bash::",
+)
+# 私网、回环、链路本地与保留地址：避免管理员配置被用作 SSRF 探测入口。
+_PRIVATE_HOST_RE = re.compile(
+    r"^(?:localhost|127\.|0\.|10\.|192\.168\.|169\.254\.|"
+    r"172\.(?:1[6-9]|2\d|3[01])\.|::1$|f[cd][0-9a-f]{2}:|fe80:)"
+)
+_SCP_HOST_BLOCKLIST = (
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "169.254.169.254",
+    "metadata.google.internal",
+)
 
 
 class RepositorySyncError(ValueError):
     pass
+
+
+def _host_is_private(host: str) -> bool:
+    host = (host or "").strip().strip("[]").casefold()
+    if not host:
+        return True
+    if host in _SCP_HOST_BLOCKLIST:
+        return True
+    return bool(_PRIVATE_HOST_RE.match(host))
 
 
 def _sync_root():
@@ -80,15 +120,40 @@ def validate_remote_url(value):
     value = (value or "").strip()
     if not value or "\x00" in value or "\n" in value or "\r" in value:
         raise RepositorySyncError("请填写有效的远程仓库地址。")
-    if value.startswith("-") or value.startswith("ext::"):
+    folded = value.casefold()
+    # 协议名大小写不敏感：大写 EXT:: 不能绕过 ext:: 黑名单
+    if value.startswith("-") or folded.startswith(
+        _FORBIDDEN_TRANSPORT_PREFIXES
+    ):
         raise RepositorySyncError("不支持该 Git 仓库协议。")
-    if _SCP_RE.fullmatch(value):
+    # Windows 盘符（C:\repo）等本地路径写法
+    if re.fullmatch(r"[A-Za-z]:[\\/].*", value):
+        raise RepositorySyncError("不支持本地路径，请填写远程仓库地址。")
+
+    match = _SCP_RE.fullmatch(value)
+    if match is not None:
+        if _host_is_private(match.group("host")):
+            raise RepositorySyncError(
+                "不允许使用内网、回环或链路本地地址作为仓库地址。"
+            )
+        # 拒绝 ../ 之类的相对回溯写法
+        if ".." in match.group("path").split("/"):
+            raise RepositorySyncError("请填写有效的远程仓库地址。")
         return value
-    parsed = urlsplit(value)
-    if parsed.scheme not in ("http", "https", "ssh") or not parsed.hostname:
+
+    try:
+        parsed = urlsplit(value)
+        hostname = parsed.hostname
+    except ValueError as error:
+        raise RepositorySyncError("请填写有效的远程仓库地址。") from error
+    if parsed.scheme not in _ALLOWED_SCHEMES or not hostname:
         raise RepositorySyncError("仓库地址仅支持 HTTP(S) 或 SSH。")
     if parsed.password is not None:
         raise RepositorySyncError("请勿在仓库 URL 中嵌入密码或令牌。")
+    if _host_is_private(hostname):
+        raise RepositorySyncError(
+            "不允许使用内网、回环或链路本地地址作为仓库地址。"
+        )
     return value
 
 
@@ -448,7 +513,9 @@ def _run_task(task_id, lock):
 
                 record.initialized_at = datetime.now(UTC)
             db.session.commit()
-        except Exception as error:
+        except BaseException as error:
+            # 捕获 BaseException：进程收到 SystemExit/KeyboardInterrupt 时
+            # 也要把任务落成失败态，否则会永久停留在 running 被前端轮询。
             db.session.rollback()
             task = db.session.get(GitSyncTask, task_id)
             record = (
@@ -617,7 +684,18 @@ def queue_task(
         name="git-sync-" + task.id,
         daemon=True,
     )
-    thread.start()
+    try:
+        thread.start()
+    except BaseException as error:
+        # 线程无法启动时必须释放锁并把任务标记为失败，否则该空间的
+        # Git 同步会永久不可用（只能重启进程恢复）。
+        app.logger.exception("无法启动 Git 同步线程")
+        lock.release()
+        task.status = "failed"
+        task.error = f"无法启动同步任务：{error}"
+        task.finished_at = task.updated_at = time.time()
+        db.session.commit()
+        raise RepositorySyncError("无法启动同步任务，请稍后重试。") from error
     return task, True
 
 
@@ -881,6 +959,10 @@ def get_admin_task(task_id):
     task = db.session.get(GitSyncTask, task_id)
     if not task:
         abort(404)
+    if task.status in ACTIVE:
+        # 轮询接口也做一次崩溃恢复，避免进程被杀后页面永久显示「运行中」
+        recover_tasks()
+        task = db.session.get(GitSyncTask, task_id)
     return _json(_serialize_task(task))
 
 

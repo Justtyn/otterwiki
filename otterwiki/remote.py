@@ -9,24 +9,35 @@ from otterwiki.server import app
 from otterwiki.auth import current_user, has_permission, check_credentials
 
 
+def ensure_push_config(path):
+    """允许推入非裸仓库的当前分支。
+
+    见 https://git-scm.com/docs/git-config#Documentation/git-config.txt-receivedenyCurrentBranch
+    仓库被整份替换（文档导入、Git 首次导入）后必须重新执行一次，
+    否则 Git HTTP 推送会报 "refusing to update checked out branch"。
+    """
+    config_command = [
+        "git",
+        "config",
+        "--file",
+        os.path.join(str(path), ".git", "config"),
+        "receive.denyCurrentBranch",
+        "updateInstead",
+    ]
+    result = subprocess.run(config_command, capture_output=True)
+    if result.returncode > 0:
+        app.logger.error(
+            f"GitHttpServer failed: {config_command} with \"{result.stderr}\""
+        )
+    return result.returncode == 0
+
+
 class GitHttpServer:
     def __init__(self, path: str):
         self.path = path
         # configure git to allow pushing into the current branch
-        # of the non-bare repository, see https://git-scm.com/docs/git-config#Documentation/git-config.txt-receivedenyCurrentBranch
-        config_command = [
-            "git",
-            "config",
-            "--file",
-            os.path.join(self.path, ".git", "config"),
-            "receive.denyCurrentBranch",
-            "updateInstead",
-        ]
-        p = subprocess.run(config_command, capture_output=True)
-        if p.returncode > 0:
-            app.logger.error(
-                f"GitHttpServer failed: {config_command} with \"{p.stderr}\""
-            )
+        # of the non-bare repository
+        ensure_push_config(self.path)
 
     def check_if_enabled(self):
         # FIXME

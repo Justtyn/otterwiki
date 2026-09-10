@@ -27,7 +27,7 @@
         </nav>
     </header>
 
-    <section class="interface-main" data-active-tab="{{ active_tab.slug }}">
+    <section class="interface-main">
     {% if active_tab.slug == "workbench" %}
         <div id="dashboard-error" class="alert alert-danger dashboard-error" role="alert" hidden></div>
         <div class="dashboard-summary" aria-label="工作台统计">
@@ -856,12 +856,6 @@
                     <span class="page-unit">页</span>
                 </div>
             </div>
-        </section>
-    {% else %}
-        <section class="interface-placeholder">
-            <div class="placeholder-icon"><i class="fas fa-link" aria-hidden="true"></i></div>
-            <h1>{{ active_tab.label }}</h1>
-            <p>页面结构已就绪，待对应外部 API 接口信息确认后即可接入。</p>
         </section>
     {% endif %}
     </section>

@@ -5,6 +5,64 @@
 
 ---
 
+## 2026-09-09 回归检查（未提交）
+
+对定制分支增量功能执行回归审计（报告：
+`docs/regression-review-2026-09.md`），修复 A/B 两级问题并补齐测试。
+
+### A 级（500 / 数据不一致 / 安全边界）
+
+- 结构化导航递归环保护（自引用/互相引用的 `.sidebar.json` 不再导致
+  RecursionError，警告并回退普通索引）
+- Git 仓库切换后对推送目标写入 `receive.denyCurrentBranch=updateInstead`
+  （Git HTTP 服务器启动时已写入；导入替换后缺失时补写）
+- 文档导入与 Git 同步两条「替换仓库」流程的互斥收紧：登记维护日志先于
+  上传，Git 同步的 `blocked()` 在整段上传期间可见；登记后复查活动 Git 任务，
+  冲突即撤销登记并返回 409
+- 远程仓库地址校验收紧：拒绝 `ext::`/`file::` 等传输前缀、私网/回环地址、
+  Windows 盘符路径与含 `..` 的 scp 路径
+- 导入中断恢复补分支：目标仓库路径不存在且无备份时解除维护并提示
+- 扫描任务上传改为 1 MiB 分块流式读取 + `LimitedReader` 上限，
+  不再整份读入内存
+
+### B 级（功能缺陷，均已带回归测试）
+
+- 点号路径保留（`v1.2/guide` 不再变成 `v12/guide`）；缓存键加入工作树
+  指纹（未提交的修改立即可见）
+- `index.html` 等主动内容附件强制 `as_attachment` 下载（同源存储型 XSS）
+- 导航编辑器：乐观并发校验（过期 revision 拒绝保存）、原子写、写锁
+- 标题编号修复：`###` 先于 `##` 不再产生 "0.1"；跨级跳跃不再产生 "1.1.0.1"
+- 侧栏分类按标签配置推导（自定义标签不再错位高亮）
+- `storage.list` 深度剪枝；`_add_custom_entries` 改为单趟建索引
+- 导入进度写入容错、数据库不可用不再静默降级、超时文案与实际一致
+- 旧仓库备份清理在所有生产路径可达，不再无限堆积
+- 接口管理：外部请求异常兜底（HTTPException/RecursionError/畸形 IPv6）、
+  30x 不自动跟随（urllib 会把 POST 降级为 GET）、路径段编码 `.`、
+  `_text`/`_count` 语义修正、`packageSourceType` 白名单校验并转发、
+  变更类端点统一白名单归一化 + `Cache-Control: no-store`、资产关系
+  `targetAssetCode` 不再回退到源资产、关联属性列展示为可读文本
+- Git 同步：线程启动失败释放锁、工作线程捕获 `BaseException`、
+  轮询接口触发崩溃恢复、前端轮询 30 分钟上限
+- 二次提示重建 toast 关闭按钮并重置计时器（`interface-feedback.js`）
+
+### C 级（无用代码）
+
+- 删除零引用文件与死代码（见报告第 3 节列表，含两个纯转发函数）
+
+### D 级（测试）
+
+- 浏览器测试统一 `--no-sandbox` 参数，受限环境不再因 Chromium 沙箱
+  启动失败；无浏览器时明确 skip，`OTTERWIKI_REQUIRE_BROWSER_TESTS=1`
+  时直接失败，避免静默零覆盖
+
+### 已知限制（本次不修复）
+
+- 单副本、单 Web 进程假设；`PROXY_HEADER` 与多空间不兼容；
+  匿名读取被门禁覆盖（均为有意设计，说明已同步到
+  `settings.cfg.skeleton`、`help_admin.md`、`docs/multi-space-upgrade.md`）
+
+---
+
 ## 2026-09-08
 
 ### Added

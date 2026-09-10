@@ -129,29 +129,9 @@ def test_document_computed_sizes_in_browser(tmp_path, width):
     import subprocess
     from pathlib import Path
 
-    chrome = next(
-        (
-            candidate
-            for candidate in (
-                os.environ.get("CHROME_BIN"),
-                shutil.which("chrome-headless-shell"),
-                *sorted(
-                    (Path.home() / "Library/Caches/ms-playwright").glob(
-                        "chromium_headless_shell-*/chrome-headless-shell-*/chrome-headless-shell"
-                    ),
-                    reverse=True,
-                ),
-                shutil.which("chromium"),
-                shutil.which("chromium-browser"),
-                shutil.which("google-chrome"),
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            )
-            if candidate and Path(candidate).is_file()
-        ),
-        None,
-    )
-    if chrome is None:
-        pytest.skip("需要 Chrome/Chromium 验证实际排版字号")
+    from browser_support import browser_flags, require_chrome
+
+    chrome = require_chrome("验证实际排版字号")
     css_root = Path(__file__).resolve().parents[1] / "otterwiki/static/css"
     css = (css_root / "halfmoon.min.css").read_text()
     css += (css_root / "elements/page.css").read_text()
@@ -180,11 +160,8 @@ def test_document_computed_sizes_in_browser(tmp_path, width):
     result = subprocess.run(
         [
             chrome,
-            "--headless",
-            "--disable-gpu",
-            "--no-first-run",
+            *browser_flags(),
             "--no-default-browser-check",
-            "--disable-background-networking",
             f"--user-data-dir={tmp_path / 'chrome-profile'}",
             f"--window-size={width},900",
             "--dump-dom",

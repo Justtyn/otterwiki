@@ -41,6 +41,8 @@ except ModuleNotFoundError:
     spec.loader.exec_module(migration_module)
     Migration = migration_module.Migration
 
+from otterwiki.import_runtime import repo_commit
+
 CONFIRMATION_TEXT = "RESET APSTACK"
 IMPORT_COMMIT_MESSAGE = "重新构建 APStack 文档"
 IMPORT_AUTHOR = ("OtterWiki Importer", "noreply@otterwiki")
@@ -398,11 +400,17 @@ def _remove_tree_with_retries(path: Path) -> None:
         raise last_error
 
 
-def _cleanup_repository_backups(target: Path, backup: Path) -> list[str]:
-    """Remove the current and any stale pre-import backups."""
+def _cleanup_repository_backups(
+    target: Path, backup: Path, include_current: bool = True
+) -> list[str]:
+    """Remove the current and/or stale pre-import backups."""
     warnings: list[str] = []
-    candidates = {backup}
-    candidates.update(target.parent.glob(f".{target.name}.pre-import-*"))
+    candidates = {backup} if include_current else set()
+    for candidate in target.parent.glob(f".{target.name}.pre-import-*"):
+        # 未确认成功时不能删除本次备份（失败后仍需用于人工恢复）
+        if not include_current and candidate == backup:
+            continue
+        candidates.add(candidate)
     for candidate in sorted(candidates, key=str):
         if candidate.is_symlink():
             warnings.append(f"拒绝删除符号链接形式的旧仓库备份：{candidate}")
@@ -423,17 +431,19 @@ def _replace_repository(
         target.parent / f".{target.name}.failed-import-{uuid.uuid4().hex}"
     )
     warnings: list[str] = []
+    # 先校验目标再写切换日志：目标不存在/被替换成文件时若已写下
+    # maintenance=True 的日志，恢复逻辑无法判定现场，会永久卡在维护态。
+    if target.is_symlink() or not target.is_dir():
+        raise DocumentImportError("当前内容仓库路径不是普通文件夹，拒绝替换。")
     if checkpoint:
         checkpoint(
             target=str(target),
             backup=str(backup),
             stage=str(stage_repo),
-            commit=repo_commit_for_import(stage_repo),
-            old_commit=repo_commit_for_import(target),
+            commit=repo_commit(stage_repo),
+            old_commit=repo_commit(target),
         )
 
-    if target.is_symlink() or not target.is_dir():
-        raise DocumentImportError("当前内容仓库路径不是普通文件夹，拒绝替换。")
     try:
         # Windows refuses to rename a Git working tree while GitPython still
         # holds memory maps or subprocess handles below .git.
@@ -473,8 +483,21 @@ def _replace_repository(
             f"加载新内容仓库失败，已恢复旧仓库：{error}"
         ) from error
 
-    if checkpoint is None:
-        warnings.extend(_cleanup_repository_backups(target, backup))
+    # 仓库被整份替换后，git-http 推送所需配置必须重新写入一次，
+    # 否则默认空间在导入/首次同步后无法通过 Git HTTP 推送。
+    from otterwiki.remote import ensure_push_config
+
+    if not ensure_push_config(target):
+        warnings.append("Git 推送配置写入失败，可能需要在服务重启后重试。")
+
+    # 清理陈旧备份：此前只在 checkpoint 为空时清理，而两个生产调用方都传了
+    # checkpoint，导致 .pre-import-* 目录不断堆积。本次的 backup 由调用方
+    # 在任务成功落库后删除（失败时仍需保留用于人工恢复）。
+    warnings.extend(
+        _cleanup_repository_backups(
+            target, backup, include_current=checkpoint is None
+        )
+    )
     return warnings
 
 
@@ -594,7 +617,7 @@ def document_import_form(
             result=result,
             import_error=error,
             source_directory=source_directory,
-            latest_task=latest_import_task(),
+            latest_task=_latest_import_task(),
             current_space_name=(
                 current_space().name if current_space() else None
             ),
@@ -603,16 +626,10 @@ def document_import_form(
     )
 
 
-def latest_import_task():
+def _latest_import_task():
     from otterwiki.import_tasks import latest_task
 
     return latest_task()
-
-
-def repo_commit_for_import(path):
-    from otterwiki.import_runtime import repo_commit
-
-    return repo_commit(path)
 
 
 def handle_document_import(form, files):

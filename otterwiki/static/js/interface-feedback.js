@@ -65,9 +65,17 @@
                 fadeTimer = null;
                 return;
             }
+            // 提示已经显示时再次提示只会改写文本，`hidden` 属性不变；
+            // 监听字符变化才能重建关闭按钮并重置自动隐藏计时器。
             onShown();
         });
-        observer.observe(element, { attributes: true, attributeFilter: ["hidden"] });
+        observer.observe(element, {
+            attributes: true,
+            attributeFilter: ["hidden"],
+            characterData: true,
+            childList: true,
+            subtree: true
+        });
 
         if (!element.hidden) {
             onShown();

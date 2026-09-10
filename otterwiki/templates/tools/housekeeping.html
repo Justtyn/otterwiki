@@ -3,7 +3,6 @@
 {% block content %}
 {% set settings_page_title = "维护工具" %}
 {% set settings_page_icon = "fas fa-broom" %}
-{% set settings_page_desc = "清理草稿与异常页面，检查 Wiki 的安全状态。" %}
 {% include "snippets/settings_page_header.html" %}
 <div class="card settings-card">
 <div class="mw-full">
@@ -94,7 +93,6 @@
 <div class="card settings-card">
 <div class="mw-full">
 <h2 class="card-title"><i class="fas fa-shield-alt"></i>安全检查</h2>
-<p class="text-muted">安全检查会概览 Wiki 的安全状态并指出潜在问题。它仅提供信息，可随时在任何环境中安全运行。</p>
 <div id="security-check-results" style="display:none;">
 <table class="table compact settings-table" style="table-layout: fixed; width: 100%;">
     <thead>

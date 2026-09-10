@@ -191,7 +191,7 @@ def wait_for_readers(target, timeout=60):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError(
-                    "等待空间已有请求结束超过 60 秒，未修改仓库。"
+                    f"等待空间已有请求结束超过 {timeout:g} 秒，未修改仓库。"
                 )
             _condition.wait(remaining)
 
@@ -272,6 +272,19 @@ def recover_journal(root, data):
     ):
         data["maintenance"] = False
         data["error"] = "任务已中断，当前仍为原仓库；请核对后重新导入。"
+    elif (
+        not target.exists()
+        and (backup is None or not backup.exists())
+        and "old_commit" not in data
+    ):
+        # 目标与备份都不存在，且日志没有原提交：切换尚未开始（例如目标
+        # 路径本就不存在时提前失败）。此时没有可恢复的现场，解除维护，
+        # 否则空间会被永久钉在维护态且应用内没有解除入口。
+        data["maintenance"] = False
+        data["error"] = (
+            "任务中断时内容仓库路径不存在，没有产生任何改动；"
+            "请确认仓库目录已挂载后重新导入。"
+        )
     else:
         data["maintenance"] = True
         data["error"] = (

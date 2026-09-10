@@ -3,11 +3,13 @@ import time
 from types import SimpleNamespace
 
 import git
+import pytest
 from sqlalchemy import inspect, text
 
 from otterwiki.credentials import decrypt_secret
 from otterwiki.models import GitSyncTask, SpaceGitRepository
 from otterwiki.repository_sync import (
+    RepositorySyncError,
     queue_task,
     validate_branch,
     validate_remote_url,
@@ -46,20 +48,34 @@ def test_remote_and_branch_validation():
     assert validate_remote_url("http://example.com/team/wiki.git")
     assert validate_remote_url("git@example.com:team/wiki.git")
     assert validate_remote_url("ssh://git@example.com/team/wiki.git")
-    for value in ("file:///tmp/repo", "ext::touch /tmp/x", "-upload-pack=x"):
-        try:
+    assert validate_remote_url("https://gitlab.example.com/team/wiki.git")
+    # 协议黑名单必须大小写不敏感；内网/回环/链路本地地址一律拒绝
+    rejected = (
+        "file:///tmp/repo",
+        "ext::touch /tmp/x",
+        "EXT::touch /tmp/x",
+        "File::/tmp/repo",
+        "-upload-pack=x",
+        "C:\\repo",
+        "git@example.com:../repo.git",
+        "http://127.0.0.1:8080/repo.git",
+        "http://169.254.169.254/latest/meta-data",
+        "http://10.1.2.3/repo.git",
+        "http://192.168.1.9/repo.git",
+        "http://172.16.3.4/repo.git",
+        "http://localhost:3000/repo.git",
+        "ssh://root@localhost/repo.git",
+        "https://[::1]/repo.git",
+        "git@10.1.2.3:team/repo.git",
+        "http://user:password@example.com/repo.git",
+        "ftp://example.com/repo.git",
+    )
+    for value in rejected:
+        with pytest.raises(RepositorySyncError):
             validate_remote_url(value)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(value)
     for value in ("-main", "bad..branch", "refs/@{bad", "bad branch"):
-        try:
+        with pytest.raises(RepositorySyncError):
             validate_branch(value)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError(value)
 
 
 def test_repository_form_encrypts_secret_and_enforces_one_space(

@@ -172,6 +172,28 @@ def test_thumbnail_svg(test_client):
     assert b"<svg" in response.data
 
 
+def test_active_content_attachments_are_downloaded(test_client):
+    """HTML/SVG 附件必须下载而不是同源内联执行（结构化导航会链接它们）。"""
+    app = test_client._app
+    app.storage.store(
+        "Test/index.html",
+        "<script>window.__xss = 1;</script>",
+        author=("Test", "test@example.org"),
+    )
+    for url in ("/Test/index.html", "/Test/a/index.html"):
+        response = test_client.get(url)
+        assert response.status_code == 200
+        assert response.headers["Content-Disposition"].startswith("attachment")
+    # SVG 同样作为下载返回
+    response = test_client.get("/Test/attachment2.svg")
+    assert response.status_code == 200
+    assert response.headers["Content-Disposition"].startswith("attachment")
+    # 普通附件保持内联
+    response = test_client.get("/Test/attachment0.txt")
+    assert response.status_code == 200
+    assert response.headers["Content-Disposition"].startswith("inline")
+
+
 def test_rename_attachment(test_client, req_ctx):
     response = test_client.get("/Test/attachments")
     assert response.status_code == 200
