@@ -863,7 +863,11 @@ class StructuredNavigation:
             if child_specs:
                 base = config_base or directory
                 entry.children = self._build_configured_children(
-                    base, directory, child_specs, expand_all, path_guard
+                    base,
+                    directory,
+                    child_specs,
+                    expand_all,
+                    path_guard | {directory},
                 )
             else:
                 entry.children = self._build_directory(
@@ -989,7 +993,7 @@ class StructuredNavigation:
                 config_base,
                 spec,
                 expand_all,
-                path_guard | {target} if target is not None else path_guard,
+                path_guard,
             )
             if entry is None:
                 continue

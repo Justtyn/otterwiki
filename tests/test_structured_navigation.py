@@ -32,6 +32,12 @@ def _populate_structured_docs(storage):
           code: demo-component
 """,
         "suite/aps/index.md": "# 产品手册\n",
+        "suite/aps/.sidebar.json.bak": json.dumps(
+            [{"title": "手册指南", "path": "guide"}],
+            ensure_ascii=False,
+        ),
+        "suite/aps/guide/index.md": "# 手册指南\n",
+        "suite/aps/guide/child.md": "# 子页面\n",
         "suite/components/index.md": "# 产品组件\n",
         "suite/reference/index.md": "# 参考指南\n",
         "suite/reference/config/framework/1-full.md": "# 全量配置清单\n",
@@ -118,6 +124,20 @@ def test_rule_driven_navigation_honors_model_portal_and_sidebar(
     assert [entry.header for entry in demo_children] == ["第二页", "第一页"]
     assert [entry.number for entry in demo_children] == ["1.1.1.1", "1.1.1.2"]
     assert demo_children[1].active is True
+
+
+def test_configured_directory_without_children_auto_discovers_pages(
+    create_app, req_ctx
+):
+    """仅配置 path 的目录仍应递归展示仓库中的真实子页面。"""
+    from otterwiki.sidebar import SidebarPageIndex
+
+    _populate_structured_docs(create_app.storage)
+    tree = SidebarPageIndex("suite/aps/index").query()
+
+    guide = next(iter(tree.values()))
+    assert guide.header == "手册指南"
+    assert [entry.header for entry in guide.children.values()] == ["子页面"]
 
 
 def test_directory_without_index_links_to_first_real_descendant(
